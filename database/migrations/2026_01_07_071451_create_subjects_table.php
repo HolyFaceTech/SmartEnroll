@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('subjects', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('code'); // e.g., MATH101
+            $table->string('code'); 
             $table->string('description');
             $table->string('grade_level');
-            $table->foreignUuid('strand_id')->nullable()->constrained(); // Nullable kasi baka Core subject (pang lahat)
-            $table->string('semester'); // 1st or 2nd
+            $table->foreignUuid('strand_id')->nullable()->constrained();
+            $table->string('term'); 
             $table->timestamps();
-            $table->softDeletes(); // RECYCLE BIN
+            $table->softDeletes(); 
         });
     }
 

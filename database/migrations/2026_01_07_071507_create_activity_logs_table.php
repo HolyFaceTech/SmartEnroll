@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('activity_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignUuid('user_id')->nullable(); // Sinong gumawa?
-            $table->string('action'); // Created, Updated, Deleted, Login
-            $table->text('description'); // Details
+            $table->foreignUuid('user_id')->nullable(); 
+            $table->string('action'); 
+            $table->text('description'); 
             $table->ipAddress('ip_address')->nullable();
             $table->timestamps();
         });

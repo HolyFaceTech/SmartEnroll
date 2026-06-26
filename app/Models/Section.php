@@ -18,15 +18,11 @@ class Section extends Model
         'capacity'
     ];
 
-    // Relationships
-
-    // Ang Section ay pagmamay-ari ng isang Strand
     public function strand()
     {
         return $this->belongsTo(Strand::class);
     }
 
-    // Ang Section ay may maraming Students
     public function students()
     {
         return $this->hasMany(Student::class);

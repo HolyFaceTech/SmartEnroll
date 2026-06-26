@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('sections', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('name'); // e.g., Newton, Euler
+            $table->string('name'); 
             $table->foreignUuid('strand_id')->constrained()->onDelete('cascade');
-            $table->string('grade_level'); // 11 or 12
+            $table->string('grade_level');
             $table->integer('capacity')->default(40);
             $table->timestamps();
-            $table->softDeletes(); // RECYCLE BIN
+            $table->softDeletes(); 
         });
     }
 

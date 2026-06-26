@@ -21,14 +21,16 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'first_name',
+        'middle_name',
+        'last_name',
+        'suffix',
         'email',
         'password',
         'role',
         'status',
         'contact_number', 
         'birthday', 
-        'age', 
         'gender',
         'email_verified_at',
     ];
@@ -57,13 +59,13 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Override: Gawing 'Active' ang status kapag na-verify ang email.
+     * Status will be active when verified
      */
     public function markEmailAsVerified()
     {
         return $this->forceFill([
             'email_verified_at' => $this->freshTimestamp(),
-            'status' => 'active', // ETO ANG MAGIC!
+            'status' => 'active', 
         ])->save();
     }
 }

@@ -10,15 +10,12 @@ class ActivityLog extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',      // Sinong gumawa?
-        'action',       // Created, Updated, Deleted, Logged In
-        'description',  // Detalye (e.g., "Deleted student Juan Dela Cruz")
+        'user_id',      
+        'action',       
+        'description', 
         'ip_address'
     ];
 
-    // Relationships
-
-    // Gusto nating malaman kung sinong User ang gumawa ng action
     public function user()
     {
         return $this->belongsTo(User::class);
