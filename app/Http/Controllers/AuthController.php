@@ -9,39 +9,49 @@ use App\Models\ActivityLog;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class AuthController extends Controller
 {
-    // --- LOGIN ---
+    // login
     public function login(Request $request)
     {
         $request->validate([
             'email' => 'required|email',
-            'password' => 'required'
+            'password' => 'required',
+            'recaptcha_token' => 'required|string', 
         ]);
+
+        $recaptchaResponse = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+            'secret' => env('RECAPTCHA_SECRET_KEY'),
+            'response' => $request->recaptcha_token,
+            'remoteip' => $request->ip() 
+        ]);
+
+        $recaptchaData = $recaptchaResponse->json();
+
+        if (!$recaptchaData['success']) {
+            return response()->json(['message' => 'reCAPTCHA verification failed. Please try again.'], 422);
+        }
 
         $user = User::where('email', $request->email)->first();
 
-        // 1. Check Credentials
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'Invalid credentials. Please try again.'], 401);
         }
 
-        // 2. Check Verification
         if (!$user->hasVerifiedEmail()) {
             return response()->json(['message' => 'Email is not verified.', 'needs_verification' => true], 403);
         }
 
-        // 3. Check Role (Admin & Staff lang ang allowed)
-        if (!in_array($user->role, ['admin', 'staff'])) {
+        if (!in_array($user->role, ['super_admin', 'admin', 'staff'])) {
             return response()->json(['message' => 'Unauthorized access.'], 403);
         }
 
-        // 4. Create Token
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // 5. Log Activity
         ActivityLog::create([
             'user_id' => $user->id,
             'action' => 'login',
@@ -49,17 +59,16 @@ class AuthController extends Controller
             'ip_address' => $request->ip()
         ]);
 
-        // 6. Return Response (Importante ang ROLE dito)
         return response()->json([
             'message' => 'Login successful!',
             'user' => $user,
-            'role' => $user->role, // Ito ang gagamitin ng Frontend pang-redirect
+            'role' => $user->role,
             'access_token' => $token,
             'token_type' => 'Bearer',
         ]);
     }
 
-    // --- LOGOUT ---
+    // logout
     public function logout(Request $request)
     {
         $user = $request->user();
@@ -75,7 +84,7 @@ class AuthController extends Controller
         return response()->json(['message' => 'Logged out successfully']);
     }
 
-    // --- FORGOT PASSWORD (Send Link) ---
+    // forgot password
     public function sendResetLinkEmail(Request $request)
     {
         $request->validate(['email' => 'required|email']);
@@ -87,16 +96,22 @@ class AuthController extends Controller
         return response()->json(['message' => 'Unable to send reset link.'], 400);
     }
 
-    // --- RESET PASSWORD (With Auto-Login) ---
+    // reset
     public function resetPassword(Request $request)
     {
         $request->validate([
             'token' => 'required',
             'email' => 'required|email',
-            'password' => 'required|min:8|confirmed',
+            'password' => [
+                'required', 
+                'confirmed', 
+                PasswordRule::min(8)
+                    ->mixedCase() 
+                    ->numbers() 
+                    ->symbols() 
+            ],
         ]);
 
-        // 1. Reset Password Logic
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user, $password) {
@@ -110,14 +125,13 @@ class AuthController extends Controller
         if ($status === Password::PASSWORD_RESET) {
             $user = User::where('email', $request->email)->first();
             
-            // 2. AUTO LOGIN: Create Token agad
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
                 'message' => 'Password reset success', 
-                'role' => $user->role, // Importante para sa redirect
+                'role' => $user->role, 
                 'verified' => $user->hasVerifiedEmail(),
-                'token' => $token,     // Importante para sa auto-login
+                'token' => $token,    
                 'user' => $user
             ]);
         }
@@ -125,7 +139,7 @@ class AuthController extends Controller
         return response()->json(['message' => 'Invalid token or email.'], 400);
     }
 
-    // --- RESEND VERIFICATION ---
+    // resend verification
     public function resendVerification(Request $request)
     {
         $request->validate(['email' => 'required|email']);

@@ -6,14 +6,16 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // --- LAYOUTS ---
 import PublicLayout from "./layouts/PublicLayout";
+import AuthLayout from "./layouts/AuthLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import StaffLayout from "./layouts/StaffLayout";
 
 // --- PUBLIC PAGES ---
 import Landing from "./pages/Landing";
-import Login from "./pages/Login";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
+import Login from "./pages/auth/Login";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
+import VerifyEmail from "./pages/auth/VerifyEmail";
 import Maintenance from "./pages/Maintenance";
 
 // --- ADMIN PAGES ---
@@ -75,6 +77,7 @@ function App() {
                     path="/password-reset/:token"
                     element={<ResetPassword />}
                 />
+                <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/maintenance" element={<Maintenance />} />
 
                 {/* ==============================
