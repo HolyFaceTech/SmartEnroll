@@ -7,6 +7,7 @@ use Illuminate\Auth\Events\Verified;
 // CONTROLLERS IMPORT
 use App\Http\Controllers\Api\PublicEnrollmentController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\SuperAdminDashboardController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\StrandController;
@@ -56,6 +57,12 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    // --- SUPER ADMIN DASHBOARD ---
+    Route::prefix('super-admin')->group(function () {
+        Route::get('/analytics', [SuperAdminDashboardController::class, 'getAnalytics']);
+        Route::put('/statuses/{id}/toggle', [SuperAdminDashboardController::class, 'toggleStatus']);
+    });
 
     // --- ADMIN DASHBOARD ---
     Route::get('/admin/analytics', [AdminController::class, 'getAnalytics']);

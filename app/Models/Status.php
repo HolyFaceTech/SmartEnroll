@@ -14,6 +14,8 @@ class Status extends Model
     protected $fillable = [
         'title',
         'description',
+        'type',
+        'status',
         'start_at',
         'end_at',
     ];

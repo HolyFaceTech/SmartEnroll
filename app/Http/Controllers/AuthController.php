@@ -59,6 +59,8 @@ class AuthController extends Controller
             'ip_address' => $request->ip()
         ]);
 
+        $user->update(['login_at' => now()]);
+        
         return response()->json([
             'message' => 'Login successful!',
             'user' => $user,

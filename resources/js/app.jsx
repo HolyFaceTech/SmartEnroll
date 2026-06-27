@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 // --- LAYOUTS ---
 import PublicLayout from "./layouts/PublicLayout";
 import AuthLayout from "./layouts/AuthLayout";
+import SuperAdminLayout from "./layouts/SuperAdminLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import StaffLayout from "./layouts/StaffLayout";
 
@@ -17,6 +18,9 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import VerifyEmail from "./pages/auth/VerifyEmail";
 import Maintenance from "./pages/Maintenance";
+
+// --- SUPER ADMIN PAGES (NEW) ---
+import SuperAdminDashboard from "./pages/superadmin/Dashboard";
 
 // --- ADMIN PAGES ---
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -79,6 +83,67 @@ function App() {
                 />
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/maintenance" element={<Maintenance />} />
+
+                {/* ==============================
+                    SUPER ADMIN ROUTES (NEW)
+                ============================== */}
+                <Route path="/super-admin" element={<SuperAdminLayout />}>
+                    <Route
+                        index
+                        element={
+                            <Navigate to="/super-admin/dashboard" replace />
+                        }
+                    />
+                    <Route path="dashboard" element={<SuperAdminDashboard />} />
+
+                    {/* Mga hindi pa natin nagagawang pages, naka-Placeholder muna */}
+                    <Route
+                        path="users"
+                        element={<Placeholder title="User Management" />}
+                    />
+                    <Route
+                        path="students"
+                        element={<Placeholder title="Student Records" />}
+                    />
+                    <Route
+                        path="strands"
+                        element={<Placeholder title="Strands Setup" />}
+                    />
+                    <Route
+                        path="sections"
+                        element={<Placeholder title="Sections Setup" />}
+                    />
+                    <Route
+                        path="subjects"
+                        element={<Placeholder title="Subjects Setup" />}
+                    />
+                    <Route
+                        path="requests"
+                        element={
+                            <Placeholder title="Document Requests (Kanban)" />
+                        }
+                    />
+                    <Route
+                        path="statuses"
+                        element={<Placeholder title="System Statuses" />}
+                    />
+                    <Route
+                        path="maintenances"
+                        element={<Placeholder title="Maintenance Control" />}
+                    />
+                    <Route
+                        path="activity-logs"
+                        element={<Placeholder title="Activity Logs" />}
+                    />
+                    <Route
+                        path="settings"
+                        element={<Placeholder title="Global Settings" />}
+                    />
+                    <Route
+                        path="reports"
+                        element={<Placeholder title="System Reports" />}
+                    />
+                </Route>
 
                 {/* ==============================
                     ADMIN ROUTES
