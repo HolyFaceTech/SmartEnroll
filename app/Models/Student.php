@@ -12,6 +12,7 @@ class Student extends Model
     use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
+        'student_number',
         'lrn',
         'last_name',
         'first_name',
