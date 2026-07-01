@@ -12,68 +12,79 @@ use App\Mail\UserUpdatedMail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class UserController extends Controller
 {
-    // GET ALL USERS
-    public function index()
+    // view
+    public function index(Request $request)
     {
-        // Ibalik ang users sorted by newest
-        return User::latest()->get();
+        $limit = $request->input('limit', 10);
+        $search = $request->input('search', '');
+        $query = User::orderBy('created_at', 'desc');
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('middle_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('contact_number', 'like', "%{$search}%")
+                  ->orWhere('role', 'like', "%{$search}%")
+                  ->orWhere('status', 'like', "%{$search}%")
+                  ->orWhere('gender', 'like', "%{$search}%");
+            });
+        }
+
+        return response()->json($query->paginate($limit));
     }
 
-    // CREATE USER
+    // create
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string',
+            'first_name' => 'required|string',
+            'middle_name' => 'nullable|string',
+            'last_name' => 'required|string',
+            'suffix' => 'nullable|string',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:8',
+            'password' => ['required', PasswordRule::min(8)->mixedCase()->numbers()->symbols()],
             'role' => 'required',
             'status' => 'required|in:active,inactive',
-            'contact_number' => 'required',
-            'birthday' => 'required|date',
-            'age' => 'required|integer',
-            'gender' => 'required',
+            'contact_number' => 'nullable|string',
+            'birthday' => 'nullable|date',
+            'gender' => 'nullable|string',
         ]);
 
         $userData = $validated;
         $userData['password'] = Hash::make($validated['password']);
-        
-        // TANGGALIN NATIN ITO: 'email_verified_at' => now() 
-        // Para manatiling UNVERIFIED ang account.
-        
         $user = User::create($userData);
 
-        // LOG ACTIVITY: CREATE
+        $fullName = trim("{$user->first_name} {$user->last_name}");
+
         ActivityLog::create([
             'user_id' => Auth::id(),
             'action' => 'create',
-            'description' => "Created new user account: {$user->name} ({$user->role})",
+            'description' => "Created new user account: {$fullName} ({$user->role})",
             'ip_address' => $request->ip()
         ]);
 
-        // SEND CREDENTIALS & VERIFICATION LINK
         try {
-            // 1. Generate Signed Verification URL (Valid for 24 hours)
-            // Tinuturo natin ito sa API route na gagawin natin sa Step 4
             $verificationUrl = URL::temporarySignedRoute(
-                'verification.verify.api', // Route Name
+                'verification.verify.api', 
                 Carbon::now()->addHours(24),
                 ['id' => $user->id, 'hash' => sha1($user->email)]
             );
 
-            // 2. Send Email
             Mail::to($user->email)->send(new UserCredentialsMail($user, $validated['password'], $verificationUrl));
 
         } catch (\Exception $e) {
-            // Log error (optional)
         }
 
         return response()->json(['message' => 'User created! Credentials sent via email.', 'user' => $user]);
     }
 
-    // UPDATE USER
+    // update
     public function update(Request $request, $id)
     {
         $user = User::find($id);
@@ -83,74 +94,66 @@ class UserController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => 'required|string',
+            'first_name' => 'required|string',
+            'middle_name' => 'nullable|string',
+            'last_name' => 'required|string',
+            'suffix' => 'nullable|string',
             'email' => 'required|email|unique:users,email,' . $id,
             'role' => 'required',
             'status' => 'required|in:active,inactive',
-            'contact_number' => 'required',
-            'birthday' => 'required|date',
-            'age' => 'required|integer',
-            'gender' => 'required',
+            'contact_number' => 'nullable|string',
+            'birthday' => 'nullable|date',
+            'gender' => 'nullable|string',
+            'password' => ['nullable', PasswordRule::min(8)->mixedCase()->numbers()->symbols()],
         ]);
 
-        // Variable para sa Plain Password
         $plainPassword = null;
 
-        // 1. Password Logic
         if ($request->filled('password')) {
-            $plainPassword = $request->password; // KOPYAHIN MUNA ANG PLAIN TEXT
-            $validated['password'] = Hash::make($plainPassword); // Saka i-hash
+            $plainPassword = $request->password; 
+            $validated['password'] = Hash::make($plainPassword); 
         } else {
             unset($validated['password']);
         }
 
-        // 2. Fill Data
         $user->fill($validated);
 
-        // 3. Status Logic (Inactive = Null Verify)
         if ($request->status === 'inactive') {
             $user->email_verified_at = null;
         }
 
-        // 4. GET CHANGES (Dito makukuha ang Hashed Password)
         $changes = $user->getDirty(); 
 
-        // Clean up internal fields
         unset($changes['updated_at']);
         unset($changes['email_verified_at']); 
 
-        // 🚨 OVERRIDE: Palitan ang Hashed Password ng Plain Password sa Email List
         if ($plainPassword && array_key_exists('password', $changes)) {
-            $changes['password'] = $plainPassword; // Ito ang magpapakita ng "password123"
+            $changes['password'] = $plainPassword; 
         }
 
-        // 5. Save
         $user->save();
+        $fullName = trim("{$user->first_name} {$user->last_name}");
 
-        // LOG ACTIVITY: UPDATE
         ActivityLog::create([
             'user_id' => Auth::id(),
             'action' => 'update',
-            'description' => "Updated user account details for: {$user->name}",
+            'description' => "Updated user account details for: {$fullName}",
             'ip_address' => $request->ip()
         ]);
 
-        // 6. Send Email
         if (!empty($changes)) {
             try {
                 Mail::to($user->email)->send(new UserUpdatedMail($user, $changes));
             } catch (\Exception $e) {
-                // Log error
             }
         }
 
         return response()->json(['message' => 'User updated successfully!', 'user' => $user]);
     }
 
-    // DELETE USER
+    // delete
     public function destroy($id)
     {
-        // SAFETY LOCK: Check kung sariling account ang buburahin
         if (auth()->id() == $id) {
             return response()->json(['message' => 'You cannot delete your own account.'], 403);
         }
@@ -158,10 +161,9 @@ class UserController extends Controller
         $user = User::find($id);
         
         if($user) {
-            $userName = $user->name; // Save name before deleting
+            $userName = $user->name; 
             $user->delete();
 
-            // LOG ACTIVITY: DELETE
             ActivityLog::create([
                 'user_id' => Auth::id(),
                 'action' => 'delete',
@@ -173,5 +175,31 @@ class UserController extends Controller
         }
         
         return response()->json(['message' => 'User not found'], 404);
+    }
+
+    // bulk delete
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:users,id'
+        ]);
+
+        $idsToDelete = array_diff($request->ids, [auth()->id()]);
+
+        if (empty($idsToDelete)) {
+            return response()->json(['message' => 'No valid users to delete.'], 400);
+        }
+
+        User::whereIn('id', $idsToDelete)->delete();
+
+        ActivityLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'delete',
+            'description' => "Bulk deleted " . count($idsToDelete) . " user account(s).",
+            'ip_address' => $request->ip()
+        ]);
+
+        return response()->json(['message' => 'Selected users deleted successfully.']);
     }
 }

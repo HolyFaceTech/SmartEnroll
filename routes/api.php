@@ -58,10 +58,18 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // --- SUPER ADMIN DASHBOARD ---
-    Route::prefix('super-admin')->group(function () {
+    // super admin
+    Route::middleware(['role:super_admin'])->prefix('super_admin')->group(function () {
+        // dashboard
         Route::get('/analytics', [SuperAdminDashboardController::class, 'getAnalytics']);
         Route::put('/statuses/{id}/toggle', [SuperAdminDashboardController::class, 'toggleStatus']);
+    });
+
+    // shared - super-admin and admin
+    Route::middleware(['role:super_admin,admin'])->group(function () {
+        // users
+        Route::post('/users/bulk-delete', [UserController::class, 'bulkDelete']);
+        Route::apiResource('users', UserController::class);
     });
 
     // --- ADMIN DASHBOARD ---

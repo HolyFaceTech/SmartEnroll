@@ -240,6 +240,11 @@ export default function SuperAdminLayout() {
                                 icon: "bi-file-earmark-bar-graph-fill",
                                 label: "Reports",
                             },
+                            {
+                                path: "/super-admin/recycle-bin",
+                                icon: "bi-trash-fill",
+                                label: "Recycle Bin",
+                            },
                         ].map((item) => (
                             <li className="nav-item mb-2" key={item.path}>
                                 <Link
@@ -272,7 +277,7 @@ export default function SuperAdminLayout() {
                         className={`d-flex align-items-center text-white text-decoration-none cursor-pointer p-2 rounded ${!isSidebarOpen && !isMobile ? "justify-content-center" : ""}`}
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                         style={{
-                            border: "2px solid #F4D03F",
+                            border: "2px solid #000000",
                             backgroundColor: isDropdownOpen
                                 ? "rgba(255,255,255,0.1)"
                                 : "transparent",
@@ -280,7 +285,7 @@ export default function SuperAdminLayout() {
                         }}
                     >
                         <img
-                            src={`https://ui-avatars.com/api/?name=${displayName}&background=F4D03F&color=000&bold=true`}
+                            src={`https://ui-avatars.com/api/?name=${displayName}&background=000000&color=fff&bold=true`}
                             alt="User"
                             width="40"
                             height="40"

@@ -231,6 +231,11 @@ div:where(.swal2-container) button.swal2-confirm {
     color: #fff !important;
 }
 
+/* Override para sa delete/danger confirms */
+div:where(.swal2-container) button.swal2-confirm.bg-danger {
+    background-color: var(--color-danger) !important;
+}
+
 /* 9. UTILITIES */
 .text-retro-primary { color: var(--color-primary); }
 .text-retro-danger { color: var(--color-danger); }

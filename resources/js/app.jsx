@@ -19,8 +19,9 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import VerifyEmail from "./pages/auth/VerifyEmail";
 import Maintenance from "./pages/Maintenance";
 
-// --- SUPER ADMIN PAGES (NEW) ---
+// super admin
 import SuperAdminDashboard from "./pages/superadmin/Dashboard";
+import SuperAdminUsers from "./pages/superadmin/Users";
 
 // --- ADMIN PAGES ---
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -84,9 +85,7 @@ function App() {
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/maintenance" element={<Maintenance />} />
 
-                {/* ==============================
-                    SUPER ADMIN ROUTES (NEW)
-                ============================== */}
+                {/* super admin */}
                 <Route path="/super-admin" element={<SuperAdminLayout />}>
                     <Route
                         index
@@ -95,12 +94,7 @@ function App() {
                         }
                     />
                     <Route path="dashboard" element={<SuperAdminDashboard />} />
-
-                    {/* Mga hindi pa natin nagagawang pages, naka-Placeholder muna */}
-                    <Route
-                        path="users"
-                        element={<Placeholder title="User Management" />}
-                    />
+                    <Route path="users" element={<SuperAdminUsers />} />
                     <Route
                         path="students"
                         element={<Placeholder title="Student Records" />}
@@ -142,6 +136,10 @@ function App() {
                     <Route
                         path="reports"
                         element={<Placeholder title="System Reports" />}
+                    />
+                    <Route
+                        path="recycle-bin"
+                        element={<Placeholder title="System Recycle Bin" />}
                     />
                 </Route>
 

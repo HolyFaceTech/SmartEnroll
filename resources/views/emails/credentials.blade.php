@@ -13,17 +13,16 @@
                 
                 <div style="max-width: 600px; margin: 0 auto; background-color: #fcfbf4; border: 3px solid #2d3436; padding: 0; box-shadow: 8px 8px 0px #2d3436; text-align: left;">
                     
-                    {{-- HEADER --}}
                     <div style="background-color: #F4D03F; padding: 20px; border-bottom: 3px solid #2d3436; text-align: center;">
                         <h1 style="margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; color: #2d3436;">
-                            🎓 Holy Face
+                            🎓 SmartEnroll
                         </h1>
                         <span style="font-size: 12px; font-weight: bold; background-color: #2d3436; color: #fff; padding: 2px 8px; margin-top: 5px; display: inline-block;">OFFICIAL ACCOUNT</span>
                     </div>
 
                     <div style="padding: 30px;">
                         <p style="font-size: 16px; margin-bottom: 20px;">
-                            Dear <strong>{{ strtoupper($user->name) }}</strong>,
+                            Dear <strong>{{ strtoupper($user->first_name) }} {{ strtoupper($user->last_name) }},
                         </p>
 
                         <p style="font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
@@ -59,7 +58,6 @@
                             ⚠️ SECURITY REMINDER: Please change your password immediately after your first login.
                         </p>
 
-                        {{-- ACTION BUTTON --}}
                         <div style="text-align: center; margin-bottom: 25px;">
                             <a href="{{ $verificationUrl }}" style="background-color: #2d3436; color: #ffffff; padding: 12px 25px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block; border: 1px solid #000; text-transform: uppercase;">
                                 Verify & Access Account &rarr;
@@ -72,10 +70,9 @@
                         </p>
                     </div>
 
-                    {{-- FOOTER --}}
                     <div style="background-color: #2d3436; color: #dfe6e9; padding: 15px; text-align: center; font-size: 11px;">
                         <p style="margin: 0 0 5px 0;">This is an automated system message. Please do not reply.</p>
-                        <p style="margin: 0;">&copy; {{ date('Y') }} SmartEnroll System. All Rights Reserved.</p>
+                        <p style="margin: 0;">&copy; {{ date('Y') }} SmartEnroll v2. All Rights Reserved.</p>
                     </div>
 
                 </div>
