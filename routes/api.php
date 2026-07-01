@@ -77,14 +77,15 @@ Route::middleware('auth:sanctum')->group(function () {
         // strands
         Route::post('/strands/bulk-delete', [StrandController::class, 'bulkDelete']); 
         Route::apiResource('strands', StrandController::class);
+
+        // subjects
+        Route::post('/subjects/bulk-delete', [SubjectController::class, 'bulkDelete']); 
+        Route::post('/subjects/import', [SubjectController::class, 'importCsv']); 
+        Route::apiResource('subjects', SubjectController::class);
     });
 
     // --- ADMIN DASHBOARD ---
     Route::get('/admin/analytics', [AdminController::class, 'getAnalytics']);
-
-    // --- ACADEMIC MANAGEMENT ---
-    
-    Route::apiResource('subjects', SubjectController::class);
     
     // Sections & Masterlist
     Route::apiResource('sections', SectionController::class);
