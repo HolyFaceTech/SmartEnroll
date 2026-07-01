@@ -9,26 +9,34 @@ use Illuminate\Support\Facades\Auth;
 
 class StrandController extends Controller
 {
-    // GET: Kunin lahat ng strands
-    public function index()
+    // view
+    public function index(Request $request)
     {
-        // I-return natin na naka-sort mula sa pinakabago
-        return Strand::latest()->get();
+        $limit = $request->input('limit', 10);
+        $search = $request->input('search', '');
+        
+        $query = Strand::orderBy('created_at', 'desc');
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        return response()->json($query->paginate($limit));
     }
 
-    // POST: Mag-save ng bagong strand
+    // create
     public function store(Request $request)
     {
-        // Validation
         $validated = $request->validate([
-            'code' => 'required|unique:strands,code|max:20', // Dapat unique ang code (e.g., STEM)
+            'code' => 'required|unique:strands,code|max:20', 
             'description' => 'required|string',
         ]);
 
-        // Create
         $strand = Strand::create($validated);
 
-        // LOG ACTIVITY: CREATE
         ActivityLog::create([
             'user_id' => Auth::id(),
             'action' => 'create',
@@ -42,7 +50,7 @@ class StrandController extends Controller
         ]);
     }
 
-    // PUT: Mag-update ng existing strand
+    // update
     public function update(Request $request, $id)
     {
         $strand = Strand::find($id);
@@ -51,16 +59,13 @@ class StrandController extends Controller
             return response()->json(['message' => 'Strand not found'], 404);
         }
 
-        // Validation (Ignore current ID sa unique check para di mag-error kung di pinalitan ang code)
         $validated = $request->validate([
             'code' => 'required|max:20|unique:strands,code,' . $id,
             'description' => 'required|string',
         ]);
 
-        // Update
         $strand->update($validated);
 
-        // LOG ACTIVITY: UPDATE
         ActivityLog::create([
             'user_id' => Auth::id(),
             'action' => 'update',
@@ -74,16 +79,15 @@ class StrandController extends Controller
         ]);
     }
 
-    // DELETE: Magbura ng strand
+    // delete
     public function destroy($id)
     {
         $strand = Strand::find($id);
 
         if ($strand) {
-            $code = $strand->code; // Simpan muna ang code bago burahin para sa log
+            $code = $strand->code; 
             $strand->delete();
 
-            // LOG ACTIVITY: DELETE
             ActivityLog::create([
                 'user_id' => Auth::id(),
                 'action' => 'delete',
@@ -95,5 +99,29 @@ class StrandController extends Controller
         }
 
         return response()->json(['message' => 'Strand not found'], 404);
+    }
+
+    // bilk delete
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:strands,id'
+        ]);
+
+        if (empty($request->ids)) {
+            return response()->json(['message' => 'No valid strands to delete.'], 400);
+        }
+
+        Strand::whereIn('id', $request->ids)->delete();
+
+        ActivityLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'delete',
+            'description' => "Bulk deleted " . count($request->ids) . " strand(s).",
+            'ip_address' => $request->ip()
+        ]);
+
+        return response()->json(['message' => 'Selected strands deleted successfully.']);
     }
 }

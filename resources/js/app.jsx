@@ -22,6 +22,7 @@ import Maintenance from "./pages/Maintenance";
 // super admin
 import SuperAdminDashboard from "./pages/superadmin/Dashboard";
 import SuperAdminUsers from "./pages/superadmin/Users";
+import SuperAdminStrands from "./pages/superadmin/Strands";
 
 // --- ADMIN PAGES ---
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -99,10 +100,7 @@ function App() {
                         path="students"
                         element={<Placeholder title="Student Records" />}
                     />
-                    <Route
-                        path="strands"
-                        element={<Placeholder title="Strands Setup" />}
-                    />
+                    <Route path="strands" element={<SuperAdminStrands />} />
                     <Route
                         path="sections"
                         element={<Placeholder title="Sections Setup" />}

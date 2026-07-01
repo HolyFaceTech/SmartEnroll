@@ -65,19 +65,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/statuses/{id}/toggle', [SuperAdminDashboardController::class, 'toggleStatus']);
     });
 
-    // shared - super-admin and admin
+    // shared - super_admin and admin
     Route::middleware(['role:super_admin,admin'])->group(function () {
         // users
         Route::post('/users/bulk-delete', [UserController::class, 'bulkDelete']);
         Route::apiResource('users', UserController::class);
     });
 
+    // shared - super_admin, admin and staff
+    Route::middleware(['role:super_admin,admin,staff'])->group(function () {
+        // strands
+        Route::post('/strands/bulk-delete', [StrandController::class, 'bulkDelete']); 
+        Route::apiResource('strands', StrandController::class);
+    });
+
     // --- ADMIN DASHBOARD ---
     Route::get('/admin/analytics', [AdminController::class, 'getAnalytics']);
-    Route::resource('users', UserController::class);
 
     // --- ACADEMIC MANAGEMENT ---
-    Route::apiResource('strands', StrandController::class);
+    
     Route::apiResource('subjects', SubjectController::class);
     
     // Sections & Masterlist

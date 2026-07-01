@@ -2,12 +2,11 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Toast from "../../utils/toast";
-import UserDrawer from "../../components/UserDrawer";
+import StrandModal from "../../components/StrandModal";
 
-export default function Users() {
-    const [users, setUsers] = useState([]);
+export default function Strands() {
+    const [strands, setStrands] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [currentUser, setCurrentUser] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -15,9 +14,9 @@ export default function Users() {
     const [totalItems, setTotalItems] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [selectedIds, setSelectedIds] = useState([]);
-    const [showDrawer, setShowDrawer] = useState(false);
-    const [drawerType, setDrawerType] = useState("create");
-    const [selectedUser, setSelectedUser] = useState(null);
+    const [showModal, setShowModal] = useState(false);
+    const [modalType, setModalType] = useState("create");
+    const [selectedStrand, setSelectedStrand] = useState(null);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -27,46 +26,34 @@ export default function Users() {
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
-    const fetchUsers = async () => {
+    const fetchStrands = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`/api/users`, {
+            const res = await axios.get(`/api/strands`, {
                 params: {
                     page: currentPage,
                     limit: itemsPerPage,
                     search: debouncedSearch,
                 },
             });
-            setUsers(res.data.data);
+            setStrands(res.data.data);
             setTotalItems(res.data.total);
             setTotalPages(res.data.last_page);
             setSelectedIds([]);
         } catch (error) {
-            console.error(error);
-            Toast.fire({ icon: "error", title: "Failed to load users." });
+            Toast.fire({ icon: "error", title: "Failed to load strands." });
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-            setCurrentUser(JSON.parse(storedUser));
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchUsers();
+        fetchStrands();
     }, [currentPage, itemsPerPage, debouncedSearch]);
 
     const handleSelectAll = (e) => {
-        if (e.target.checked) {
-            const allIds = users.map((u) => u.id);
-            setSelectedIds(allIds);
-        } else {
-            setSelectedIds([]);
-        }
+        if (e.target.checked) setSelectedIds(strands.map((s) => s.id));
+        else setSelectedIds([]);
     };
 
     const handleSelectOne = (id) => {
@@ -80,15 +67,15 @@ export default function Users() {
     };
 
     const handleOpenCreate = () => {
-        setDrawerType("create");
-        setSelectedUser(null);
-        setShowDrawer(true);
+        setModalType("create");
+        setSelectedStrand(null);
+        setShowModal(true);
     };
 
-    const handleOpenEdit = (user) => {
+    const handleOpenEdit = (strand) => {
         Swal.fire({
-            title: "UPDATE USER?",
-            html: `Proceed to edit the records of <strong>${user.first_name}</strong>?`,
+            title: "UPDATE STRAND?",
+            html: `Proceed to edit the records of <strong>${strand.code}</strong>?`,
             icon: "question",
             showCancelButton: true,
             confirmButtonColor: "#F4D03F",
@@ -103,20 +90,20 @@ export default function Users() {
             },
         }).then((result) => {
             if (result.isConfirmed) {
-                setDrawerType("edit");
-                setSelectedUser(user);
-                setShowDrawer(true);
+                setModalType("edit");
+                setSelectedStrand(strand);
+                setShowModal(true);
             }
         });
     };
 
     const handleBulkDelete = () => {
         if (selectedIds.length === 0) return;
-        const userWord = selectedIds.length > 1 ? "USERS" : "USER";
+        const strandWord = selectedIds.length > 1 ? "STRANDS" : "STRAND";
 
         Swal.fire({
-            title: `DELETE ${selectedIds.length} ${userWord}?`,
-            text: "Users will be moved to the recycle bin.",
+            title: `DELETE ${selectedIds.length} ${strandWord}?`,
+            text: "Strands will be moved to the recycle bin.",
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#F96E5B",
@@ -132,28 +119,28 @@ export default function Users() {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    await axios.post(`/api/users/bulk-delete`, {
+                    await axios.post(`/api/strands/bulk-delete`, {
                         ids: selectedIds,
                     });
-                    fetchUsers();
+                    fetchStrands();
                     Toast.fire({
                         icon: "success",
-                        title: "Users removed successfully.",
+                        title: "Strands removed successfully.",
                     });
                 } catch (error) {
                     Toast.fire({
                         icon: "error",
-                        title: "Failed to delete users.",
+                        title: "Failed to delete strands.",
                     });
                 }
             }
         });
     };
 
-    const handleDelete = (id, firstName) => {
+    const handleDelete = (strand) => {
         Swal.fire({
-            title: "DELETE USER?",
-            html: `<strong>${firstName}</strong> will be moved to the recycle bin.`,
+            title: "DELETE STRAND?",
+            html: `<strong>${strand.code}</strong> will be moved to the recycle bin.`,
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#F96E5B",
@@ -169,20 +156,45 @@ export default function Users() {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    await axios.delete(`/api/users/${id}`);
-                    fetchUsers();
+                    await axios.delete(`/api/strands/${strand.id}`);
+                    fetchStrands();
                     Toast.fire({
                         icon: "success",
-                        title: "User removed successfully.",
+                        title: "Strand removed successfully.",
                     });
                 } catch (error) {
-                    const msg =
-                        error.response?.data?.message ||
-                        "Failed to delete user.";
-                    Toast.fire({ icon: "error", title: msg });
+                    Toast.fire({
+                        icon: "error",
+                        title: "Failed to delete strand.",
+                    });
                 }
             }
         });
+    };
+
+    const getStrandColor = (id) => {
+        const palettes = [
+            { bg: "#FF9F43", text: "#000" },
+            { bg: "#1DD1A1", text: "#000" },
+            { bg: "#5F27CD", text: "#FFF" },
+            { bg: "#FF6B6B", text: "#FFF" },
+            { bg: "#54A0FF", text: "#000" },
+            { bg: "#F368E0", text: "#FFF" },
+            { bg: "#00D2D3", text: "#000" },
+            { bg: "#FECA57", text: "#000" },
+            { bg: "#8395A7", text: "#FFF" },
+        ];
+
+        let num = 0;
+        if (typeof id === "string") {
+            for (let i = 0; i < id.length; i++) {
+                num += id.charCodeAt(i);
+            }
+        } else {
+            num = id;
+        }
+
+        return palettes[num % palettes.length];
     };
 
     return (
@@ -196,17 +208,16 @@ export default function Users() {
                         className="fw-bold text-dark mb-0 font-monospace text-uppercase"
                         style={{ textShadow: "2px 2px 0 #fff" }}
                     >
-                        USER RECORDS
+                        STRAND RECORDS
                     </h2>
                     <p className="text-muted small mb-0 font-monospace fw-bold">
-                        Manage system administrators, staff, and account access
-                        levels.
+                        Manage Senior High School Strands
                     </p>
                 </div>
                 <div className="d-flex gap-2">
                     {selectedIds.length > 0 && (
                         <button
-                            className="btn btn-retro px-4 py-2 d-flex align-items-center gap-2 fade-in"
+                            className="btn btn-retro px-4 py-2 d-flex align-items-center gap-2 fade-in text-white border-dark"
                             style={{
                                 backgroundColor: "#F96E5B",
                             }}
@@ -225,7 +236,7 @@ export default function Users() {
                     >
                         <i className="bi bi-plus-square-fill"></i>{" "}
                         <span className="d-none d-sm-inline ms-2">
-                            NEW USER
+                            NEW STRAND
                         </span>
                     </button>
                 </div>
@@ -262,10 +273,7 @@ export default function Users() {
                     <div className="input-group" style={{ maxWidth: "350px" }}>
                         <span className="input-group-text bg-white border-dark border-2 border-end-0">
                             {searchTerm !== debouncedSearch ? (
-                                <div
-                                    className="spinner-border spinner-border-sm text-dark"
-                                    role="status"
-                                ></div>
+                                <div className="spinner-border spinner-border-sm text-dark"></div>
                             ) : (
                                 <i className="bi bi-search"></i>
                             )}
@@ -295,14 +303,17 @@ export default function Users() {
                                 }}
                             >
                                 <tr className="text-uppercase small fw-bold">
-                                    <th className="ps-4 py-3 border-dark">
+                                    <th
+                                        className="ps-4 py-3 border-dark"
+                                        style={{ width: "40px" }}
+                                    >
                                         <input
                                             type="checkbox"
                                             className="form-check-input border-dark"
                                             checked={
-                                                users.length > 0 &&
+                                                strands.length > 0 &&
                                                 selectedIds.length ===
-                                                    users.length
+                                                    strands.length
                                             }
                                             onChange={handleSelectAll}
                                         />
@@ -311,40 +322,10 @@ export default function Users() {
                                         ID
                                     </th>
                                     <th className="py-3 font-monospace text-dark border-dark">
-                                        First Name
+                                        Code
                                     </th>
                                     <th className="py-3 font-monospace text-dark border-dark">
-                                        Middle Name
-                                    </th>
-                                    <th className="py-3 font-monospace text-dark border-dark">
-                                        Last Name
-                                    </th>
-                                    <th className="py-3 font-monospace text-dark border-dark">
-                                        Suffix
-                                    </th>
-                                    <th className="py-3 font-monospace text-dark border-dark">
-                                        Email
-                                    </th>
-                                    <th className="py-3 font-monospace text-dark border-dark">
-                                        Contact No.
-                                    </th>
-                                    <th className="py-3 font-monospace text-dark border-dark">
-                                        Birthday
-                                    </th>
-                                    <th className="py-3 font-monospace text-dark border-dark">
-                                        Gender
-                                    </th>
-                                    <th className="py-3 font-monospace text-dark border-dark">
-                                        Role
-                                    </th>
-                                    <th className="py-3 font-monospace text-dark border-dark">
-                                        Status
-                                    </th>
-                                    <th className="py-3 font-monospace text-dark border-dark">
-                                        Verified At
-                                    </th>
-                                    <th className="py-3 font-monospace text-dark border-dark">
-                                        Last Login
+                                        Description
                                     </th>
                                     <th className="py-3 font-monospace text-dark border-dark">
                                         Created At
@@ -361,35 +342,30 @@ export default function Users() {
                                 {loading ? (
                                     <tr>
                                         <td
-                                            colSpan="17"
+                                            colSpan="7"
                                             className="text-center py-5"
                                         >
                                             <div className="spinner-border border-3 border-dark text-dark"></div>
                                         </td>
                                     </tr>
-                                ) : users.length === 0 ? (
+                                ) : strands.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan="17"
+                                            colSpan="7"
                                             className="text-center py-5 fw-bold font-monospace"
                                         >
-                                            NO USER RECORDS FOUND...
+                                            NO STRAND RECORDS FOUND...
                                         </td>
                                     </tr>
                                 ) : (
-                                    users.map((user) => {
-                                        const isSelf =
-                                            currentUser &&
-                                            user.id === currentUser.id;
+                                    strands.map((strand) => {
+                                        const badgeColor = getStrandColor(
+                                            strand.id,
+                                        );
 
                                         return (
                                             <tr
-                                                key={user.id}
-                                                className={
-                                                    isSelf
-                                                        ? "bg-info bg-opacity-10"
-                                                        : ""
-                                                }
+                                                key={strand.id}
                                                 style={{
                                                     borderBottom:
                                                         "1px solid #000",
@@ -400,56 +376,36 @@ export default function Users() {
                                                         type="checkbox"
                                                         className="form-check-input border-dark"
                                                         checked={selectedIds.includes(
-                                                            user.id,
+                                                            strand.id,
                                                         )}
                                                         onChange={() =>
                                                             handleSelectOne(
-                                                                user.id,
+                                                                strand.id,
                                                             )
                                                         }
-                                                        disabled={isSelf}
                                                     />
                                                 </td>
+
                                                 <td
                                                     className="py-3 font-monospace border-dark text-muted"
                                                     style={{
-                                                        maxWidth: "150px",
+                                                        maxWidth: "120px",
                                                         overflow: "hidden",
                                                         textOverflow:
                                                             "ellipsis",
                                                     }}
-                                                    title={user.id}
+                                                    title={strand.id}
                                                 >
-                                                    {user.id}
+                                                    {strand.id}
                                                 </td>
-                                                <td className="py-3 fw-bold border-dark">
-                                                    {user.first_name}
-                                                </td>
-                                                <td className="py-3 border-dark">
-                                                    {user.middle_name || "-"}
-                                                </td>
-                                                <td className="py-3 fw-bold border-dark">
-                                                    {user.last_name}
-                                                </td>
-                                                <td className="py-3 border-dark">
-                                                    {user.suffix || "-"}
-                                                </td>
-                                                <td className="py-3 font-monospace border-dark">
-                                                    {user.email}
-                                                </td>
-                                                <td className="py-3 font-monospace border-dark">
-                                                    {user.contact_number || "-"}
-                                                </td>
-                                                <td className="py-3 font-monospace border-dark">
-                                                    {user.birthday || "-"}
-                                                </td>
-                                                <td className="py-3 border-dark">
-                                                    {user.gender || "-"}
-                                                </td>
+
                                                 <td className="py-3 border-dark">
                                                     <span
-                                                        className={`badge rounded-0 border border-dark px-2 py-1 fs-6 font-monospace text-dark ${user.role === "super_admin" ? "bg-danger text-white" : user.role === "admin" ? "bg-warning" : "bg-white"}`}
+                                                        className="badge rounded-0 border border-dark px-2 py-1 fs-6 font-monospace"
                                                         style={{
+                                                            backgroundColor:
+                                                                badgeColor.bg,
+                                                            color: badgeColor.text,
                                                             boxShadow:
                                                                 "2px 2px 0 #000",
                                                         }}
@@ -462,50 +418,28 @@ export default function Users() {
                                                                 "translate(0, 0)")
                                                         }
                                                     >
-                                                        {user.role.toUpperCase()}
+                                                        {strand.code}
                                                     </span>
                                                 </td>
-                                                <td className="py-3 border-dark">
-                                                    <span
-                                                        className={`badge rounded-0 border border-dark px-2 py-1 ${user.status === "active" ? "bg-success" : "bg-danger"}`}
-                                                        style={{
-                                                            boxShadow:
-                                                                "2px 2px 0 #000",
-                                                        }}
-                                                        onMouseEnter={(e) =>
-                                                            (e.currentTarget.style.transform =
-                                                                "translate(-1px, -1px)")
-                                                        }
-                                                        onMouseLeave={(e) =>
-                                                            (e.currentTarget.style.transform =
-                                                                "translate(0, 0)")
-                                                        }
-                                                    >
-                                                        {user.status.toUpperCase()}
-                                                    </span>
+
+                                                <td
+                                                    className="py-3 border-dark fst-italic"
+                                                    style={{
+                                                        whiteSpace: "normal",
+                                                        minWidth: "300px",
+                                                    }}
+                                                >
+                                                    {strand.description}
                                                 </td>
-                                                <td className="py-3 font-monospace border-dark text-muted small">
-                                                    {user.email_verified_at
-                                                        ? new Date(
-                                                              user.email_verified_at,
-                                                          ).toLocaleString()
-                                                        : "-"}
-                                                </td>
-                                                <td className="py-3 font-monospace border-dark text-muted small">
-                                                    {user.login_at
-                                                        ? new Date(
-                                                              user.login_at,
-                                                          ).toLocaleString()
-                                                        : "-"}
-                                                </td>
+
                                                 <td className="py-3 font-monospace border-dark text-muted small">
                                                     {new Date(
-                                                        user.created_at,
+                                                        strand.created_at,
                                                     ).toLocaleString()}
                                                 </td>
                                                 <td className="py-3 font-monospace border-dark text-muted small">
                                                     {new Date(
-                                                        user.updated_at,
+                                                        strand.updated_at,
                                                     ).toLocaleString()}
                                                 </td>
 
@@ -523,7 +457,7 @@ export default function Users() {
                                                             }}
                                                             onClick={() =>
                                                                 handleOpenEdit(
-                                                                    user,
+                                                                    strand,
                                                                 )
                                                             }
                                                             onMouseEnter={(e) =>
@@ -534,61 +468,37 @@ export default function Users() {
                                                                 (e.currentTarget.style.transform =
                                                                     "translate(0, 0)")
                                                             }
-                                                            title="Edit User"
+                                                            title="Edit Strand"
                                                         >
                                                             <i className="bi bi-pencil-fill text-dark"></i>
                                                         </button>
-
-                                                        {isSelf ? (
-                                                            <button
-                                                                className="btn btn-sm rounded-0 border-2 border-dark d-flex align-items-center justify-content-center"
-                                                                style={{
-                                                                    width: "32px",
-                                                                    height: "32px",
-                                                                    backgroundColor:
-                                                                        "#e0e0e0",
-                                                                    cursor: "not-allowed",
-                                                                    opacity: 0.6,
-                                                                }}
-                                                                disabled
-                                                                title="Self Delete Disabled"
-                                                            >
-                                                                <i className="bi bi-slash-circle text-muted"></i>
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                className="btn btn-sm rounded-0 border-2 border-dark fw-bold d-flex align-items-center justify-content-center"
-                                                                style={{
-                                                                    width: "32px",
-                                                                    height: "32px",
-                                                                    backgroundColor:
-                                                                        "#F96E5B",
-                                                                    boxShadow:
-                                                                        "2px 2px 0 #000",
-                                                                }}
-                                                                onClick={() =>
-                                                                    handleDelete(
-                                                                        user.id,
-                                                                        user.first_name,
-                                                                    )
-                                                                }
-                                                                onMouseEnter={(
-                                                                    e,
-                                                                ) =>
-                                                                    (e.currentTarget.style.transform =
-                                                                        "translate(-1px, -1px)")
-                                                                }
-                                                                onMouseLeave={(
-                                                                    e,
-                                                                ) =>
-                                                                    (e.currentTarget.style.transform =
-                                                                        "translate(0, 0)")
-                                                                }
-                                                                title="Delete User"
-                                                            >
-                                                                <i className="bi bi-trash-fill text-white"></i>
-                                                            </button>
-                                                        )}
+                                                        <button
+                                                            className="btn btn-sm rounded-0 border-2 border-dark fw-bold d-flex align-items-center justify-content-center"
+                                                            style={{
+                                                                width: "32px",
+                                                                height: "32px",
+                                                                backgroundColor:
+                                                                    "#F96E5B",
+                                                                boxShadow:
+                                                                    "2px 2px 0 #000",
+                                                            }}
+                                                            onClick={() =>
+                                                                handleDelete(
+                                                                    strand,
+                                                                )
+                                                            }
+                                                            onMouseEnter={(e) =>
+                                                                (e.currentTarget.style.transform =
+                                                                    "translate(-1px, -1px)")
+                                                            }
+                                                            onMouseLeave={(e) =>
+                                                                (e.currentTarget.style.transform =
+                                                                    "translate(0, 0)")
+                                                            }
+                                                            title="Delete Strand"
+                                                        >
+                                                            <i className="bi bi-trash-fill text-white"></i>
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -605,7 +515,7 @@ export default function Users() {
                     style={{ borderTop: "2px solid black" }}
                 >
                     <small className="text-muted font-monospace">
-                        Showing User Records:{" "}
+                        Showing Strand Records:{" "}
                         <strong>
                             {totalItems > 0
                                 ? (currentPage - 1) * itemsPerPage + 1
@@ -653,12 +563,12 @@ export default function Users() {
                 </div>
             </div>
 
-            <UserDrawer
-                show={showDrawer}
-                type={drawerType}
-                selectedUser={selectedUser}
-                onClose={() => setShowDrawer(false)}
-                onSuccess={fetchUsers}
+            <StrandModal
+                show={showModal}
+                type={modalType}
+                selectedStrand={selectedStrand}
+                onClose={() => setShowModal(false)}
+                onSuccess={fetchStrands}
                 apiPrefix="/api"
             />
         </div>
