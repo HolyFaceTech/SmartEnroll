@@ -115,7 +115,6 @@ export default function StrandModal({
 
                         <div className="modal-body bg-light p-4">
                             <form onSubmit={handleSubmit}>
-                                {/* FIELDSET: NALA-LOCK ANG BUONG FORM PAG PROCESS */}
                                 <fieldset disabled={isLoading}>
                                     <div className="mb-3">
                                         <label className="form-label small fw-bold font-monospace">
@@ -124,7 +123,7 @@ export default function StrandModal({
                                         <input
                                             type="text"
                                             name="code"
-                                            className="form-control text-uppercase fw-bold border-dark border-2"
+                                            className="form-control fw-bold border-dark border-2"
                                             placeholder="e.g. STEM"
                                             value={formData.code}
                                             onChange={handleChange}
@@ -151,21 +150,46 @@ export default function StrandModal({
                                         ></textarea>
                                     </div>
 
-                                    <button
-                                        type="submit"
-                                        className="btn btn-retro py-3 fw-bold w-100 d-flex align-items-center justify-content-center border-dark border-2"
-                                    >
-                                        {isLoading ? (
-                                            <>
-                                                <i className="bi bi-mortarboard-fill fs-5 me-2 toga-spin"></i>
-                                                <span>PROCESSING...</span>
-                                            </>
-                                        ) : type === "create" ? (
-                                            "CREATE STRAND"
-                                        ) : (
-                                            "SAVE CHANGES"
-                                        )}
-                                    </button>
+                                    <div className="d-flex justify-content-end gap-2 mt-4">
+                                        <button
+                                            type="submit"
+                                            className="btn btn-retro px-4 py-2 fw-bold d-flex align-items-center border-dark"
+                                            style={
+                                                type === "edit"
+                                                    ? {
+                                                          backgroundColor:
+                                                              "#F4D03F",
+                                                      }
+                                                    : {}
+                                            }
+                                            disabled={isLoading}
+                                        >
+                                            {isLoading ? (
+                                                <>
+                                                    <i className="bi bi-mortarboard-fill me-2 toga-spin"></i>
+                                                    <span>PROCESSING...</span>
+                                                </>
+                                            ) : type === "create" ? (
+                                                <>
+                                                    <i className="bi bi-check-circle-fill me-2"></i>
+                                                    <span>SUBMIT</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <i className="bi bi-floppy-fill me-2"></i>
+                                                    <span>SAVE CHANGES</span>
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn btn-retro bg-dark px-4 py-2 fw-bold d-flex align-items-center border-dark"
+                                            onClick={onClose}
+                                            disabled={isLoading}
+                                        >
+                                            <span>CANCEL</span>
+                                        </button>
+                                    </div>
                                 </fieldset>
                             </form>
                         </div>

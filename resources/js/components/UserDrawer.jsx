@@ -497,24 +497,43 @@ export default function UserDrawer({
                             )}
                         </div>
 
-                        {!isReadOnly && (
+                        <div className="d-flex justify-content-center gap-2 mt-1">
                             <button
                                 type="submit"
-                                className="btn btn-retro py-3 fw-bold w-100 d-flex align-items-center justify-content-center"
+                                className="btn btn-retro px-4 py-2 fw-bold d-flex align-items-center justify-content-center border-dark"
+                                style={
+                                    type === "edit"
+                                        ? { backgroundColor: "#F4D03F" }
+                                        : {}
+                                }
                                 disabled={isLoading}
                             >
                                 {isLoading ? (
                                     <>
-                                        <i className="bi bi-mortarboard-fill fs-5 me-2 toga-spin"></i>
+                                        <i className="bi bi-mortarboard-fill me-2 toga-spin"></i>
                                         <span>PROCESSING...</span>
                                     </>
                                 ) : type === "create" ? (
-                                    "CREATE ACCOUNT"
+                                    <>
+                                        <i className="bi bi-check-circle-fill me-2"></i>
+                                        <span>SUBMIT</span>
+                                    </>
                                 ) : (
-                                    "SAVE CHANGES"
+                                    <>
+                                        <i className="bi bi-floppy-fill me-2"></i>
+                                        <span>SAVE CHANGES</span>
+                                    </>
                                 )}
                             </button>
-                        )}
+                            <button
+                                type="button"
+                                className="btn btn-retro bg-dark text-white px-4 py-2 fw-bold d-flex align-items-center justify-content-center border-dark"
+                                onClick={onClose}
+                                disabled={isLoading}
+                            >
+                                <span>CANCEL</span>
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>

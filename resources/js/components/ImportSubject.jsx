@@ -91,12 +91,12 @@ export default function ImportSubject({
                         <div
                             className="modal-header text-white"
                             style={{
-                                backgroundColor: "#2d3436",
+                                backgroundColor: "var(--color-primary)",
                                 borderBottom: "2px solid black",
                             }}
                         >
                             <h5 className="modal-title fw-bold font-monospace">
-                                <i className="bi bi-filetype-csv text-success me-2"></i>
+                                <i className="bi bi-filetype-csv text-white me-2"></i>
                                 IMPORT SUBJECTS
                             </h5>
                             <button
@@ -161,21 +161,33 @@ export default function ImportSubject({
                                         </div>
                                     </div>
 
-                                    <button
-                                        type="submit"
-                                        className="btn btn-success btn-retro py-3 fw-bold w-100 d-flex align-items-center justify-content-center border-dark border-2 text-white"
-                                    >
-                                        {isLoading ? (
-                                            <>
-                                                <i className="bi bi-mortarboard-fill fs-5 me-2 toga-spin"></i>
-                                                <span>PROCESSING...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span>IMPORT FILE</span>
-                                            </>
-                                        )}
-                                    </button>
+                                    <div className="d-flex justify-content-end gap-2 mt-4">
+                                        <button
+                                            type="submit"
+                                            className="btn btn-retro px-4 py-2 fw-bold d-flex align-items-center border-dark bg-success"
+                                            disabled={isLoading}
+                                        >
+                                            {isLoading ? (
+                                                <>
+                                                    <i className="bi bi-mortarboard-fill me-2 toga-spin"></i>
+                                                    <span>PROCESSING...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <i className="bi bi-arrow-up-circle me-2"></i>
+                                                    <span>IMPORT FILE</span>
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn btn-retro bg-dark px-4 py-2 fw-bold d-flex align-items-center border-dark"
+                                            onClick={onClose}
+                                            disabled={isLoading}
+                                        >
+                                            <span>CANCEL</span>
+                                        </button>
+                                    </div>
                                 </fieldset>
                             </form>
                         </div>

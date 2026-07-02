@@ -98,7 +98,7 @@ export default function Users() {
             color: "#000",
             customClass: {
                 popup: "card-retro",
-                confirmButton: "btn-retro border-dark",
+                confirmButton: "btn-retro bg-warning border-dark",
                 cancelButton: "btn-retro bg-dark border-dark",
             },
         }).then((result) => {

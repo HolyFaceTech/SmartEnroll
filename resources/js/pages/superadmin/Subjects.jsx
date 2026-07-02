@@ -115,7 +115,7 @@ export default function Subjects() {
             color: "#000",
             customClass: {
                 popup: "card-retro",
-                confirmButton: "btn-retro border-dark",
+                confirmButton: "btn-retro bg-warning border-dark",
                 cancelButton: "btn-retro bg-dark border-dark",
             },
         }).then((result) => {
@@ -221,10 +221,10 @@ export default function Subjects() {
                 </div>
                 <div className="d-flex gap-2">
                     <button
-                        className="btn btn-retro px-4 py-2 d-flex align-items-center gap-2 bg-white text-dark"
+                        className="btn btn-retro px-4 py-2 d-flex align-items-center gap-2 bg-success text-white"
                         onClick={() => setShowImportModal(true)}
                     >
-                        <i className="bi bi-filetype-csv text-success"></i>{" "}
+                        <i className="bi bi-filetype-csv text-white"></i>{" "}
                         <span className="d-none d-sm-inline ms-2">
                             IMPORT CSV
                         </span>
