@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Toast from "../../utils/toast";
-import SubjectModal from "../../components/SubjectModal";
-import ImportSubject from "../../components/ImportSubject";
+import SectionModal from "../../components/SectionModal";
+import SectionMasterlistModal from "../../components/SectionMasterlistModal";
 
 const getStrandColor = (id) => {
     const palettes = [
@@ -24,8 +24,8 @@ const getStrandColor = (id) => {
     return palettes[num % palettes.length];
 };
 
-export default function Subjects() {
-    const [subjects, setSubjects] = useState([]);
+export default function Sections() {
+    const [sections, setSections] = useState([]);
     const [strands, setStrands] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -37,8 +37,10 @@ export default function Subjects() {
     const [selectedIds, setSelectedIds] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [modalType, setModalType] = useState("create");
-    const [selectedSubject, setSelectedSubject] = useState(null);
-    const [showImportModal, setShowImportModal] = useState(false);
+    const [selectedSection, setSelectedSection] = useState(null);
+    const [showMasterList, setShowMasterList] = useState(false);
+    const [masterData, setMasterData] = useState(null);
+    const [loadingMaster, setLoadingMaster] = useState(false);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -51,8 +53,8 @@ export default function Subjects() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [subRes, strandRes] = await Promise.all([
-                axios.get(`/api/subjects`, {
+            const [secRes, strandRes] = await Promise.all([
+                axios.get(`/api/sections`, {
                     params: {
                         page: currentPage,
                         limit: itemsPerPage,
@@ -61,16 +63,14 @@ export default function Subjects() {
                 }),
                 axios.get("/api/strands", { params: { limit: 100 } }),
             ]);
-
-            setSubjects(subRes.data.data);
-            setTotalItems(subRes.data.total);
-            setTotalPages(subRes.data.last_page);
+            setSections(secRes.data.data);
+            setTotalItems(secRes.data.total);
+            setTotalPages(secRes.data.last_page);
 
             const strandArray = strandRes.data.data
                 ? strandRes.data.data
                 : strandRes.data;
             setStrands(strandArray || []);
-
             setSelectedIds([]);
         } catch (error) {
             Toast.fire({ icon: "error", title: "Failed to load data." });
@@ -84,7 +84,7 @@ export default function Subjects() {
     }, [currentPage, itemsPerPage, debouncedSearch]);
 
     const handleSelectAll = (e) => {
-        if (e.target.checked) setSelectedIds(subjects.map((s) => s.id));
+        if (e.target.checked) setSelectedIds(sections.map((s) => s.id));
         else setSelectedIds([]);
     };
 
@@ -98,14 +98,14 @@ export default function Subjects() {
 
     const handleOpenCreate = () => {
         setModalType("create");
-        setSelectedSubject(null);
+        setSelectedSection(null);
         setShowModal(true);
     };
 
-    const handleOpenEdit = (subject) => {
+    const handleOpenEdit = (section) => {
         Swal.fire({
-            title: "UPDATE SUBJECT?",
-            html: `Proceed to edit the records of <strong>${subject.code}</strong>?`,
+            title: "UPDATE SECTION?",
+            html: `Proceed to edit the records of <strong>${section.name}</strong>?`,
             icon: "question",
             showCancelButton: true,
             confirmButtonColor: "#F4D03F",
@@ -115,13 +115,13 @@ export default function Subjects() {
             color: "#000",
             customClass: {
                 popup: "card-retro",
-                confirmButton: "btn-retro border-dark",
+                confirmButton: "btn-retro bg-warning border-dark",
                 cancelButton: "btn-retro bg-dark border-dark",
             },
         }).then((result) => {
             if (result.isConfirmed) {
                 setModalType("edit");
-                setSelectedSubject(subject);
+                setSelectedSection(section);
                 setShowModal(true);
             }
         });
@@ -129,11 +129,11 @@ export default function Subjects() {
 
     const handleBulkDelete = () => {
         if (selectedIds.length === 0) return;
-        const subjectWord = selectedIds.length > 1 ? "SUBJECTS" : "SUBJECT";
+        const sectionWord = selectedIds.length > 1 ? "SECTIONS" : "SECTION";
 
         Swal.fire({
-            title: `DELETE ${selectedIds.length} ${subjectWord}?`,
-            text: "Subjects will be moved to the recycle bin.",
+            title: `DELETE ${selectedIds.length} ${sectionWord}?`,
+            text: "Sections will be moved to the recycle bin.",
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#F96E5B",
@@ -149,28 +149,28 @@ export default function Subjects() {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    await axios.post(`/api/subjects/bulk-delete`, {
+                    await axios.post(`/api/sections/bulk-delete`, {
                         ids: selectedIds,
                     });
                     fetchData();
                     Toast.fire({
                         icon: "success",
-                        title: "Subjects removed successfully.",
+                        title: "Sections removed successfully.",
                     });
                 } catch (error) {
                     Toast.fire({
                         icon: "error",
-                        title: "Failed to delete subjects.",
+                        title: "Failed to delete sections.",
                     });
                 }
             }
         });
     };
 
-    const handleDelete = (subject) => {
+    const handleDelete = (section) => {
         Swal.fire({
-            title: "DELETE SUBJECT?",
-            html: `<strong>${subject.code}</strong> will be moved to the recycle bin.`,
+            title: "DELETE SECTION?",
+            html: `<strong>${section.name}</strong> will be moved to the recycle bin.`,
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#F96E5B",
@@ -186,20 +186,50 @@ export default function Subjects() {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    await axios.delete(`/api/subjects/${subject.id}`);
+                    await axios.delete(`/api/sections/${section.id}`);
                     fetchData();
                     Toast.fire({
                         icon: "success",
-                        title: "Subject removed successfully.",
+                        title: "Section removed successfully.",
                     });
                 } catch (error) {
                     Toast.fire({
                         icon: "error",
-                        title: "Failed to delete subject.",
+                        title: "Failed to delete section.",
                     });
                 }
             }
         });
+    };
+
+    const handleViewMasterList = async (sectionId) => {
+        setShowMasterList(true);
+        setLoadingMaster(true);
+        setMasterData(null);
+        try {
+            const res = await axios.get(
+                `/api/sections/${sectionId}/masterlist`,
+            );
+            setMasterData(res.data);
+        } catch (error) {
+            Toast.fire({ icon: "error", title: "Failed to load list." });
+            setShowMasterList(false);
+        } finally {
+            setLoadingMaster(false);
+        }
+    };
+
+    const handleDownloadPDF = async (sectionId) => {
+        Toast.fire({ icon: "info", title: "Generating PDF..." });
+        try {
+            const response = await axios.get(
+                `/api/sections/${sectionId}/masterlist/generate-url`,
+            );
+            window.open(response.data.url, "_blank");
+            Toast.fire({ icon: "success", title: "Download Started!" });
+        } catch (error) {
+            Toast.fire({ icon: "error", title: "Failed to generate link." });
+        }
     };
 
     return (
@@ -213,23 +243,13 @@ export default function Subjects() {
                         className="fw-bold text-dark mb-0 font-monospace text-uppercase"
                         style={{ textShadow: "2px 2px 0 #fff" }}
                     >
-                        SUBJECT RECORDS
+                        SECTION RECORDS
                     </h2>
                     <p className="text-muted small mb-0 font-monospace fw-bold">
-                        Manage Curriculum and Course Loads
+                        Organize Classes & Capacity
                     </p>
                 </div>
                 <div className="d-flex gap-2">
-                    <button
-                        className="btn btn-retro px-4 py-2 d-flex align-items-center gap-2 bg-white text-dark"
-                        onClick={() => setShowImportModal(true)}
-                    >
-                        <i className="bi bi-filetype-csv text-success"></i>{" "}
-                        <span className="d-none d-sm-inline ms-2">
-                            IMPORT CSV
-                        </span>
-                    </button>
-
                     {selectedIds.length > 0 && (
                         <button
                             className="btn btn-retro px-4 py-2 d-flex align-items-center gap-2 fade-in"
@@ -251,7 +271,7 @@ export default function Subjects() {
                     >
                         <i className="bi bi-plus-square-fill"></i>{" "}
                         <span className="d-none d-sm-inline ms-2">
-                            NEW SUBJECT
+                            NEW SECTION
                         </span>
                     </button>
                 </div>
@@ -326,9 +346,9 @@ export default function Subjects() {
                                             type="checkbox"
                                             className="form-check-input border-dark"
                                             checked={
-                                                subjects.length > 0 &&
+                                                sections.length > 0 &&
                                                 selectedIds.length ===
-                                                    subjects.length
+                                                    sections.length
                                             }
                                             onChange={handleSelectAll}
                                         />
@@ -337,16 +357,16 @@ export default function Subjects() {
                                         ID
                                     </th>
                                     <th className="py-3 font-monospace text-dark border-dark">
-                                        Code
-                                    </th>
-                                    <th className="py-3 font-monospace text-dark border-dark">
-                                        Description
+                                        Section Name
                                     </th>
                                     <th className="py-3 font-monospace text-dark border-dark">
                                         Strand
                                     </th>
-                                    <th className="py-3 font-monospace text-dark border-dark">
-                                        Grade / Term
+                                    <th className="py-3 font-monospace text-dark border-dark text-center">
+                                        Grade Level
+                                    </th>
+                                    <th className="py-3 font-monospace text-dark border-dark text-center">
+                                        Students Enrolled
                                     </th>
                                     <th className="py-3 font-monospace text-dark border-dark">
                                         Created At
@@ -369,29 +389,28 @@ export default function Subjects() {
                                             <div className="spinner-border border-3 border-dark text-dark"></div>
                                         </td>
                                     </tr>
-                                ) : subjects.length === 0 ? (
+                                ) : sections.length === 0 ? (
                                     <tr>
                                         <td
                                             colSpan="9"
                                             className="text-center py-5 fw-bold font-monospace"
                                         >
-                                            NO SUBJECT RECORDS FOUND...
+                                            NO SECTION RECORDS FOUND...
                                         </td>
                                     </tr>
                                 ) : (
-                                    subjects.map((subject) => {
-                                        let bColor = {
-                                            bg: "#2d3436",
-                                            text: "#fff",
-                                        };
-                                        if (subject.strand)
-                                            bColor = getStrandColor(
-                                                subject.strand.id,
-                                            );
+                                    sections.map((section) => {
+                                        const enrolled =
+                                            section.enrolled_count || 0;
+                                        const capacity = section.capacity || 40;
+                                        const isFull = enrolled >= capacity;
+                                        const bColor = section.strand
+                                            ? getStrandColor(section.strand.id)
+                                            : { bg: "#000", text: "#fff" };
 
                                         return (
                                             <tr
-                                                key={subject.id}
+                                                key={section.id}
                                                 style={{
                                                     borderBottom:
                                                         "1px solid #000",
@@ -402,11 +421,11 @@ export default function Subjects() {
                                                         type="checkbox"
                                                         className="form-check-input border-dark"
                                                         checked={selectedIds.includes(
-                                                            subject.id,
+                                                            section.id,
                                                         )}
                                                         onChange={() =>
                                                             handleSelectOne(
-                                                                subject.id,
+                                                                section.id,
                                                             )
                                                         }
                                                     />
@@ -419,13 +438,13 @@ export default function Subjects() {
                                                         textOverflow:
                                                             "ellipsis",
                                                     }}
-                                                    title={subject.id}
+                                                    title={section.id}
                                                 >
-                                                    {subject.id}
+                                                    {section.id}
                                                 </td>
                                                 <td className="py-3 border-dark">
                                                     <span
-                                                        className={`badge rounded-0 border border-dark px-2 py-1 fs-6 font-monospace text-dark ${subject.term === "1st" ? "bg-white " : subject.term === "2nd" ? "bg-warning" : "bg-danger text-white"}`}
+                                                        className="badge rounded-0 border border-dark px-2 py-1 fs-6 font-monospace text-dark bg-primary text-white"
                                                         style={{
                                                             boxShadow:
                                                                 "2px 2px 0 #000",
@@ -439,21 +458,11 @@ export default function Subjects() {
                                                                 "translate(0, 0)")
                                                         }
                                                     >
-                                                        {subject.code}
+                                                        {section.name}
                                                     </span>
                                                 </td>
-                                                <td
-                                                    className="py-3 border-dark fst-italic"
-                                                    style={{
-                                                        whiteSpace: "normal",
-                                                        minWidth: "250px",
-                                                    }}
-                                                >
-                                                    {subject.description}
-                                                </td>
-
                                                 <td className="py-3 border-dark">
-                                                    {subject.strand && (
+                                                    {section.strand && (
                                                         <span
                                                             className="badge rounded-0 border border-dark px-2 py-1 font-monospace"
                                                             style={{
@@ -473,38 +482,61 @@ export default function Subjects() {
                                                             }
                                                         >
                                                             {
-                                                                subject.strand
+                                                                section.strand
                                                                     .code
                                                             }
                                                         </span>
                                                     )}
                                                 </td>
-
-                                                <td className="py-3 font-monospace border-dark">
-                                                    <span className="fw-bold">
-                                                        G{subject.grade_level}
-                                                    </span>
-                                                    <span className="mx-1 text-muted">
-                                                        -
-                                                    </span>
-                                                    <span className="small">
-                                                        {subject.term}
+                                                <td className="py-3 font-monospace border-dark fw-bold text-center">
+                                                    G{section.grade_level}
+                                                </td>
+                                                <td className="py-3 font-monospace border-dark text-center">
+                                                    <span
+                                                        className={`fw-bold ${isFull ? "text-danger" : "text-success"}`}
+                                                    >
+                                                        {enrolled} / {capacity}
                                                     </span>
                                                 </td>
-
                                                 <td className="py-3 font-monospace border-dark text-muted small">
                                                     {new Date(
-                                                        subject.created_at,
+                                                        section.created_at,
                                                     ).toLocaleString()}
                                                 </td>
                                                 <td className="py-3 font-monospace border-dark text-muted small">
                                                     {new Date(
-                                                        subject.updated_at,
+                                                        section.updated_at,
                                                     ).toLocaleString()}
                                                 </td>
-
                                                 <td className="text-end pe-4 py-3 border-dark">
                                                     <div className="d-flex justify-content-end gap-2">
+                                                        <button
+                                                            className="btn btn-sm rounded-0 border-2 border-dark fw-bold d-flex align-items-center justify-content-center"
+                                                            style={{
+                                                                width: "32px",
+                                                                height: "32px",
+                                                                backgroundColor:
+                                                                    "#00d2d3",
+                                                                boxShadow:
+                                                                    "2px 2px 0 #000",
+                                                            }}
+                                                            onClick={() =>
+                                                                handleViewMasterList(
+                                                                    section.id,
+                                                                )
+                                                            }
+                                                            onMouseEnter={(e) =>
+                                                                (e.currentTarget.style.transform =
+                                                                    "translate(-1px, -1px)")
+                                                            }
+                                                            onMouseLeave={(e) =>
+                                                                (e.currentTarget.style.transform =
+                                                                    "translate(0, 0)")
+                                                            }
+                                                            title="Master List"
+                                                        >
+                                                            <i className="bi bi-list-task text-dark"></i>
+                                                        </button>
                                                         <button
                                                             className="btn btn-sm rounded-0 border-2 border-dark fw-bold d-flex align-items-center justify-content-center"
                                                             style={{
@@ -517,7 +549,7 @@ export default function Subjects() {
                                                             }}
                                                             onClick={() =>
                                                                 handleOpenEdit(
-                                                                    subject,
+                                                                    section,
                                                                 )
                                                             }
                                                             onMouseEnter={(e) =>
@@ -528,7 +560,7 @@ export default function Subjects() {
                                                                 (e.currentTarget.style.transform =
                                                                     "translate(0, 0)")
                                                             }
-                                                            title="Edit Subject"
+                                                            title="Edit Section"
                                                         >
                                                             <i className="bi bi-pencil-fill text-dark"></i>
                                                         </button>
@@ -544,7 +576,7 @@ export default function Subjects() {
                                                             }}
                                                             onClick={() =>
                                                                 handleDelete(
-                                                                    subject,
+                                                                    section,
                                                                 )
                                                             }
                                                             onMouseEnter={(e) =>
@@ -555,7 +587,7 @@ export default function Subjects() {
                                                                 (e.currentTarget.style.transform =
                                                                     "translate(0, 0)")
                                                             }
-                                                            title="Delete Subject"
+                                                            title="Delete Section"
                                                         >
                                                             <i className="bi bi-trash-fill text-white"></i>
                                                         </button>
@@ -575,7 +607,7 @@ export default function Subjects() {
                     style={{ borderTop: "2px solid black" }}
                 >
                     <small className="text-muted font-monospace">
-                        Showing Subject Records:{" "}
+                        Showing Section Records:{" "}
                         <strong>
                             {totalItems > 0
                                 ? (currentPage - 1) * itemsPerPage + 1
@@ -623,19 +655,20 @@ export default function Subjects() {
                 </div>
             </div>
 
-            <SubjectModal
-                show={showModal}
-                type={modalType}
-                selectedSubject={selectedSubject}
-                strands={strands}
-                onClose={() => setShowModal(false)}
-                onSuccess={fetchData}
-                apiPrefix="/api"
+            <SectionMasterlistModal
+                show={showMasterList}
+                onClose={() => setShowMasterList(false)}
+                loading={loadingMaster}
+                masterData={masterData}
+                onDownloadPDF={handleDownloadPDF}
             />
 
-            <ImportSubject
-                show={showImportModal}
-                onClose={() => setShowImportModal(false)}
+            <SectionModal
+                show={showModal}
+                type={modalType}
+                selectedSection={selectedSection}
+                strands={strands}
+                onClose={() => setShowModal(false)}
                 onSuccess={fetchData}
                 apiPrefix="/api"
             />

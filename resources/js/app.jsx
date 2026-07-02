@@ -24,6 +24,7 @@ import SuperAdminDashboard from "./pages/superadmin/Dashboard";
 import SuperAdminUsers from "./pages/superadmin/Users";
 import SuperAdminStrands from "./pages/superadmin/Strands";
 import SuperAdminSubjects from "./pages/superadmin/Subjects";
+import SuperAdminSections from "./pages/superadmin/Sections";
 
 // --- ADMIN PAGES ---
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -102,10 +103,7 @@ function App() {
                         element={<Placeholder title="Student Records" />}
                     />
                     <Route path="strands" element={<SuperAdminStrands />} />
-                    <Route
-                        path="sections"
-                        element={<Placeholder title="Sections Setup" />}
-                    />
+                    <Route path="sections" element={<SuperAdminSections />} />
                     <Route path="subjects" element={<SuperAdminSubjects />} />
                     <Route
                         path="requests"

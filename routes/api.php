@@ -82,15 +82,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/subjects/bulk-delete', [SubjectController::class, 'bulkDelete']); 
         Route::post('/subjects/import', [SubjectController::class, 'importCsv']); 
         Route::apiResource('subjects', SubjectController::class);
+
+        // sections & masterlist
+        Route::post('/sections/bulk-delete', [SectionController::class, 'bulkDelete']);
+        Route::apiResource('sections', SectionController::class);
+        Route::get('/sections/{id}/masterlist', [SectionController::class, 'masterList']);
+        Route::get('/sections/{id}/masterlist/generate-url', [SectionController::class, 'generatePrintUrl']);
     });
 
     // --- ADMIN DASHBOARD ---
     Route::get('/admin/analytics', [AdminController::class, 'getAnalytics']);
-    
-    // Sections & Masterlist
-    Route::apiResource('sections', SectionController::class);
-    Route::get('/sections/{id}/masterlist', [SectionController::class, 'masterList']);
-    Route::get('/sections/{id}/masterlist/generate-url', [SectionController::class, 'generatePrintUrl']);
 
     // --- STUDENT MANAGEMENT ---
     Route::apiResource('students', StudentController::class);

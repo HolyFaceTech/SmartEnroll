@@ -3,30 +3,46 @@
 namespace App\Http\Controllers;
 
 use App\Models\Section;
+use App\Models\User;
+use App\Models\EnrollmentSetting;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\URL;
 
 class SectionController extends Controller
 {
-    // 1. GET SECTIONS (May count ng enrolled students)
-    public function index()
+    // view
+    public function index(Request $request)
     {
-        return Section::with('strand')
+        $limit = $request->input('limit', 10);
+        $search = $request->input('search', '');
+
+        $query = Section::with('strand')
             ->withCount(['students as enrolled_count' => function ($query) {
-                $query->where('status', 'enrolled'); // Bilangin lang ang enrolled
+                $query->where('status', 'enrolled');
             }])
-            ->latest()
-            ->get();
+            ->orderBy('grade_level', 'asc')
+            ->orderBy('name', 'asc');
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhereHas('strand', function($subQuery) use ($search) {
+                      $subQuery->where('code', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        return response()->json($query->paginate($limit));
     }
 
-    // 2. MASTER LIST DATA (Para sa Modal Preview)
+    // master list
     public function masterList($id)
     {
         $section = Section::with('strand')->findOrFail($id);
 
-        // Filter: Enrolled only & Sort Alphabetical
         $students = $section->students()
             ->where('status', 'enrolled')
             ->orderBy('last_name', 'asc')
@@ -34,31 +50,25 @@ class SectionController extends Controller
 
         $males = $students->where('gender', 'Male')->values();
         $females = $students->where('gender', 'Female')->values();
-
-        // FETCH DYNAMIC SETTINGS
-        // Kukunin ang active School Year at Semester sa database
-        $settings = \App\Models\EnrollmentSetting::first();
-        
-        // Fallback (kung sakaling walang laman ang settings table)
+        $settings = EnrollmentSetting::first();
         $schoolYear = $settings ? $settings->school_year : date('Y') . '-' . (date('Y') + 1);
-        $semester = $settings ? $settings->semester : '1st Semester';
+        $term = $settings ? $settings->term : '1st';
 
         return response()->json([
             'section' => $section,
             'males' => $males,
             'females' => $females,
             'school_year' => $schoolYear,
-            'semester' => $semester      
+            'term' => $term      
         ]);
     }
 
- // BAGONG FUNCTION: Taga-gawa ng Signed URL (Valid for 1 Minute)
+    // generate url master list
     public function generatePrintUrl($id)
     {
         $section = Section::findOrFail($id);
-        $user = auth()->user()->id; // Kunin ang ID ng user na nag-request
+        $user = auth()->user()->id; 
 
-        // LOG ACTIVITY: DOWNLOAD MASTERLIST
         ActivityLog::create([
             'user_id' => Auth::id(),
             'action' => 'download',
@@ -66,10 +76,9 @@ class SectionController extends Controller
             'ip_address' => request()->ip()
         ]);
 
-        // Gumawa ng URL na may "Signature"
-        $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-            'masterlist.print', // Route Name
-            now()->addMinute(), // Expiration
+        $url = URL::temporarySignedRoute(
+            'masterlist.print', 
+            now()->addMinute(), 
             [
                 'section' => $section->id, 
                 'user' => $user
@@ -79,28 +88,25 @@ class SectionController extends Controller
         return response()->json(['url' => $url]);
     }
 
-    // UPDATED PRINT FUNCTION (Dynamic School Year & Semester)
+    // print master list
     public function printMasterList($sectionId, $userId)
     {
-        if (ob_get_length()) ob_end_clean(); // Safety Clean
+        if (ob_get_length()) ob_end_clean(); 
 
         try {
-            // 1. Fetch Section Data
             $section = Section::with('strand')->findOrFail($sectionId);
-            
-            // 2. Fetch User (Printed By)
-            $userObj = \App\Models\User::find($userId);
-            $printedBy = $userObj ? $userObj->name : 'Administrator';
+            $userObj = User::find($userId);
 
-            // 3. Fetch Active Enrollment Settings (Dito tayo kukuha ng SY at Sem)
-            // Assumed model name: EnrollmentSetting
-            $settings = \App\Models\EnrollmentSetting::first(); 
+            $printedBy = 'Administrator';
+            if ($userObj) {
+                $printedBy = $userObj->name ?? trim($userObj->first_name . ' ' . $userObj->last_name . ' ' . $userObj->suffix);
+                if (empty(trim($printedBy))) $printedBy = 'Administrator';
+            }
 
-            // Fallback values kung sakaling walang laman ang settings table
+            $settings = EnrollmentSetting::first(); 
             $schoolYear = $settings ? $settings->school_year : date('Y') . '-' . (date('Y') + 1);
-            $semester = $settings ? $settings->semester : '1st Semester';
+            $term = $settings ? $settings->term : '1st';
 
-            // 4. Fetch Students
             $students = $section->students()
                 ->where('status', 'enrolled')
                 ->orderBy('last_name', 'asc')
@@ -114,11 +120,10 @@ class SectionController extends Controller
                 'males' => $males,
                 'females' => $females,
                 'schoolYear' => $schoolYear,
-                'semester' => $semester,    
+                'term' => $term,    
                 'printedBy' => $printedBy
             ];
 
-            // Load View
             $pdf = Pdf::loadView('pdf.masterlist', $data);
             $pdf->setPaper('a4', 'portrait');
 
@@ -129,7 +134,7 @@ class SectionController extends Controller
         }
     }
 
-    // (RETAIN STORE, UPDATE, DESTROY METHODS HERE...)
+    // create
     public function store(Request $request) 
     {
         $validated = $request->validate([
@@ -141,7 +146,6 @@ class SectionController extends Controller
 
         $section = Section::create($validated);
 
-        // LOG ACTIVITY: CREATE
         ActivityLog::create([
             'user_id' => Auth::id(),
             'action' => 'create',
@@ -152,21 +156,22 @@ class SectionController extends Controller
         return response()->json(['message' => 'Created', 'section' => $section]);
     }
 
+    // update
     public function update(Request $request, $id) 
     {
         $section = Section::find($id);
 
         if(!$section) return response()->json(['message'=>'Not found'], 404);
-        // ADDED: Validation with Unique Check (Ignored ang sariling ID)
+
         $validated = $request->validate([
             'name' => 'required|string|max:50|unique:sections,name,' . $id, 
             'strand_id' => 'required|exists:strands,id',
             'grade_level' => 'required|in:11,12',
             'capacity' => 'required|integer|min:1',
         ]);
+
         $section->update($validated);
 
-        // LOG ACTIVITY: UPDATE
         ActivityLog::create([
             'user_id' => Auth::id(),
             'action' => 'update',
@@ -177,15 +182,15 @@ class SectionController extends Controller
         return response()->json(['message' => 'Updated', 'section' => $section]);
     }
 
+    // delete
     public function destroy($id) 
     {
         $section = Section::find($id);
 
         if($section) { 
-            $name = $section->name; // Save name before delete
+            $name = $section->name;
             $section->delete(); 
 
-            // LOG ACTIVITY: DELETE
             ActivityLog::create([
                 'user_id' => Auth::id(),
                 'action' => 'delete',
@@ -197,5 +202,29 @@ class SectionController extends Controller
         }
         
         return response()->json(['message'=>'Not found'], 404);
+    }
+
+    // bulk delete
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:sections,id'
+        ]);
+
+        if (empty($request->ids)) {
+            return response()->json(['message' => 'No valid sections to delete.'], 400);
+        }
+
+        Section::whereIn('id', $request->ids)->delete();
+
+        ActivityLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'delete',
+            'description' => "Bulk deleted " . count($request->ids) . " section(s).",
+            'ip_address' => $request->ip()
+        ]);
+
+        return response()->json(['message' => 'Selected sections deleted successfully.']);
     }
 }
