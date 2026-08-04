@@ -21,24 +21,29 @@ class CORController extends Controller
     {
         $student = Student::with(['strand', 'section'])->findOrFail($studentId);
 
-        // FIX: ADD 'withCount' PARA MAKUHA ANG ENROLLED COUNT
+        // Kukunin ang available sections base sa strand at grade level
         $sections = Section::where('strand_id', $student->strand_id)
             ->where('grade_level', $student->grade_level)
             ->withCount(['students as enrolled_count' => function ($query) {
-                $query->where('status', 'enrolled'); // Bilangin lang ang 'Enrolled' status
+                $query->where('status', 'enrolled'); 
             }])
             ->get();
 
-        // FIX: CLEAN SEMESTER DATA
-        $semKey = explode(' ', trim($student->semester))[0]; 
+        // FIX: Gamitin ang 'term' imbes na 'semester'
+        // Kung ang value ay "1st Term", ang $semKey ay magiging "1st"
+        $termValue = $student->term ?? '1st';
+        $semKey = explode(' ', trim($termValue))[0]; 
 
-        // Get Subjects...
+        // Kunin ang mga subjects
         $subjects = Subject::where(function($q) use ($student) {
                 $q->where('strand_id', $student->strand_id)
                   ->orWhereNull('strand_id');
             })
             ->where('grade_level', $student->grade_level)
-            ->where('semester', 'LIKE', "%{$semKey}%")
+            // Gamitin natin ang 'term' dito. 
+            // NOTE: Kung 'semester' pa rin ang column name sa 'subjects' table, 
+            // ibalik ito sa ->where('semester', 'LIKE', "%{$semKey}%")
+            ->where('term', 'LIKE', "%{$semKey}%") 
             ->get();
 
         return response()->json([
@@ -48,54 +53,20 @@ class CORController extends Controller
         ]);
     }
 
-    // 2. GENERATE SIGNED URL (WITH SAFETY CHECK)
+    // 2. GENERATE SIGNED URL
     public function generateUrl(Request $request)
     {
-        // WRAP SA TRANSACTION PARA SAFE
         return DB::transaction(function () use ($request) {
             
-            $lrn = $request->input('info.lrn');
-            $sectionId = $request->input('info.section_id');
-            $student = Student::where('lrn', $lrn)->first();
-
-            // --- START: CRITICAL SAFETY CHECK ---
-            if ($student && $sectionId && $student->section_id != $sectionId) {
-                
-                // 1. LOCK THE TARGET SECTION
-                $section = Section::where('id', $sectionId)->lockForUpdate()->first();
-
-                if ($section) {
-                    // 2. COUNT REAL-TIME ENROLLED
-                    $currentEnrolled = $section->students()->where('status', 'enrolled')->count();
-
-                    // 3. CHECK CAPACITY
-                    if ($currentEnrolled >= $section->capacity) {
-                        // STOP PROCESS & RETURN ERROR
-                        return response()->json([
-                            'message' => "FAILED: Section '{$section->name}' is FULL ({$currentEnrolled}/{$section->capacity}). Cannot update section via COR."
-                        ], 422);
-                    }
-
-                    // 4. UPDATE IF SAFE
-                    $student->update(['section_id' => $sectionId]);
-
-                    // Optional: Log this specific action
-                    ActivityLog::create([
-                        'user_id' => Auth::id(),
-                        'action' => 'update',
-                        'description' => "Updated section to {$section->name} via COR for: {$student->last_name}",
-                        'ip_address' => $request->ip()
-                    ]);
-                }
-            }
-            // --- END: CRITICAL SAFETY CHECK ---
-
-            // PROCEED TO GENERATE URL (Existing Code)
+            // Diretso na tayo sa pag-generate ng URL dahil read-only na ang section sa frontend
             $tempId = Str::random(40);
+            
+            // I-save ang data sa cache para makuha ng PDF generator (valid for 5 mins)
             Cache::put('cor_data_' . $tempId, $request->all(), now()->addMinutes(5));
 
             $studentName = $request->input('info.name') ?? 'Student';
             
+            // I-log natin na nag-print/download ng COR
             ActivityLog::create([
                 'user_id' => Auth::id(),
                 'action' => 'download',

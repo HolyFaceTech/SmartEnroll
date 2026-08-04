@@ -29,7 +29,7 @@ export default function CORModal({
             section_id: "",
             section_name: "",
             school_year: "",
-            semester: "",
+            term: "",
         },
         subjects: [],
         fees: { tuition: 0, miscellaneous: 0, books: 0, total: 0 },
@@ -50,19 +50,34 @@ export default function CORModal({
             axios
                 .get(`${apiPrefix}/students/${student.id}/cor-data`)
                 .then((res) => {
-                    const { available_sections, suggested_subjects } = res.data;
+                    // FIX: Kunin natin yung fresh "student" data mula sa database
+                    const {
+                        available_sections,
+                        suggested_subjects,
+                        student: freshStudent,
+                    } = res.data;
                     setAvailableSections(available_sections);
+
+                    // Generate YYYY-NNNNN format
+                    const currentYear = new Date().getFullYear();
+                    const randomDigits = Math.floor(
+                        10000 + Math.random() * 90000,
+                    ); // 5 digits
+                    const generatedOR = `${currentYear}-${randomDigits}`;
 
                     setFormData({
                         info: {
-                            name: `${student.last_name}, ${student.first_name} ${student.middle_name || ""} ${student.suffix || ""}`.toUpperCase(),
-                            lrn: student.lrn,
-                            strand: student.strand?.code || "N/A",
-                            grade_level: student.grade_level,
-                            section_id: student.section_id || "",
-                            section_name: student.section?.name || "",
-                            school_year: student.school_year || "2025-2026",
-                            semester: student.semester || "1st Semester",
+                            // Gamitin ang freshStudent para sigurado tayong may section at strand data
+                            name: `${freshStudent.last_name}, ${freshStudent.first_name} ${freshStudent.middle_name || ""} ${freshStudent.suffix || ""}`.toUpperCase(),
+                            lrn: freshStudent.lrn,
+                            strand: freshStudent.strand?.code || "N/A",
+                            grade_level: freshStudent.grade_level,
+                            section_id: freshStudent.section_id || "",
+                            section_name: freshStudent.section?.name || "",
+                            school_year:
+                                freshStudent.school_year ||
+                                `${currentYear}-${currentYear + 1}`,
+                            term: freshStudent.term || "1st",
                         },
                         subjects: suggested_subjects.map((s) => ({
                             code: s.code,
@@ -77,12 +92,11 @@ export default function CORModal({
                             total: 8500,
                         },
                         signatories: {
-                            adviser: student.section?.adviser_name || "",
+                            adviser: freshStudent.section?.adviser_name || "",
                             registrar: "",
                             finance: "",
                         },
-                        or_number:
-                            "OR-" + Math.floor(100000 + Math.random() * 900000),
+                        or_number: generatedOR,
                     });
                 })
                 .catch((err) => {
@@ -157,7 +171,7 @@ export default function CORModal({
         if (!formData.info.section_id) {
             Toast.fire({
                 icon: "warning",
-                title: "Please select a section first.",
+                title: "Student has no assigned section.",
             });
             return;
         }
@@ -166,16 +180,11 @@ export default function CORModal({
 
         Toast.fire({
             icon: "info",
-            title: "Updating Status & Generating Document...",
+            title: "Generating Document...",
         });
 
         try {
-            // STEP 1: UPDATE STATUS
-            await axios.put(`${apiPrefix}/students/${student.id}/status`, {
-                status: targetStatus,
-            });
-
-            // STEP 2: GENERATE PDF
+            // GENERATE PDF DIRECTLY (Inalis na ang Step 1 Update Status)
             const response = await axios.post(`${apiPrefix}/cor/generate-url`, {
                 ...formData,
                 printed_by: "Admin",
@@ -185,10 +194,9 @@ export default function CORModal({
 
             Toast.fire({
                 icon: "success",
-                title: `Status Updated to ${targetStatus.toUpperCase()} & COR Generated!`,
+                title: `COR Generated Successfully!`,
             });
 
-            // REFRESH TABLE & CLOSE
             if (onSuccess) onSuccess();
             onClose();
         } catch (error) {
@@ -246,90 +254,32 @@ export default function CORModal({
                                     <div className="row mb-3 g-2 align-items-end">
                                         <div className="col-md-3">
                                             <label className="fw-bold mb-1 text-primary">
-                                                CHANGE STATUS TO:
+                                                CURRENT STATUS:
                                             </label>
-                                            <select
-                                                className="form-select form-select-sm border-dark rounded-0 fw-bold bg-warning bg-opacity-25"
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm border-dark rounded-0 fw-bold bg-secondary bg-opacity-10 text-uppercase text-muted"
                                                 value={targetStatus}
-                                                onChange={(e) =>
-                                                    setTargetStatus(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            >
-                                                <option value="enrolled">
-                                                    ENROLLED
-                                                </option>
-                                                <option value="pending">
-                                                    PENDING
-                                                </option>
-                                                <option value="passed">
-                                                    PASSED
-                                                </option>
-                                                <option value="graduate">
-                                                    GRADUATE
-                                                </option>
-                                                <option value="dropped">
-                                                    DROPPED
-                                                </option>
-                                                <option value="released">
-                                                    RELEASED
-                                                </option>
-                                            </select>
+                                                readOnly
+                                                disabled
+                                            />
                                         </div>
 
                                         <div className="col-md-5">
-                                            <label className="fw-bold mb-1">
-                                                SELECT SECTION:
+                                            <label className="fw-bold mb-1 text-muted">
+                                                ASSIGNED SECTION:
                                             </label>
-                                            <select
-                                                className="form-select form-select-sm border-dark rounded-0 fw-bold"
-                                                value={formData.info.section_id}
-                                                onChange={handleSectionChange}
-                                            >
-                                                <option value="" disabled>
-                                                    -- Select Section --
-                                                </option>
-                                                {availableSections.map(
-                                                    (sec) => {
-                                                        const enrolled =
-                                                            sec.enrolled_count ||
-                                                            0;
-                                                        const capacity =
-                                                            sec.capacity || 40;
-                                                        const isFull =
-                                                            enrolled >=
-                                                                capacity &&
-                                                            sec.id !==
-                                                                student.section_id;
-                                                        return (
-                                                            <option
-                                                                key={sec.id}
-                                                                value={sec.id}
-                                                                disabled={
-                                                                    isFull
-                                                                }
-                                                                style={
-                                                                    isFull
-                                                                        ? {
-                                                                              color: "#d63031",
-                                                                              fontStyle:
-                                                                                  "italic",
-                                                                          }
-                                                                        : {}
-                                                                }
-                                                            >
-                                                                {sec.name} (
-                                                                {enrolled}/
-                                                                {capacity}){" "}
-                                                                {isFull
-                                                                    ? "(FULL)"
-                                                                    : ""}
-                                                            </option>
-                                                        );
-                                                    },
-                                                )}
-                                            </select>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm border-dark rounded-0 fw-bold bg-secondary bg-opacity-10 text-muted"
+                                                value={
+                                                    formData.info
+                                                        .section_name ||
+                                                    "UNASSIGNED"
+                                                }
+                                                readOnly
+                                                disabled
+                                            />
                                         </div>
                                         <div className="col-md-4">
                                             <label className="fw-bold mb-1">
@@ -348,6 +298,8 @@ export default function CORModal({
                                                             e.target.value,
                                                     })
                                                 }
+                                                readOnly
+                                                disabled
                                             />
                                         </div>
                                     </div>
@@ -505,10 +457,13 @@ export default function CORModal({
                                                         <span className="input-group-text bg-white border-dark rounded-0 w-50">
                                                             Tuition:
                                                         </span>
+                                                        <span className="input-group-text bg-light border-dark rounded-0 border-end-0 fw-bold">
+                                                            PHP
+                                                        </span>
                                                         <input
                                                             type="number"
                                                             name="tuition"
-                                                            className="form-control border-dark rounded-0 text-end"
+                                                            className="form-control border-dark border-start-0 rounded-0 text-end fw-bold"
                                                             placeholder="0.00"
                                                             value={
                                                                 formData.fees
@@ -523,10 +478,13 @@ export default function CORModal({
                                                         <span className="input-group-text bg-white border-dark rounded-0 w-50">
                                                             Misc:
                                                         </span>
+                                                        <span className="input-group-text bg-light border-dark rounded-0 border-end-0 fw-bold">
+                                                            PHP
+                                                        </span>
                                                         <input
                                                             type="number"
                                                             name="miscellaneous"
-                                                            className="form-control border-dark rounded-0 text-end"
+                                                            className="form-control border-dark border-start-0 rounded-0 text-end fw-bold"
                                                             placeholder="0.00"
                                                             value={
                                                                 formData.fees
@@ -541,10 +499,13 @@ export default function CORModal({
                                                         <span className="input-group-text bg-white border-dark rounded-0 w-50">
                                                             Books:
                                                         </span>
+                                                        <span className="input-group-text bg-light border-dark rounded-0 border-end-0 fw-bold">
+                                                            PHP
+                                                        </span>
                                                         <input
                                                             type="number"
                                                             name="books"
-                                                            className="form-control border-dark rounded-0 text-end"
+                                                            className="form-control border-dark border-start-0 rounded-0 text-end fw-bold"
                                                             placeholder="0.00"
                                                             value={
                                                                 formData.fees
@@ -557,7 +518,7 @@ export default function CORModal({
                                                     </div>
                                                     <div className="d-flex justify-content-between fw-bold bg-secondary bg-opacity-25 p-1 border border-dark mt-2">
                                                         <span>TOTAL:</span>
-                                                        <span>
+                                                        <span className="text-danger fs-6">
                                                             PHP{" "}
                                                             {formData.fees.total.toLocaleString(
                                                                 undefined,

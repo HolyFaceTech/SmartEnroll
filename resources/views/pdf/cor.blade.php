@@ -91,8 +91,8 @@
         <tr>
             <td class="label">SY:</td>
             <td class="value">{{ $info['school_year'] }}</td>
-            <td class="label" style="padding-left: 15px;">SEMESTER:</td>
-            <td class="value uppercase">{{ $info['semester'] }}</td>
+            <td class="label" style="padding-left: 15px;">TERM:</td>
+            <td class="value uppercase">{{ $info['term'] }}</td>
         </tr>
     </table>
 

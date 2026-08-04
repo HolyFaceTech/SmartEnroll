@@ -50,7 +50,6 @@ class Student extends Model
         'guardian_occupation',
         'guardian_contact',
         'requirements',
-        'fees',
         'status',
         'previous_status',
         'released_by',
@@ -59,7 +58,7 @@ class Student extends Model
 
     protected $casts = [
         'requirements' => 'array',
-        'fees' => 'array',
+        // 'fees' => 'array',
         'date_of_birth' => 'date',
         'released_at' => 'datetime',
     ];

@@ -47,7 +47,6 @@ return new class extends Migration
             $table->string('guardian_occupation')->nullable();
             $table->string('guardian_contact')->nullable();
             $table->json('requirements')->nullable();
-            $table->json('fees')->nullable(); 
             $table->string('status')->default('pending');
             $table->string('previous_status')->nullable(); 
             $table->string('released_by')->nullable();
