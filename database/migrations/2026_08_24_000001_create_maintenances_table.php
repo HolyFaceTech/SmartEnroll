@@ -11,13 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('subjects', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->string('code');
-            $table->string('description');
-            $table->string('grade_level');
-            $table->string('term');
-            $table->foreignUuid('strand_id')->constrained();
+        Schema::create('maintenances', function (Blueprint $table) {
+            $table->id();
+            $table->boolean('is_enabled')->default(false);
+            $table->string('message')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
@@ -28,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('subjects');
+        Schema::dropIfExists('maintenances');
     }
 };

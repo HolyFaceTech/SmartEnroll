@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Section;
 use App\Models\Strand;
+use Illuminate\Database\Seeder;
 
 class SectionSeeder extends Seeder
 {
@@ -13,7 +13,7 @@ class SectionSeeder extends Seeder
      */
     public function run(): void
     {
-        // Kunin ang mga Strands
+        // Strands
         $stem = Strand::where('code', 'STEM')->first();
         $abm = Strand::where('code', 'ABM')->first();
         $humss = Strand::where('code', 'HUMSS')->first();
@@ -23,10 +23,10 @@ class SectionSeeder extends Seeder
             // STEM Sections
             ['name' => 'Einstein', 'strand_id' => $stem->id, 'grade_level' => '11'],
             ['name' => 'Newton',   'strand_id' => $stem->id, 'grade_level' => '12'],
-            
+
             // ABM Sections
             ['name' => 'Tycoon',   'strand_id' => $abm->id, 'grade_level' => '11'],
-            ['name' => 'Executive','strand_id' => $abm->id, 'grade_level' => '12'],
+            ['name' => 'Executive', 'strand_id' => $abm->id, 'grade_level' => '12'],
 
             // HUMSS Sections
             ['name' => 'Plato',    'strand_id' => $humss->id, 'grade_level' => '11'],

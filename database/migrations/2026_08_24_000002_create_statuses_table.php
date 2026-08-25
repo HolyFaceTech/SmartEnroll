@@ -11,8 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('status')->default('active')->after('role'); // active or inactive
+        Schema::create('statuses', function (Blueprint $table) {
+            $table->id();
+            $table->string('name')->unique();
+            $table->string('status')->default('processing');
+            $table->string('description')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 
@@ -21,8 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('status');
-        });
+        Schema::dropIfExists('statuses');
     }
 };

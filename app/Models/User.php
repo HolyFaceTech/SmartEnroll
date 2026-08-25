@@ -2,18 +2,18 @@
 
 namespace App\Models;
 
-use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, HasUuids, SoftDeletes;
+    use HasApiTokens, HasFactory, HasUuids, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -21,15 +21,18 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'first_name',
+        'last_name',
+        'middle_name',
+        'suffix',
         'email',
         'password',
         'role',
         'status',
-        'contact_number', 
-        'birthday', 
-        'age', 
+        'contact_number',
+        'birthday',
         'gender',
+        'login_at',
         'email_verified_at',
     ];
 
@@ -53,6 +56,8 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'birthday' => 'date',
+            'login_at' => 'datetime',
         ];
     }
 
@@ -63,7 +68,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->forceFill([
             'email_verified_at' => $this->freshTimestamp(),
-            'status' => 'active', // ETO ANG MAGIC!
+            'status' => 'active',
         ])->save();
     }
 }

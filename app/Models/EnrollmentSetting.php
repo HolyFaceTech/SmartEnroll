@@ -9,19 +9,15 @@ class EnrollmentSetting extends Model
 {
     use HasFactory;
 
-    // Walang UUID o SoftDeletes kasi settings lang to
     protected $fillable = [
         'start_date',
         'end_date',
-        'school_year',      // e.g., 2025-2026
-        'semester',         // 1st Semester
-        'maintenance_mode'  // true or false
+        'school_year',
+        'term',
     ];
 
-    // Casting (Para automatic na Date object ang makuha natin, hindi string)
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
-        'maintenance_mode' => 'boolean',
     ];
 }

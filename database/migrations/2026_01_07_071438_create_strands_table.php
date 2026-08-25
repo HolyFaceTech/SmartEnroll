@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('strands', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('code')->unique(); // e.g., STEM, ABM
-            $table->string('description'); // e.g., Science Technology...
+            $table->string('code')->unique();
+            $table->string('description');
             $table->timestamps();
-            $table->softDeletes(); // IMPORTANTE SA RECYCLE BIN
+            $table->softDeletes();
         });
     }
 
