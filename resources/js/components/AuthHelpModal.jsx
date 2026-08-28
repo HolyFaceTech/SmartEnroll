@@ -5,7 +5,6 @@ export default function AuthHelpModal({ show, onClose }) {
     return (
         <Modal show={show} onHide={onClose} centered size="lg">
             <div className="modal-content border-2 border-dark rounded-0 shadow-lg font-monospace">
-                {/* HEADER */}
                 <div className="modal-header bg-dark text-white border-bottom border-dark rounded-0 py-3">
                     <div className="d-flex align-items-center gap-2">
                         <i className="bi bi-shield-lock-fill text-warning fs-4"></i>
@@ -20,19 +19,17 @@ export default function AuthHelpModal({ show, onClose }) {
                     ></button>
                 </div>
 
-                {/* BODY */}
                 <div className="modal-body bg-light p-4">
                     <p className="text-muted small mb-4 text-center">
-                        Having trouble accessing the system? Check the guides
-                        below.
+                        Having trouble accessing the system? Check our updated
+                        security guides below.
                     </p>
 
                     <Accordion defaultActiveKey="0">
-                        {/* ITEM 1: HOW TO LOGIN */}
                         <Accordion.Item eventKey="0" className="rounded-0">
                             <Accordion.Header>
                                 <i className="bi bi-box-arrow-in-right me-2"></i>{" "}
-                                HOW TO LOGIN (STAFF & ADMIN)
+                                HOW TO LOGIN (ADMIN, HEAD & STAFF)
                             </Accordion.Header>
                             <Accordion.Body className="bg-white">
                                 <ul className="list-unstyled mb-0">
@@ -47,20 +44,25 @@ export default function AuthHelpModal({ show, onClose }) {
                                     </li>
                                     <li className="mb-2">
                                         <span className="step-badge">3</span>
+                                        Check the <b>reCAPTCHA</b> box ("I'm not
+                                        a robot") for security verification.
+                                    </li>
+                                    <li className="mb-2">
+                                        <span className="step-badge">4</span>
                                         (Optional) Check <b>"Remember Me"</b> to
-                                        stay logged in.
+                                        stay logged in even after closing your
+                                        browser.
                                     </li>
                                     <li>
-                                        <span className="step-badge">4</span>
+                                        <span className="step-badge">5</span>
                                         Click <b>"ACCESS PORTAL"</b>. You will
-                                        be redirected to your dashboard based on
-                                        your role.
+                                        be securely redirected to your dashboard
+                                        based on your assigned role.
                                     </li>
                                 </ul>
                             </Accordion.Body>
                         </Accordion.Item>
 
-                        {/* ITEM 2: FORGOT PASSWORD */}
                         <Accordion.Item eventKey="1" className="rounded-0">
                             <Accordion.Header>
                                 <i className="bi bi-key-fill me-2"></i> I FORGOT
@@ -76,23 +78,30 @@ export default function AuthHelpModal({ show, onClose }) {
                                     <li className="mb-2">
                                         <span className="step-badge">2</span>
                                         Enter your registered email and complete
-                                        the CAPTCHA check.
+                                        the <b>reCAPTCHA</b> security check.
                                     </li>
                                     <li className="mb-2">
                                         <span className="step-badge">3</span>
                                         Check your email inbox (and spam folder)
-                                        for the <b>Reset Link</b>.
+                                        for the secure <b>Reset Link</b>.
                                     </li>
                                     <li>
                                         <span className="step-badge">4</span>
                                         Click the link and create a new
                                         password.
+                                        <br />
+                                        <small className="text-danger fw-bold mt-1 d-block">
+                                            *Note: Passwords must now contain at
+                                            least 8 characters, including 1
+                                            uppercase letter, 1 lowercase
+                                            letter, 1 number, and 1 special
+                                            character.
+                                        </small>
                                     </li>
                                 </ul>
                             </Accordion.Body>
                         </Accordion.Item>
 
-                        {/* ITEM 3: EMAIL VERIFICATION */}
                         <Accordion.Item eventKey="2" className="rounded-0">
                             <Accordion.Header>
                                 <i className="bi bi-envelope-check-fill me-2"></i>{" "}
@@ -100,22 +109,28 @@ export default function AuthHelpModal({ show, onClose }) {
                             </Accordion.Header>
                             <Accordion.Body className="bg-white">
                                 <p className="small text-muted mb-2">
-                                    For security, all accounts must verify their
-                                    email address before logging in.
+                                    For system security, all accounts must
+                                    verify their email address before accessing
+                                    the portal.
                                 </p>
                                 <ul className="list-unstyled mb-0">
                                     <li className="mb-2">
                                         <span className="step-badge">1</span>
-                                        If the system says{" "}
-                                        <b>"Email not verified"</b>, check your
-                                        inbox for the activation link sent upon
-                                        registration.
+                                        If you attempt to log in with an
+                                        unverified email, you will be
+                                        automatically redirected to the{" "}
+                                        <b>Verification Page</b>.
+                                    </li>
+                                    <li className="mb-2">
+                                        <span className="step-badge">2</span>
+                                        Click the{" "}
+                                        <b>"RESEND VERIFICATION LINK"</b> button
+                                        to receive a new secure link.
                                     </li>
                                     <li>
-                                        <span className="step-badge">2</span>
-                                        If the link expired, try logging in
-                                        again. You will see a button to{" "}
-                                        <b>"RESEND VERIFICATION LINK"</b>.
+                                        <span className="step-badge">3</span>
+                                        Open your email inbox and click the
+                                        provided link to activate your account.
                                     </li>
                                 </ul>
                             </Accordion.Body>
@@ -123,7 +138,6 @@ export default function AuthHelpModal({ show, onClose }) {
                     </Accordion>
                 </div>
 
-                {/* FOOTER */}
                 <div className="modal-footer bg-white border-top border-dark d-flex justify-content-center py-3">
                     <button
                         className="btn btn-dark rounded-0 fw-bold px-5 btn-retro-effect"

@@ -1,24 +1,22 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Auth\Events\Verified;
-
-// CONTROLLERS IMPORT
+use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Api\PublicEnrollmentController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\StrandController;
-use App\Http\Controllers\SectionController;
-use App\Http\Controllers\SubjectController;
-use App\Http\Controllers\StudentController;
-use App\Http\Controllers\EnrollmentSettingController;
-use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\CORController;
-use App\Http\Controllers\ReportController;
+use App\Http\Controllers\EnrollmentSettingController;
 use App\Http\Controllers\RecycleBinController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SectionController;
+use App\Http\Controllers\StrandController;
+use App\Http\Controllers\StudentController;
+use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\UserController;
 use App\Models\User;
+use Illuminate\Auth\Events\Verified;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,6 +37,7 @@ Route::group(['prefix' => 'public'], function () {
     Route::post('/enroll-old/{id}', [PublicEnrollmentController::class, 'enrollOld']);
 });
 
+// Authentication
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/email/resend', [AuthController::class, 'resendVerification']);
 Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail']);
@@ -64,7 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- ACADEMIC MANAGEMENT ---
     Route::apiResource('strands', StrandController::class);
     Route::apiResource('subjects', SubjectController::class);
-    
+
     // Sections & Masterlist
     Route::apiResource('sections', SectionController::class);
     Route::get('/sections/{id}/masterlist', [SectionController::class, 'masterList']);
@@ -73,9 +72,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- STUDENT MANAGEMENT ---
     Route::apiResource('students', StudentController::class);
     Route::put('/students/{id}/status', [StudentController::class, 'changeStatus']); // Change Status (Passed, Released, etc.)
-    
+
     // COR (Certificate of Registration)
-    Route::get('/students/{id}/cor-data', [CORController::class, 'getCORData']); 
+    Route::get('/students/{id}/cor-data', [CORController::class, 'getCORData']);
     Route::post('/cor/generate-url', [CORController::class, 'generateUrl']);
 
     // --- Reports ---
@@ -87,7 +86,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/settings', [EnrollmentSettingController::class, 'store']);
     Route::put('/settings/maintenance', [EnrollmentSettingController::class, 'toggleMaintenance']);
     Route::delete('/settings/{id}', [EnrollmentSettingController::class, 'destroy']);
-    
+
     // --- ACTIVITY LOGS ---
     Route::get('/activity-logs', [ActivityLogController::class, 'index']);
 
@@ -104,9 +103,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Students
         Route::apiResource('staff/students', StudentController::class);
         Route::put('staff/students/{id}/status', [StudentController::class, 'changeStatus']);
-        
+
         // COR
-        Route::get('staff/students/{id}/cor-data', [CORController::class, 'getCORData']); 
+        Route::get('staff/students/{id}/cor-data', [CORController::class, 'getCORData']);
         Route::post('staff/cor/generate-url', [CORController::class, 'generateUrl']);
 
         // STRANDS
@@ -143,39 +142,26 @@ Route::get('/print/masterlist/{section}/{user}', [SectionController::class, 'pri
     ->name('masterlist.print')
     ->middleware('signed');
 
-/*
-|--------------------------------------------------------------------------
-| EMAIL VERIFICATION LOGIC
-|--------------------------------------------------------------------------
-*/
+// Emails
 Route::get('/email/verify/{id}/{hash}', function (Request $request, $id) {
     $user = User::find($id);
 
-    // 1. Validate User Existence
-    if (!$user) {
-        return redirect(env('FRONTEND_URL', 'http://127.0.0.1:8000') . '/login?status=invalid');
+    if (! $user) {
+        return redirect(env('FRONTEND_URL', 'http://127.0.0.1:8000').'/login?status=invalid');
     }
 
-    // 2. Validate Hash
     if (! hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
-        return redirect(env('FRONTEND_URL', 'http://127.0.0.1:8000') . '/login?status=invalid');
+        return redirect(env('FRONTEND_URL', 'http://127.0.0.1:8000').'/login?status=invalid');
     }
 
-    // 3. Check if Already Verified
     if ($user->hasVerifiedEmail()) {
-        return redirect(env('FRONTEND_URL', 'http://127.0.0.1:8000') . '/login?status=already_verified');
+        return redirect(env('FRONTEND_URL', 'http://127.0.0.1:8000').'/login?status=already_verified');
     }
 
-    // 4. Mark as Verified & Activate
     if ($user->markEmailAsVerified()) {
         event(new Verified($user));
-        
-        // Force Activate Account
-        $user->forceFill([
-            'status' => 'active'
-        ])->save();
     }
 
-    return redirect(env('FRONTEND_URL', 'http://127.0.0.1:8000') . '/login?status=verified');
+    return redirect(env('FRONTEND_URL', 'http://127.0.0.1:8000').'/login?status=verified');
 
 })->name('verification.verify.api');

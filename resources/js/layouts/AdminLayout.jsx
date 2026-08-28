@@ -28,10 +28,14 @@ export default function AdminLayout() {
         semester: "",
     });
 
-    // FUNCTION: Fetch Settings
     const fetchSettings = async () => {
         try {
-            const res = await axios.get("/api/settings");
+            const token =
+                localStorage.getItem("token") ||
+                sessionStorage.getItem("token");
+            const res = await axios.get("/api/settings", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
             if (res.data) {
                 setCurrentSem({
                     school_year: res.data.school_year || "N/A",
@@ -45,40 +49,57 @@ export default function AdminLayout() {
     };
 
     useEffect(() => {
-        // 1. Load User
-        const storedUser = localStorage.getItem("user");
+        // 1. Load User mula sa parehong storages
+        const storedUser =
+            localStorage.getItem("user") || sessionStorage.getItem("user");
+
         if (storedUser) {
             setUser(JSON.parse(storedUser));
+        } else {
+            navigate("/login"); // I-kick out kung walang naka-save
         }
 
         // 2. Initial Fetch
         fetchSettings();
 
         // 3. Listen for updates
-        const handleSettingsUpdate = () => {
-            fetchSettings();
-        };
-
+        const handleSettingsUpdate = () => fetchSettings();
         window.addEventListener("settings-updated", handleSettingsUpdate);
-
-        return () => {
+        return () =>
             window.removeEventListener(
                 "settings-updated",
                 handleSettingsUpdate,
             );
-        };
-    }, []);
+    }, [navigate]);
 
     const handleLogout = async () => {
         try {
-            await axios.post("/api/logout");
+            const token =
+                localStorage.getItem("token") ||
+                sessionStorage.getItem("token");
+
+            await axios.post(
+                "/api/logout",
+                {},
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                },
+            );
+
+            // Linisin pareho ang storages
             localStorage.removeItem("token");
             localStorage.removeItem("user");
+            sessionStorage.removeItem("token");
+            sessionStorage.removeItem("user");
+
             Toast.fire({ icon: "success", title: "Logged out successfully" });
             navigate("/login");
         } catch (error) {
             console.error("Logout failed", error);
             localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            sessionStorage.removeItem("token");
+            sessionStorage.removeItem("user");
             navigate("/login");
         }
     };

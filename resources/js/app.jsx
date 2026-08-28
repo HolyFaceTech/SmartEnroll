@@ -4,17 +4,21 @@ import { createRoot } from "react-dom/client";
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-// --- LAYOUTS ---
+// Layouts
 import PublicLayout from "./layouts/PublicLayout";
+import AuthLayout from "./layouts/AuthLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import StaffLayout from "./layouts/StaffLayout";
 
 // --- PUBLIC PAGES ---
 import Landing from "./pages/Landing";
-import Login from "./pages/Login";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
 import Maintenance from "./pages/Maintenance";
+
+// Authentications
+import Login from "./pages/auth/Login";
+import Verify from "./pages/auth/Verify";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 
 // --- ADMIN PAGES ---
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -69,13 +73,21 @@ function App() {
                     <Route path="/" element={<Landing />} />
                     <Route path="/maintenance" element={<Maintenance />} />
                 </Route>
-                <Route path="/login" element={<Login />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route
-                    path="/password-reset/:token"
-                    element={<ResetPassword />}
-                />
                 <Route path="/maintenance" element={<Maintenance />} />
+
+                {/* AUTH ROUTES */}
+                <Route element={<AuthLayout />}>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/verify-email" element={<Verify />} />
+                    <Route
+                        path="/forgot-password"
+                        element={<ForgotPassword />}
+                    />
+                    <Route
+                        path="/password-reset/:token"
+                        element={<ResetPassword />}
+                    />
+                </Route>
 
                 {/* ==============================
                     ADMIN ROUTES
