@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import PublicLayout from "./layouts/PublicLayout";
 import AuthLayout from "./layouts/AuthLayout";
 import AdminLayout from "./layouts/AdminLayout";
+import HeadLayout from "./layouts/HeadLayout";
 import StaffLayout from "./layouts/StaffLayout";
 
 // --- PUBLIC PAGES ---
@@ -20,9 +21,11 @@ import Verify from "./pages/auth/Verify";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 
+// Admin & Head Shared
+import Users from "./pages/admin_head/Users";
+
 // --- ADMIN PAGES ---
 import AdminDashboard from "./pages/admin/Dashboard";
-import Users from "./pages/admin/Users";
 import Students from "./pages/admin/Students";
 import Strands from "./pages/admin/Strands";
 import Sections from "./pages/admin/Sections";
@@ -73,9 +76,8 @@ function App() {
                     <Route path="/" element={<Landing />} />
                     <Route path="/maintenance" element={<Maintenance />} />
                 </Route>
-                <Route path="/maintenance" element={<Maintenance />} />
 
-                {/* AUTH ROUTES */}
+                {/* Auth routes */}
                 <Route element={<AuthLayout />}>
                     <Route path="/login" element={<Login />} />
                     <Route path="/verify-email" element={<Verify />} />
@@ -89,18 +91,23 @@ function App() {
                     />
                 </Route>
 
-                {/* ==============================
-                    ADMIN ROUTES
-                ============================== */}
+                {/* Admin routes */}
                 <Route path="/admin" element={<AdminLayout />}>
                     <Route
                         index
                         element={<Navigate to="/admin/dashboard" replace />}
                     />
-                    <Route path="dashboard" element={<AdminDashboard />} />
+                    <Route
+                        path="dashboard"
+                        element={<Placeholder title="AdminDashboard" />}
+                    />
                     <Route
                         path="users"
                         element={<Users title="User Records" />}
+                    />
+                    <Route
+                        path="keeps"
+                        element={<Placeholder title="Keeps Management" />}
                     />
                     <Route
                         path="students"
@@ -123,6 +130,22 @@ function App() {
                         element={<Reports title="System Reports" />}
                     />
                     <Route
+                        path="backup"
+                        element={<Placeholder title="System Backup" />}
+                    />
+                    <Route
+                        path="activity-logs"
+                        element={<Placeholder title="Activity Logs" />}
+                    />
+                    <Route
+                        path="system-status"
+                        element={<Placeholder title="System Status" />}
+                    />
+                    <Route
+                        path="maintenance"
+                        element={<Placeholder title="Maintenance Mode" />}
+                    />
+                    <Route
                         path="settings"
                         element={<Settings title="Enrollment Settings" />}
                     />
@@ -132,8 +155,60 @@ function App() {
                     />
                 </Route>
 
+                {/* Head routes */}
+                <Route path="/head" element={<HeadLayout />}>
+                    <Route
+                        index
+                        element={<Navigate to="/head/dashboard" replace />}
+                    />
+                    <Route
+                        path="dashboard"
+                        element={<Placeholder title="Head Dashboard" />}
+                    />
+                    <Route
+                        path="users"
+                        element={<Users title="User Records" />}
+                    />
+                    <Route
+                        path="students"
+                        element={<Placeholder title="Students Management" />}
+                    />
+                    <Route
+                        path="keeps"
+                        element={<Placeholder title="Keeps Management" />}
+                    />
+                    <Route
+                        path="requests"
+                        element={<Placeholder title="Requests Management" />}
+                    />
+                    <Route
+                        path="strands"
+                        element={<Placeholder title="Strand Management" />}
+                    />
+                    <Route
+                        path="sections"
+                        element={<Placeholder title="Section Management" />}
+                    />
+                    <Route
+                        path="subjects"
+                        element={<Placeholder title="Subject Management" />}
+                    />
+                    <Route
+                        path="reports"
+                        element={<Placeholder title="System Reports" />}
+                    />
+                    <Route
+                        path="settings"
+                        element={<Placeholder title="System Settings" />}
+                    />
+                    <Route
+                        path="recycle-bin"
+                        element={<Placeholder title="Recycle Bin" />}
+                    />
+                </Route>
+
                 {/* ==============================
-                    STAFF ROUTES (NEW)
+                    STAFF ROUTES
                 ============================== */}
                 <Route path="/staff" element={<StaffLayout />}>
                     <Route

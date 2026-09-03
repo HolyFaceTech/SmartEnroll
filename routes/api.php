@@ -43,22 +43,26 @@ Route::post('/email/resend', [AuthController::class, 'resendVerification']);
 Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-/*
-|--------------------------------------------------------------------------
-|  PROTECTED ROUTES (Requires Login / Sanctum Token)
-|--------------------------------------------------------------------------
-*/
+// Private routes
 Route::middleware('auth:sanctum')->group(function () {
 
-    // --- 👤 USER & AUTH ---
+    // user
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+
+    // authentication
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // --- ADMIN DASHBOARD ---
     Route::get('/admin/analytics', [AdminController::class, 'getAnalytics']);
-    Route::resource('users', UserController::class);
+
+    // user records
+    Route::middleware('throttle:15,1')->group(function () {
+        Route::post('users/import', [UserController::class, 'importUsers']);
+        Route::post('users/bulk-delete', [UserController::class, 'bulkDelete']);
+        Route::resource('users', UserController::class);
+    });
 
     // --- ACADEMIC MANAGEMENT ---
     Route::apiResource('strands', StrandController::class);

@@ -3,9 +3,9 @@ import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import Toast from "../utils/toast";
 import TermsModal from "../components/TermsModal";
-import AdminHelpModal from "../components/AdminHelpModal";
+import AdminHelpModal from "../components/AdminHelpModal"; // Maaari mo itong palitan ng HeadHelpModal kung mayroon ka.
 
-export default function AdminLayout() {
+export default function HeadLayout() {
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -17,9 +17,9 @@ export default function AdminLayout() {
 
     // User State
     const [user, setUser] = useState({
-        name: "Admin User",
-        email: "admin@test.com",
-        role: "Administrator",
+        name: "Head User",
+        email: "head@test.com",
+        role: "Head",
     });
 
     // Dynamic Header State
@@ -118,38 +118,40 @@ export default function AdminLayout() {
 
     const isActive = (path) => (location.pathname === path ? "active" : "");
 
-    // ADMIN SPECIFIC LINKS
-    const adminLinks = [
+    // HEAD SPECIFIC LINKS
+    const headLinks = [
         {
-            path: "/admin/dashboard",
+            path: "/head/dashboard",
             icon: "bi-speedometer2",
             label: "Dashboard",
         },
-        { path: "/admin/users", icon: "bi-people-fill", label: "Users" },
-        { path: "/admin/keeps", icon: "bi-archive-fill", label: "Keeps" },
+        { path: "/head/users", icon: "bi-people-fill", label: "Users" },
         {
-            path: "/admin/reports",
+            path: "/head/students",
+            icon: "bi-mortarboard-fill",
+            label: "Students",
+        },
+        { path: "/head/keeps", icon: "bi-archive-fill", label: "Keeps" },
+        {
+            path: "/head/requests",
+            icon: "bi-envelope-paper-fill",
+            label: "Requests",
+        },
+        { path: "/head/strands", icon: "bi-diagram-3-fill", label: "Strands" },
+        {
+            path: "/head/sections",
+            icon: "bi-grid-3x3-gap-fill",
+            label: "Sections",
+        },
+        { path: "/head/subjects", icon: "bi-book-fill", label: "Subjects" },
+        {
+            path: "/head/reports",
             icon: "bi-file-earmark-bar-graph-fill",
             label: "Reports",
         },
+        { path: "/head/settings", icon: "bi-gear-fill", label: "Settings" },
         {
-            path: "/admin/backup",
-            icon: "bi-cloud-arrow-down-fill",
-            label: "Back up",
-        },
-        {
-            path: "/admin/activity-logs",
-            icon: "bi-journal-text",
-            label: "Activity Logs",
-        },
-        {
-            path: "/admin/system-status",
-            icon: "bi-cpu-fill",
-            label: "System Status",
-        },
-        { path: "/admin/maintenance", icon: "bi-tools", label: "Maintenance" },
-        {
-            path: "/admin/recycle-bin",
+            path: "/head/recycle-bin",
             icon: "bi-trash-fill",
             label: "Recycle Bin",
         },
@@ -216,7 +218,7 @@ export default function AdminLayout() {
                     }}
                 >
                     <ul className="nav nav-pills flex-column">
-                        {adminLinks.map((item) => (
+                        {headLinks.map((item) => (
                             <li className="nav-item mb-2" key={item.path}>
                                 <Link
                                     to={item.path}

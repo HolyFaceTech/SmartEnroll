@@ -11,10 +11,14 @@ class UserCredentialsMail extends Mailable
     use Queueable, SerializesModels;
 
     public $user;
+
     public $password;
+
     public $verificationUrl;
 
-    // Tanggapin ang data mula sa Controller
+    /**
+     * Create a new message instance.
+     */
     public function __construct($user, $password, $verificationUrl)
     {
         $this->user = $user;
@@ -22,9 +26,12 @@ class UserCredentialsMail extends Mailable
         $this->verificationUrl = $verificationUrl;
     }
 
+    /**
+     * Get the message layout.
+     */
     public function build()
     {
         return $this->subject('Welcome to SmartEnroll - Account Credentials')
-                    ->view('emails.credentials'); // Ito ang blade view na gagawin natin
+            ->view('emails.user_credentials');
     }
 }

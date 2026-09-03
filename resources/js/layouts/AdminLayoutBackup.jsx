@@ -28,28 +28,6 @@ export default function AdminLayout() {
         semester: "",
     });
 
-    // 🚀 PERMANENT FIX: INTERCEPTOR (Patay ang Ghost Session)
-    useEffect(() => {
-        const interceptor = axios.interceptors.response.use(
-            (response) => response,
-            (error) => {
-                if (
-                    error.response &&
-                    (error.response.status === 401 ||
-                        error.response.status === 419)
-                ) {
-                    // Burahin lahat ng storage
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    // Hard redirect para ma-reset ang buong browser state
-                    window.location.href = "/login";
-                }
-                return Promise.reject(error);
-            },
-        );
-        return () => axios.interceptors.response.eject(interceptor);
-    }, []);
-
     const fetchSettings = async () => {
         try {
             const token =
@@ -71,19 +49,20 @@ export default function AdminLayout() {
     };
 
     useEffect(() => {
+        // 1. Load User mula sa parehong storages
         const storedUser =
             localStorage.getItem("user") || sessionStorage.getItem("user");
+
         if (storedUser) {
-            const parsedUser = JSON.parse(storedUser);
-            const displayName = parsedUser.first_name
-                ? `${parsedUser.first_name} ${parsedUser.last_name}`
-                : parsedUser.name;
-            setUser({ ...parsedUser, name: displayName });
+            setUser(JSON.parse(storedUser));
         } else {
-            navigate("/login");
+            navigate("/login"); // I-kick out kung walang naka-save
         }
 
+        // 2. Initial Fetch
         fetchSettings();
+
+        // 3. Listen for updates
         const handleSettingsUpdate = () => fetchSettings();
         window.addEventListener("settings-updated", handleSettingsUpdate);
         return () =>
@@ -98,6 +77,7 @@ export default function AdminLayout() {
             const token =
                 localStorage.getItem("token") ||
                 sessionStorage.getItem("token");
+
             await axios.post(
                 "/api/logout",
                 {},
@@ -105,55 +85,26 @@ export default function AdminLayout() {
                     headers: { Authorization: `Bearer ${token}` },
                 },
             );
-            localStorage.clear();
-            sessionStorage.clear();
+
+            // Linisin pareho ang storages
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            sessionStorage.removeItem("token");
+            sessionStorage.removeItem("user");
+
             Toast.fire({ icon: "success", title: "Logged out successfully" });
             navigate("/login");
         } catch (error) {
-            localStorage.clear();
-            sessionStorage.clear();
+            console.error("Logout failed", error);
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            sessionStorage.removeItem("token");
+            sessionStorage.removeItem("user");
             navigate("/login");
         }
     };
 
     const isActive = (path) => (location.pathname === path ? "active" : "");
-
-    // ADMIN SPECIFIC LINKS
-    const adminLinks = [
-        {
-            path: "/admin/dashboard",
-            icon: "bi-speedometer2",
-            label: "Dashboard",
-        },
-        { path: "/admin/users", icon: "bi-people-fill", label: "Users" },
-        { path: "/admin/keeps", icon: "bi-archive-fill", label: "Keeps" },
-        {
-            path: "/admin/reports",
-            icon: "bi-file-earmark-bar-graph-fill",
-            label: "Reports",
-        },
-        {
-            path: "/admin/backup",
-            icon: "bi-cloud-arrow-down-fill",
-            label: "Back up",
-        },
-        {
-            path: "/admin/activity-logs",
-            icon: "bi-journal-text",
-            label: "Activity Logs",
-        },
-        {
-            path: "/admin/system-status",
-            icon: "bi-cpu-fill",
-            label: "System Status",
-        },
-        { path: "/admin/maintenance", icon: "bi-tools", label: "Maintenance" },
-        {
-            path: "/admin/recycle-bin",
-            icon: "bi-trash-fill",
-            label: "Recycle Bin",
-        },
-    ];
 
     return (
         <div
@@ -164,19 +115,27 @@ export default function AdminLayout() {
                 backgroundColor: "var(--color-bg)",
             }}
         >
-            {/* SIDEBAR */}
+            {/* RETRO SIDEBAR */}
             <div
                 className="d-flex flex-column flex-shrink-0 p-3 sidebar-retro text-white"
                 style={{
                     width: isSidebarOpen ? "280px" : "90px",
                     transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                     height: "100vh",
+                    position: "relative",
                     zIndex: 1000,
                 }}
             >
+                {/* 1. BRAND / LOGO (Fixed at Top) */}
                 <div
-                    className={`d-flex align-items-center mb-4 text-white text-decoration-none ${!isSidebarOpen ? "justify-content-center" : ""}`}
-                    style={{ height: "60px", flexShrink: 0 }}
+                    className={`d-flex align-items-center mb-4 text-white text-decoration-none ${
+                        !isSidebarOpen ? "justify-content-center" : ""
+                    }`}
+                    style={{
+                        height: "60px",
+                        overflow: "hidden",
+                        flexShrink: 0,
+                    }}
                 >
                     <div
                         className="bg-white p-1 border border-2 border-dark rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center"
@@ -188,8 +147,11 @@ export default function AdminLayout() {
                             style={{ width: "100%", height: "auto" }}
                         />
                     </div>
+
                     <div
-                        className={`ms-3 fade-in ${!isSidebarOpen ? "d-none" : "d-block"}`}
+                        className={`ms-3 fade-in ${
+                            !isSidebarOpen ? "d-none" : "d-block"
+                        }`}
                         style={{ whiteSpace: "nowrap" }}
                     >
                         <span
@@ -207,6 +169,7 @@ export default function AdminLayout() {
 
                 <hr className="border-dark opacity-100" />
 
+                {/* 2. NAVIGATION LINKS (SCROLLABLE AREA) */}
                 <div
                     className="flex-grow-1 mb-auto sidebar-scroll-area"
                     style={{
@@ -216,11 +179,61 @@ export default function AdminLayout() {
                     }}
                 >
                     <ul className="nav nav-pills flex-column">
-                        {adminLinks.map((item) => (
+                        {[
+                            {
+                                path: "/admin/dashboard",
+                                icon: "bi-speedometer2",
+                                label: "Dashboard",
+                            },
+                            {
+                                path: "/admin/users",
+                                icon: "bi-people-fill",
+                                label: "User Records",
+                            },
+                            {
+                                path: "/admin/students",
+                                icon: "bi-mortarboard-fill",
+                                label: "Student Records",
+                            },
+                            {
+                                path: "/admin/strands",
+                                icon: "bi-diagram-3-fill",
+                                label: "Strands",
+                            },
+                            {
+                                path: "/admin/sections",
+                                icon: "bi-grid-3x3-gap-fill",
+                                label: "Sections",
+                            },
+                            {
+                                path: "/admin/subjects",
+                                icon: "bi-book-fill",
+                                label: "Subjects",
+                            },
+                            {
+                                path: "/admin/reports",
+                                icon: "bi-file-earmark-bar-graph-fill",
+                                label: "Reports",
+                            },
+                            {
+                                path: "/admin/settings",
+                                icon: "bi-gear-fill",
+                                label: "Settings",
+                            },
+                            {
+                                path: "/admin/recycle-bin",
+                                icon: "bi-trash-fill",
+                                label: "Recycle Bin",
+                            },
+                        ].map((item) => (
                             <li className="nav-item mb-2" key={item.path}>
                                 <Link
                                     to={item.path}
-                                    className={`nav-link nav-link-retro d-flex align-items-center ${isSidebarOpen ? "gap-3 px-3" : "justify-content-center px-0"} ${isActive(item.path)}`}
+                                    className={`nav-link nav-link-retro d-flex align-items-center ${
+                                        isSidebarOpen
+                                            ? "gap-3 px-3"
+                                            : "justify-content-center px-0"
+                                    } ${isActive(item.path)}`}
                                     title={!isSidebarOpen ? item.label : ""}
                                 >
                                     <i className={`bi ${item.icon} fs-5`}></i>
@@ -233,19 +246,23 @@ export default function AdminLayout() {
 
                 <hr className="border-dark opacity-100" />
 
+                {/* 3. USER PROFILE (Updated Style) */}
                 <div className="dropdown position-relative flex-shrink-0">
                     <div
-                        className={`d-flex align-items-center text-white text-decoration-none cursor-pointer p-2 rounded ${!isSidebarOpen ? "justify-content-center" : ""}`}
+                        className={`d-flex align-items-center text-white text-decoration-none cursor-pointer p-2 rounded ${
+                            !isSidebarOpen ? "justify-content-center" : ""
+                        }`}
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                         style={{
                             cursor: "pointer",
-                            border: "2px solid white",
+                            border: "2px solid white", // WHITE BORDER (Same as Staff)
                             backgroundColor: isDropdownOpen
                                 ? "rgba(255,255,255,0.1)"
                                 : "transparent",
                             transition: "all 0.1s",
                         }}
                     >
+                        {/* AVATAR: Black BG, White Text */}
                         <img
                             src={`https://ui-avatars.com/api/?name=${user.name}&background=000000&color=fff&bold=true`}
                             alt="User"
@@ -253,6 +270,7 @@ export default function AdminLayout() {
                             height="40"
                             className="rounded-circle border border-2 border-white flex-shrink-0"
                         />
+
                         {isSidebarOpen && (
                             <div
                                 className="ms-2 fade-in overflow-hidden"
@@ -270,20 +288,30 @@ export default function AdminLayout() {
                                         fontSize: "0.7rem",
                                         letterSpacing: "1px",
                                         fontWeight: "800",
-                                        color: "rgba(255,255,255,0.7)",
+                                        color: "rgba(255,255,255,0.7)", // MUTED WHITE ROLE
                                     }}
                                 >
                                     {user.role}
                                 </small>
                             </div>
                         )}
+
+                        {isSidebarOpen && (
+                            <i
+                                className={`bi bi-chevron-${
+                                    isDropdownOpen ? "up" : "down"
+                                } ms-auto small`}
+                            ></i>
+                        )}
                     </div>
+
+                    {/* DROPDOWN MENU */}
                     {isDropdownOpen && (
                         <div
                             className="bg-white text-dark rounded p-2 fade-in"
                             style={{
                                 position: "absolute",
-                                bottom: "120%",
+                                bottom: "120%", // Pops UP
                                 left: "0",
                                 width: isSidebarOpen ? "100%" : "260px",
                                 minWidth: "260px",
@@ -303,6 +331,7 @@ export default function AdminLayout() {
                                     {user.email}
                                 </span>
                             </div>
+
                             <button
                                 onClick={handleLogout}
                                 className="btn btn-danger w-100 d-flex align-items-center justify-content-center gap-2 fw-bold font-monospace"
@@ -324,9 +353,13 @@ export default function AdminLayout() {
                 className="flex-grow-1 d-flex flex-column"
                 style={{ overflowY: "auto", height: "100vh" }}
             >
+                {/* HEADER */}
                 <header
                     className="py-3 px-4 bg-white d-flex justify-content-between align-items-center sticky-top"
-                    style={{ zIndex: 900, borderBottom: "2px solid black" }}
+                    style={{
+                        zIndex: 900,
+                        borderBottom: "2px solid black",
+                    }}
                 >
                     <button
                         className="btn p-0 border-0"
@@ -334,6 +367,7 @@ export default function AdminLayout() {
                     >
                         <i className="bi bi-list fs-1 fw-bold"></i>
                     </button>
+
                     <div
                         className="fw-bold d-flex align-items-center gap-2 px-3 py-1 rounded"
                         style={{
@@ -354,10 +388,12 @@ export default function AdminLayout() {
                     </div>
                 </header>
 
+                {/* MAIN CONTENT */}
                 <main className="p-4 flex-grow-1">
                     <Outlet />
                 </main>
 
+                {/* FOOTER WITH HELP BUTTON */}
                 <footer
                     className="py-3 bg-white text-center small mt-auto"
                     style={{ borderTop: "2px solid black" }}
@@ -367,18 +403,23 @@ export default function AdminLayout() {
                             © {new Date().getFullYear()} SmartEnroll System
                         </span>
                         <span className="mx-2">|</span>
+
+                        {/* TERMS BUTTON */}
                         <button
                             className="btn btn-link text-dark text-decoration-none fw-bold p-0"
                             onClick={() => setShowTerms(true)}
                         >
                             Terms & Policy
                         </button>
+
                         <span className="mx-2">|</span>
+
+                        {/* HELP BUTTON */}
                         <button
                             className="btn btn-link text-primary text-decoration-none fw-black p-0 d-flex align-items-center gap-1"
                             onClick={() => setShowHelp(true)}
                         >
-                            <i className="bi bi-question-circle-fill fs-6"></i>{" "}
+                            <i className="bi bi-question-circle-fill fs-6"></i>
                             HELP & GUIDE
                         </button>
                     </div>
@@ -389,6 +430,7 @@ export default function AdminLayout() {
                 show={showTerms}
                 handleClose={() => setShowTerms(false)}
             />
+
             <AdminHelpModal
                 show={showHelp}
                 onClose={() => setShowHelp(false)}

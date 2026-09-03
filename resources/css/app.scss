@@ -1,22 +1,10 @@
-// @import 'tailwindcss';
-
-// @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-// @source '../../storage/framework/views/*.php';
-// @source '../**/*.blade.php';
-// @source '../**/*.js';
-
-// @theme {
-//     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-//         'Segoe UI Symbol', 'Noto Color Emoji';
-// }
-
-/* 1. IMPORTS */
+/* imports */
 @import 'bootstrap/scss/bootstrap';
 @import 'bootstrap-icons/font/bootstrap-icons.css';
 
-/* 2. ROOT VARIABLES & THEME SETUP */
+/* root and theme */
 :root {
-    /* --- CLIENT'S RETRO PALETTE --- */
+    /* retro pallete */
     --color-primary: #3F9AAE;   /* Teal Dark */
     --color-secondary: #79C9C5; /* Teal Light */
     --color-bg: #FFE2AF;        /* Yellow/Cream (Backgrounds) */
@@ -24,27 +12,26 @@
     --color-dark: #2d3436;      /* Almost Black (Text) */
     --color-white: #ffffff;
     
-    /* --- RETRO STYLING RULES --- */
+    /* retro styling rule */
     --retro-shadow: 4px 4px 0px #000000; /* Hard Shadow */
     --retro-border: 2px solid #000000;   /* Thick Border */
     --retro-radius: 8px;                 /* Slight curve */
 
-    /* --- BOOTSTRAP OVERRIDES (Para maging Teal ang default Blue) --- */
+    /* bootstrap override */
     --bs-primary: #3F9AAE;
     --bs-primary-rgb: 63, 154, 174;
     --bs-body-bg: var(--color-bg);
     --bs-body-color: var(--color-dark);
 }
 
-/* 3. GLOBAL BASE STYLES */
+/* global base */
 body {
     background-color: var(--color-bg) !important;
     color: var(--color-dark);
     font-family: 'Courier New', Courier, monospace; /* Retro Typewriter Font */
 }
 
-/* 4. RETRO COMPONENTS */
-
+/* retro components*/
 /* Cards */
 .card-retro {
     background-color: var(--color-white);
@@ -94,6 +81,55 @@ body {
     border-color: var(--color-secondary);
 }
 
+/* hover sink effects */
+.btn-retro-effect {
+    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 6px !important; 
+    border: 2px solid #000 !important;
+    box-shadow: 4px 4px 0px #000 !important; 
+    transform: translate(0, 0); 
+    position: relative;
+}
+
+.btn-retro-effect:hover {
+    transform: translate(4px, 4px); 
+    box-shadow: 0px 0px 0px #000 !important; 
+}
+
+.btn-retro-effect:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0px 0px 0px #000 !important;
+}
+
+/* lift effect for actions buttons */
+.btn-action-retro { 
+    transition: all 0.2s ease-in-out; 
+    cursor: pointer; 
+}
+.btn-action-retro:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 4px 4px 0 #000 !important; 
+}
+.btn-action-retro:active { 
+    transform: translateY(0); 
+    box-shadow: 1px 1px 0 #000 !important; 
+}
+
+/* click effect for main buttons  */
+.btn-press-retro { 
+    transition: all 0.15s ease-in-out; 
+    box-shadow: 4px 4px 0 #000; 
+    transform: translate(0, 0); 
+}
+.btn-press-retro:hover { 
+    transform: translate(2px, 2px); 
+    box-shadow: 2px 2px 0 #000 !important; 
+}
+.btn-press-retro:active { 
+    transform: translate(4px, 4px); 
+    box-shadow: 0px 0px 0 #000 !important; 
+}
+
 /* Inputs */
 .form-control, .form-select {
     border: var(--retro-border) !important;
@@ -114,8 +150,7 @@ body {
     font-size: 0.9rem;
 }
 
-/* 5. ADMIN LAYOUT SPECIFIC (Sidebar & Nav) */
-
+/* Sidebar */
 /* Retro Sidebar Container */
 .sidebar-retro {
     background-color: var(--color-primary);
@@ -148,7 +183,7 @@ body {
     box-shadow: 3px 3px 0px #000;
 }
 
-/* 6. LOGIN PAGE / SPLIT LAYOUT */
+/* authenticaton split layout */
 .split-layout {
     display: flex;
     min-height: 100vh;
@@ -192,9 +227,8 @@ body {
     border-radius: var(--retro-radius);
 }
 
-/* 7. ANIMATIONS */
-
-/* Toga Spinner (Rotation) */
+/* annimation */
+/* Toga Spinner */
 @keyframes spin-toga {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -215,7 +249,7 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* 8. ALERTS & TOASTS (SweetAlert Override) */
+/* alerts and toast */
 div:where(.swal2-container) div:where(.swal2-popup) {
     background-color: var(--color-bg) !important;
     color: #000 !important;
@@ -231,212 +265,18 @@ div:where(.swal2-container) button.swal2-confirm {
     color: #fff !important;
 }
 
-/* 9. UTILITIES */
+/* utilities */
 .text-retro-primary { color: var(--color-primary); }
 .text-retro-danger { color: var(--color-danger); }
 .bg-retro-bg { background-color: var(--color-bg); }
 
-/* Responsive Tweaks */
-@media (max-width: 768px) {
-    .split-layout { flex-direction: column; }
-    .split-left { 
-        min-height: 200px; 
-        border-right: none; 
-        border-bottom: var(--retro-border); 
-        flex: 0 0 auto;
-    }
-    .auth-form-container {
-        box-shadow: none; /* Remove shadow on mobile to save space */
-        border: none;
-        background: transparent;
-        padding: 0;
-    }
+/* hide arrow for select fields */
+.hide-arrow { 
+    -moz-appearance: none; 
+    -webkit-appearance: none; 
+    appearance: none; 
 }
 
-/* RETRO BUTTON: HOVER SINK EFFECT (With Rounded Corners) */
-.btn-retro-effect {
-    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-    
-    /* ROUNDED CORNERS (Para hindi matulis) */
-    border-radius: 6px !important; 
-    
-    /* Borders */
-    border: 2px solid #000 !important;
-    
-    /* Normal State: Naka-angat */
-    box-shadow: 4px 4px 0px #000 !important; 
-    transform: translate(0, 0); 
-    position: relative;
-}
-
-/* Pag tinapat (Hover) -> LULUBOG AGAD */
-.btn-retro-effect:hover {
-    /* Bababa ng 4px para takpan yung shadow */
-    transform: translate(4px, 4px); 
-    
-    /* Mawawala ang shadow para mukhang lumubog */
-    box-shadow: 0px 0px 0px #000 !important; 
-}
-
-/* Pag pinindot (Active) -> Mananatiling lubog */
-.btn-retro-effect:active {
-    transform: translate(4px, 4px);
-    box-shadow: 0px 0px 0px #000 !important;
-}
-
-/* SCROLLBAR FIX 
-   Targetin natin yung mismong navigation area 
-*/
-.sidebar-scroll-area::-webkit-scrollbar {
-    width: 5px; /* Mas manipis para sleek */
-}
-
-.sidebar-scroll-area::-webkit-scrollbar-track {
-    background: transparent; /* Walang background */
-}
-
-.sidebar-scroll-area::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2); /* Semi-transparent white (hindi agaw pansin) */
-    border-radius: 10px; /* Round edges */
-}
-
-.sidebar-scroll-area::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.5); /* Lilitaw ng konti pag tinutok */
-}
-
-/* Firefox Support (Optional) */
-.sidebar-scroll-area {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-}
-
-/* --- CUSTOM TABLE SCROLLBAR (Horizontal) --- */
-/* Targetin natin yung wrapper ng table */
-.table-responsive::-webkit-scrollbar {
-    height: 10px; /* Height ang kailangan pag horizontal scroll */
-    width: 10px;
-}
-
-.table-responsive::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05); /* Sobrang light gray na track */
-    border-radius: 4px;
-}
-
-.table-responsive::-webkit-scrollbar-thumb {
-    background: var(--color-dark); /* Black/Dark Gray na hawakan */
-    border: 2px solid #fff; /* White border para may "gap" effect */
-    border-radius: 10px; /* Round edges */
-}
-
-.table-responsive::-webkit-scrollbar-thumb:hover {
-    background: var(--color-primary); /* Magiging Teal pag tinutok ang mouse */
-    cursor: pointer;
-}
-
-/* Firefox Support */
-.table-responsive {
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-dark) transparent;
-}
-
-/* =========================================
-   ACCORDION STYLES (Help Guides)
-   ========================================= */
-
-.accordion-item {
-    border: 2px solid #000 !important;
-    margin-bottom: 10px;
-}
-
-.accordion-button:not(.collapsed) {
-    font-weight: bold;
-    box-shadow: none !important;
-    color: #000;
-}
-
-.accordion-button:focus {
-    box-shadow: none !important;
-    border-color: #000;
-}
-
-/* Accordion Color Variants */
-.accordion-public .accordion-button:not(.collapsed) {
-    background-color: #F4D03F; /* Yellow */
-    color: #000;
-}
-
-.accordion-auth .accordion-button:not(.collapsed) {
-    background-color: var(--color-primary); /* Teal */
-    color: #fff;
-}
-
-.accordion-admin .accordion-button:not(.collapsed) {
-    background-color: var(--color-dark); /* Dark */
-    color: #fff;
-}
-
-/* Step Badge (Circle Numbers) */
-.step-badge {
-    width: 25px;
-    height: 25px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 10px;
-    font-size: 0.8rem;
-    font-weight: bold;
-}
-
-.step-badge-dark { background-color: #000; color: #fff; }
-.step-badge-yellow { background-color: #F4D03F; color: #000; }
-
-/* =========================================
-   ENROLLMENT WIZARD SPECIFIC STYLES
-   ========================================= */
-
-.modal-retro-content {
-    border: 3px solid #000;
-    border-radius: 0px;
-    box-shadow: 10px 10px 0 #000;
-    background-color: #fff;
-
-    .modal-header-retro {
-        background-color: #F4D03F; // Yellow from your palette
-        border-bottom: 3px solid #000;
-        color: #000;
-        padding: 15px 20px;
-    }
-
-    // Custom overrides para sa wizard inputs para mas "tight" ang look
-    .form-control, .form-select {
-        border-color: #000 !important;
-        border-radius: 0 !important; // Sharp edges for specific wizard feel
-        padding: 10px;
-        font-size: 0.9rem;
-
-        &:focus {
-            box-shadow: none !important;
-            background-color: #fdfbf7;
-        }
-    }
-}
-
-/* --- SPINNING TOGA ANIMATION --- */
-/* Note: Meron ka nang toga-spin sa Section 7, 
-   pero ito ang version na ginamit sa JSX */
-@keyframes spin-toga { 
-    0% { transform: rotate(0deg); } 
-    100% { transform: rotate(360deg); } 
-}
-
-.spinner-toga { 
-    animation: spin-toga 2s linear infinite; 
-    display: inline-block; 
-}
-
-/* Dagdag Utilities */
-// .border-dashed { border-style: dashed !important; }
 .fw-900 { font-weight: 900; }
 
 .btn-staff {
@@ -461,4 +301,143 @@ div:where(.swal2-container) button.swal2-confirm {
  
 .blink-animation { 
     animation: blink 1s linear infinite; 
+}
+
+/* Responsive Tweaks */
+@media (max-width: 768px) {
+    .split-layout { flex-direction: column; }
+    .split-left { 
+        min-height: 200px; 
+        border-right: none; 
+        border-bottom: var(--retro-border); 
+        flex: 0 0 auto;
+    }
+    .auth-form-container {
+        box-shadow: none; /* Remove shadow on mobile to save space */
+        border: none;
+        background: transparent;
+        padding: 0;
+    }
+}
+
+/* scrollbar */
+.sidebar-scroll-area::-webkit-scrollbar {
+    width: 5px; 
+}
+.sidebar-scroll-area::-webkit-scrollbar-track {
+    background: transparent; 
+}
+.sidebar-scroll-area::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2); 
+    border-radius: 10px; 
+}
+.sidebar-scroll-area::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5); 
+}
+
+.sidebar-scroll-area {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+/* scrollbar table */
+.table-responsive::-webkit-scrollbar {
+    height: 10px; 
+    width: 10px;
+}
+.table-responsive::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05); 
+    border-radius: 4px;
+}
+.table-responsive::-webkit-scrollbar-thumb {
+    background: var(--color-dark); 
+    border: 2px solid #fff; 
+    border-radius: 10px; 
+}
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary); 
+    cursor: pointer;
+}
+
+.table-responsive {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-dark) transparent;
+}
+
+/* accordion */
+.accordion-item {
+    border: 2px solid #000 !important;
+    margin-bottom: 10px;
+}
+.accordion-button:not(.collapsed) {
+    font-weight: bold;
+    box-shadow: none !important;
+    color: #000;
+}
+.accordion-button:focus {
+    box-shadow: none !important;
+    border-color: #000;
+}
+
+.accordion-public .accordion-button:not(.collapsed) { 
+    background-color: #F4D03F; 
+    color: #000; 
+}
+
+.accordion-auth .accordion-button:not(.collapsed) { 
+    background-color: var(--color-primary); 
+    color: #fff; 
+}
+
+.accordion-admin .accordion-button:not(.collapsed) { 
+    background-color: var(--color-dark); 
+    color: #fff; 
+}
+
+.step-badge {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+.step-badge-dark { 
+    background-color: #000; 
+    color: #fff; 
+}
+
+.step-badge-yellow { 
+    background-color: #F4D03F; 
+    color: #000; 
+}
+
+/* enrollment wizard */
+.modal-retro-content {
+    border: 3px solid #000;
+    border-radius: 0px;
+    box-shadow: 10px 10px 0 #000;
+    background-color: #fff;
+
+    .modal-header-retro {
+        background-color: #F4D03F; 
+        border-bottom: 3px solid #000;
+        color: #000;
+        padding: 15px 20px;
+    }
+
+    .form-control, .form-select {
+        border-color: #000 !important;
+        border-radius: 0 !important; 
+        padding: 10px;
+        font-size: 0.9rem;
+
+        &:focus {
+            box-shadow: none !important;
+            background-color: #fdfbf7;
+        }
+    }
 }
