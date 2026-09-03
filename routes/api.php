@@ -13,8 +13,8 @@ use App\Http\Controllers\StrandController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\VerificationController;
 use App\Models\User;
-use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -147,25 +147,5 @@ Route::get('/print/masterlist/{section}/{user}', [SectionController::class, 'pri
     ->middleware('signed');
 
 // Emails
-Route::get('/email/verify/{id}/{hash}', function (Request $request, $id) {
-    $user = User::find($id);
-
-    if (! $user) {
-        return redirect(env('FRONTEND_URL', 'http://127.0.0.1:8000').'/login?status=invalid');
-    }
-
-    if (! hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
-        return redirect(env('FRONTEND_URL', 'http://127.0.0.1:8000').'/login?status=invalid');
-    }
-
-    if ($user->hasVerifiedEmail()) {
-        return redirect(env('FRONTEND_URL', 'http://127.0.0.1:8000').'/login?status=already_verified');
-    }
-
-    if ($user->markEmailAsVerified()) {
-        event(new Verified($user));
-    }
-
-    return redirect(env('FRONTEND_URL', 'http://127.0.0.1:8000').'/login?status=verified');
-
-})->name('verification.verify.api');
+Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
+    ->name('verification.verify.api');

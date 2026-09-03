@@ -9,20 +9,24 @@ export default function TermsModal({ show, handleClose }) {
             placement="end"
             style={{ backgroundColor: "#FFF8E7" }}
         >
-            {/* HEADER */}
-            <Offcanvas.Header closeButton className="border-bottom border-dark">
-                <Offcanvas.Title className="fw-bold font-monospace text-dark">
-                    <i className="bi bi-shield-lock-fill me-2"></i>
+            <Offcanvas.Header
+                closeButton
+                closeVariant="white"
+                className="bg-dark border-bottom border-dark"
+            >
+                <Offcanvas.Title className="fw-bold font-monospace text-white">
+                    <i
+                        className="bi bi-shield-lock-fill me-2"
+                        style={{ color: "var(--color-primary)" }}
+                    ></i>
                     Terms & Privacy Policy
                 </Offcanvas.Title>
             </Offcanvas.Header>
 
-            {/* BODY */}
             <Offcanvas.Body
                 className="font-monospace"
                 style={{ fontSize: "0.9rem" }}
             >
-                {/* 1. DATA PRIVACY */}
                 <h6 className="fw-bold mt-2 text-decoration-underline">
                     1. Data Privacy Agreement
                 </h6>
@@ -37,7 +41,6 @@ export default function TermsModal({ show, handleClose }) {
                     <strong>enrollment and academic purposes</strong>.
                 </p>
 
-                {/* 2. PURPOSE */}
                 <h6 className="fw-bold mt-3 text-decoration-underline">
                     2. Purpose of Data Collection
                 </h6>
@@ -57,7 +60,6 @@ export default function TermsModal({ show, handleClose }) {
                     <li>Generate student records and identification cards.</li>
                 </ul>
 
-                {/* 3. RESPONSIBILITIES */}
                 <h6 className="fw-bold mt-3 text-decoration-underline">
                     3. User Responsibilities
                 </h6>
@@ -80,7 +82,6 @@ export default function TermsModal({ show, handleClose }) {
                     </li>
                 </ul>
 
-                {/* 4. INTELLECTUAL PROPERTY */}
                 <h6 className="fw-bold mt-3 text-decoration-underline">
                     4. Intellectual Property
                 </h6>
@@ -92,7 +93,6 @@ export default function TermsModal({ show, handleClose }) {
 
                 <hr className="border-dark my-4" />
 
-                {/* DISCLAIMER NOTE */}
                 <div className="alert alert-warning border-dark rounded-0">
                     <small>
                         <strong>Note:</strong> By clicking "Login" or "Submit",
@@ -101,9 +101,7 @@ export default function TermsModal({ show, handleClose }) {
                     </small>
                 </div>
 
-                {/* ACTION BUTTON */}
                 <div className="text-center mt-4 mb-3">
-                    {/* FIXED SIZE: Standard Button (py-2) + Full Width + Bold */}
                     <button
                         className="btn btn-retro w-100 fw-bold py-2"
                         onClick={handleClose}

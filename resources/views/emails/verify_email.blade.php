@@ -20,7 +20,7 @@
 
                     <div style="padding: 30px;">
                         <p style="font-size: 16px; margin-bottom: 20px;">
-                            Hi <strong>{{ strtoupper($user->first_name ?? 'USER') }}</strong>,
+                            Hi <strong>{{ strtoupper($user->first_name . ' ' . $user->last_name) }}</strong>,
                         </p>
 
                         <p style="font-size: 14px; line-height: 1.6; margin-bottom: 25px;">

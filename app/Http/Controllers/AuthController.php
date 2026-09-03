@@ -69,6 +69,9 @@ class AuthController extends Controller
             RateLimiter::clear($throttleKey);
             $token = $user->createToken('auth_token')->plainTextToken;
 
+            $user->login_at = now();
+            $user->save();
+
             ActivityLog::create([
                 'user_id' => $user->id,
                 'action' => 'login',
