@@ -64,8 +64,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::resource('users', UserController::class);
     });
 
-    // --- ACADEMIC MANAGEMENT ---
-    Route::apiResource('strands', StrandController::class);
+    // strand
+    Route::middleware('throttle:60,1')->group(function () {
+        Route::post('strands/bulk-delete', [StrandController::class, 'bulkDelete']);
+        Route::get('strands/export-csv', [StrandController::class, 'exportCsv']);
+        Route::get('strands/export-pdf', [StrandController::class, 'exportPdf']);
+        Route::apiResource('strands', StrandController::class);
+    });
+
     Route::apiResource('subjects', SubjectController::class);
 
     // Sections & Masterlist

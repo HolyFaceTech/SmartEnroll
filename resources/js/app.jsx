@@ -24,10 +24,12 @@ import ResetPassword from "./pages/auth/ResetPassword";
 // Admin & Head Shared
 import Users from "./pages/admin_head/Users";
 
+// Head & Staff Shared
+import HeadStaffStrands from "./pages/head_staff/Strands";
+
 // --- ADMIN PAGES ---
 import AdminDashboard from "./pages/admin/Dashboard";
 import Students from "./pages/admin/Students";
-import Strands from "./pages/admin/Strands";
 import Sections from "./pages/admin/Sections";
 import Subjects from "./pages/admin/Subjects";
 import Reports from "./pages/admin/Reports";
@@ -37,7 +39,6 @@ import RecycleBin from "./pages/admin/RecycleBin";
 // --- STAFF PAGES ---
 import StaffDashboard from "./pages/staff/Dashboard";
 import StaffStudents from "./pages/staff/Students";
-import StaffStrands from "./pages/staff/Strands";
 import StaffSections from "./pages/staff/Sections";
 import StaffSubjects from "./pages/staff/Subjects";
 import StaffReports from "./pages/staff/Reports";
@@ -114,10 +115,6 @@ function App() {
                         element={<Students title="Student Records" />}
                     />
                     <Route
-                        path="strands"
-                        element={<Strands title="Strand Management" />}
-                    />
-                    <Route
                         path="sections"
                         element={<Sections title="Section Management" />}
                     />
@@ -183,7 +180,7 @@ function App() {
                     />
                     <Route
                         path="strands"
-                        element={<Placeholder title="Strand Management" />}
+                        element={<HeadStaffStrands title="Strand Management" />}
                     />
                     <Route
                         path="sections"
@@ -223,7 +220,9 @@ function App() {
                     />
                     <Route
                         path="strands"
-                        element={<StaffStrands title="Strands Management" />}
+                        element={
+                            <HeadStaffStrands title="Strands Management" />
+                        }
                     />
                     <Route
                         path="sections"
