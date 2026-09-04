@@ -6,6 +6,8 @@ import UserImport from "../../components/UserImport";
 import UserConfirmation from "../../components/UserConfirmation";
 import Loading from "../../utils/Loading";
 
+const BULK_DELETE_LIMIT = 50;
+
 export default function Users() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -174,18 +176,39 @@ export default function Users() {
 
     const handleSelectAll = (e) => {
         if (e.target.checked) {
-            const allIds = users
-                .filter((u) => !currentUser || u.id !== currentUser.id)
+            const selectableUsers = users.filter(
+                (u) => !currentUser || u.id !== currentUser.id,
+            );
+            const idsToSelect = selectableUsers
+                .slice(0, BULK_DELETE_LIMIT)
                 .map((u) => u.id);
-            setSelectedIds(allIds);
+
+            setSelectedIds(idsToSelect);
+
+            if (selectableUsers.length > BULK_DELETE_LIMIT) {
+                Toast.fire({
+                    icon: "info",
+                    title: `Selection limited to ${BULK_DELETE_LIMIT} users only for bulk delete.`,
+                });
+            }
         } else {
             setSelectedIds([]);
         }
     };
 
     const handleSelectOne = (e, id) => {
-        if (e.target.checked) setSelectedIds([...selectedIds, id]);
-        else setSelectedIds(selectedIds.filter((itemId) => itemId !== id));
+        if (e.target.checked) {
+            if (selectedIds.length >= BULK_DELETE_LIMIT) {
+                Toast.fire({
+                    icon: "warning",
+                    title: `Limit reached! You can only select up to ${BULK_DELETE_LIMIT} users at a time.`,
+                });
+                return;
+            }
+            setSelectedIds([...selectedIds, id]);
+        } else {
+            setSelectedIds(selectedIds.filter((itemId) => itemId !== id));
+        }
     };
 
     const getFullName = (u) =>
@@ -323,9 +346,17 @@ export default function Users() {
                                                 className="form-check-input border-dark border-2 cursor-pointer"
                                                 onChange={handleSelectAll}
                                                 checked={
+                                                    selectedIds.length > 0 &&
                                                     selectedIds.length ===
-                                                        users.length &&
-                                                    users.length > 0
+                                                        Math.min(
+                                                            users.filter(
+                                                                (u) =>
+                                                                    !currentUser ||
+                                                                    u.id !==
+                                                                        currentUser.id,
+                                                            ).length,
+                                                            BULK_DELETE_LIMIT,
+                                                        )
                                                 }
                                             />
                                         </th>

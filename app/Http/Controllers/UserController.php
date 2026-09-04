@@ -298,7 +298,10 @@ class UserController extends Controller
             $this->checkAccess($authUser);
 
             $request->validate([
-                'ids' => 'required|array',
+                'ids' => 'required|array|max:50',
+                'ids.*' => 'exists:users,id',
+            ], [
+                'ids.max' => 'You can only delete up to 50 users at a single time.',
             ]);
 
             $ids = $request->ids;
@@ -330,6 +333,8 @@ class UserController extends Controller
 
             return response()->json(['message' => "Successfully deleted {$deletedCount} selected user(s)."]);
 
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (Exception $e) {
             Log::error('UserController bulkDelete Error: '.$e->getMessage().' on line '.$e->getLine());
 
