@@ -153,6 +153,16 @@ class AuthController extends Controller
             if ($status === PasswordBroker::RESET_LINK_SENT) {
                 RateLimiter::hit($throttleKey);
 
+                $user = User::where('email', $request->email)->first();
+                if ($user) {
+                    ActivityLog::create([
+                        'user_id' => $user->id,
+                        'action' => 'forgot_password',
+                        'description' => "User {$user->name} requested a password reset link.",
+                        'ip_address' => $request->ip(),
+                    ]);
+                }
+
                 return response()->json(['message' => 'Password reset link sent!']);
             }
 
@@ -197,6 +207,13 @@ class AuthController extends Controller
             if ($status === PasswordBroker::PASSWORD_RESET) {
                 $user = User::where('email', $request->email)->first();
                 $token = $user->createToken('auth_token')->plainTextToken;
+
+                ActivityLog::create([
+                    'user_id' => $user->id,
+                    'action' => 'reset_password',
+                    'description' => "User {$user->name} successfully reset their password.",
+                    'ip_address' => $request->ip(),
+                ]);
 
                 return response()->json([
                     'message' => 'Password reset success',
@@ -246,6 +263,13 @@ class AuthController extends Controller
 
             $user->sendEmailVerificationNotification();
             RateLimiter::hit($throttleKey);
+
+            ActivityLog::create([
+                'user_id' => $user->id,
+                'action' => 'resend_verification',
+                'description' => "User {$user->name} requested a new email verification link.",
+                'ip_address' => $request->ip(),
+            ]);
 
             return response()->json(['message' => 'Verification link sent to your email!']);
 
