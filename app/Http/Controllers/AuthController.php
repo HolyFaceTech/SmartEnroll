@@ -90,7 +90,7 @@ class AuthController extends Controller
         } catch (Exception $e) {
             Log::error('AuthController login Error: '.$e->getMessage().' on line '.$e->getLine().' in '.$e->getFile());
 
-            return response()->json(['message' => 'An unexpected error occurred during login. Please try again later.'], 500);
+            return response()->json(['message' => 'Unable to process your login due to a server error. Please check your connection and try again.'], 500);
         }
     }
 
@@ -114,7 +114,7 @@ class AuthController extends Controller
         } catch (Exception $e) {
             Log::error('AuthController logout Error: '.$e->getMessage().' on line '.$e->getLine().' in '.$e->getFile());
 
-            return response()->json(['message' => 'An unexpected error occurred during logout. Please try again later.'], 500);
+            return response()->json(['message' => 'Unable to complete logout due to a server problem. Please try again.'], 500);
         }
     }
 
@@ -163,7 +163,7 @@ class AuthController extends Controller
         } catch (Exception $e) {
             Log::error('AuthController sendResetLinkEmail Error: '.$e->getMessage().' on line '.$e->getLine().' in '.$e->getFile());
 
-            return response()->json(['message' => 'An unexpected error occurred during password reset request. Please try again later.'], 500);
+            return response()->json(['message' => 'Unable to send the password reset link due to a server error. Please try again later.'], 500);
         }
     }
 
@@ -212,7 +212,7 @@ class AuthController extends Controller
         } catch (Exception $e) {
             Log::error('AuthController resetPassword Error: '.$e->getMessage().' on line '.$e->getLine().' in '.$e->getFile());
 
-            return response()->json(['message' => 'An unexpected error occurred during password reset. Please try again later.'], 500);
+            return response()->json(['message' => 'Unable to update your password due to a server problem. Please try again.'], 500);
         }
     }
 
@@ -252,7 +252,7 @@ class AuthController extends Controller
         } catch (Exception $e) {
             Log::error('AuthController resendVerification Error: '.$e->getMessage().' on line '.$e->getLine().' in '.$e->getFile());
 
-            return response()->json(['message' => 'An unexpected error occurred during verification resend. Please try again later.'], 500);
+            return response()->json(['message' => 'Unable to resend the verification link due to a server error. Please try again later.'], 500);
         }
     }
 }
