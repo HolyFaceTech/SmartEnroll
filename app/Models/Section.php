@@ -25,6 +25,13 @@ class Section extends Model
 
     public function students()
     {
-        return $this->hasMany(Student::class);
+        return $this->hasManyThrough(
+            Student::class,
+            StudentAcademic::class,
+            'section_id',
+            'id',
+            'id',
+            'student_id'
+        );
     }
 }

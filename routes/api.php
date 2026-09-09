@@ -74,10 +74,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('subjects', SubjectController::class);
 
-    // Sections & Masterlist
-    Route::apiResource('sections', SectionController::class);
-    Route::get('/sections/{id}/masterlist', [SectionController::class, 'masterList']);
-    Route::get('/sections/{id}/masterlist/generate-url', [SectionController::class, 'generatePrintUrl']);
+    // Sections
+    Route::middleware('throttle:60,1')->group(function () {
+        Route::post('sections/bulk-delete', [SectionController::class, 'bulkDelete']);
+        Route::get('sections/export-csv', [SectionController::class, 'exportCsv']);
+        Route::get('sections/export-pdf', [SectionController::class, 'exportPdf']);
+        Route::apiResource('sections', SectionController::class);
+    });
 
     // --- STUDENT MANAGEMENT ---
     Route::apiResource('students', StudentController::class);
@@ -147,14 +150,14 @@ Route::get('/print/cor/{id}', [CORController::class, 'printCOR'])
     ->name('cor.print')
     ->middleware('signed');
 
-// Print Masterlist
-Route::get('/print/masterlist/{section}/{user}', [SectionController::class, 'printMasterList'])
-    ->name('masterlist.print')
-    ->middleware('signed');
-
 // download strand masterlist
 Route::get('/download/strand-masterlist/{strand}', [StrandController::class, 'downloadStrandMasterlist'])
     ->name('strand.masterlist.download')
+    ->middleware('signed');
+
+// download section masterlist
+Route::get('/download/section-masterlist/{section}', [SectionController::class, 'downloadSectionMasterlist'])
+    ->name('section.masterlist.download')
     ->middleware('signed');
 
 // emails

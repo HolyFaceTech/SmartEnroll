@@ -26,11 +26,11 @@ import Users from "./pages/admin_head/Users";
 
 // Head & Staff Shared
 import HeadStaffStrands from "./pages/head_staff/Strands";
+import HeadStaffSections from "./pages/head_staff/Sections";
 
 // --- ADMIN PAGES ---
 import AdminDashboard from "./pages/admin/Dashboard";
 import Students from "./pages/admin/Students";
-import Sections from "./pages/admin/Sections";
 import Subjects from "./pages/admin/Subjects";
 import Reports from "./pages/admin/Reports";
 import Settings from "./pages/admin/Settings";
@@ -39,7 +39,6 @@ import RecycleBin from "./pages/admin/RecycleBin";
 // --- STAFF PAGES ---
 import StaffDashboard from "./pages/staff/Dashboard";
 import StaffStudents from "./pages/staff/Students";
-import StaffSections from "./pages/staff/Sections";
 import StaffSubjects from "./pages/staff/Subjects";
 import StaffReports from "./pages/staff/Reports";
 
@@ -115,10 +114,6 @@ function App() {
                         element={<Students title="Student Records" />}
                     />
                     <Route
-                        path="sections"
-                        element={<Sections title="Section Management" />}
-                    />
-                    <Route
                         path="subjects"
                         element={<Subjects title="Subject Management" />}
                     />
@@ -184,7 +179,9 @@ function App() {
                     />
                     <Route
                         path="sections"
-                        element={<Placeholder title="Section Management" />}
+                        element={
+                            <HeadStaffSections title="Section Management" />
+                        }
                     />
                     <Route
                         path="subjects"
@@ -226,7 +223,9 @@ function App() {
                     />
                     <Route
                         path="sections"
-                        element={<StaffSections title="Sections Management" />}
+                        element={
+                            <HeadStaffSections title="Section Management" />
+                        }
                     />
                     <Route
                         path="subjects"

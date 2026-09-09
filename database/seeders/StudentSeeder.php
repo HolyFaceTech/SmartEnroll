@@ -65,9 +65,10 @@ class StudentSeeder extends Seeder
         }
 
         $email = strtolower(str_replace(' ', '', $firstName)).'.'.strtolower(str_replace(' ', '', $lastName)).$i.'@smartenroll.edu.ph';
+        $studentNumber = date('y').'-'.str_pad($i, 5, '0', STR_PAD_LEFT);
 
         $student = Student::create([
-            'student_number' => 'STU-2026-'.str_pad($i, 4, '0', STR_PAD_LEFT),
+            'student_number' => $studentNumber,
             'lrn' => '1092'.str_pad($i, 8, '0', STR_PAD_LEFT),
             'first_name' => $firstName,
             'last_name' => $lastName,

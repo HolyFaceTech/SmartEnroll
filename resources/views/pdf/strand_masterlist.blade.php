@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <title>{{ strtoupper($strand->code) }} Master List</title>
     <style>
-        @page { margin: 30px 50px; }
+        @page { 
+            margin: 30px 50px; 
+        }
+        
         body {
             font-family: 'Courier New', Courier, monospace;
             font-size: 10pt;

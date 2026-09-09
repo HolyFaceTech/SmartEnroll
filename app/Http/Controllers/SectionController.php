@@ -2,200 +2,316 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Section;
 use App\Models\ActivityLog;
-use Illuminate\Http\Request;
+use App\Models\EnrollmentSetting;
+use App\Models\Section;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\ValidationException;
 
 class SectionController extends Controller
 {
-    // 1. GET SECTIONS (May count ng enrolled students)
-    public function index()
+    // security
+    private function checkAccess($authUser)
     {
-        return Section::with('strand')
-            ->withCount(['students as enrolled_count' => function ($query) {
-                $query->where('status', 'enrolled'); // Bilangin lang ang enrolled
-            }])
-            ->latest()
-            ->get();
-    }
-
-    // 2. MASTER LIST DATA (Para sa Modal Preview)
-    public function masterList($id)
-    {
-        $section = Section::with('strand')->findOrFail($id);
-
-        // Filter: Enrolled only & Sort Alphabetical
-        $students = $section->students()
-            ->where('status', 'enrolled')
-            ->orderBy('last_name', 'asc')
-            ->get();
-
-        $males = $students->where('gender', 'Male')->values();
-        $females = $students->where('gender', 'Female')->values();
-
-        // FETCH DYNAMIC SETTINGS
-        // Kukunin ang active School Year at Semester sa database
-        $settings = \App\Models\EnrollmentSetting::first();
-        
-        // Fallback (kung sakaling walang laman ang settings table)
-        $schoolYear = $settings ? $settings->school_year : date('Y') . '-' . (date('Y') + 1);
-        $semester = $settings ? $settings->semester : '1st Semester';
-
-        return response()->json([
-            'section' => $section,
-            'males' => $males,
-            'females' => $females,
-            'school_year' => $schoolYear,
-            'semester' => $semester      
-        ]);
-    }
-
- // BAGONG FUNCTION: Taga-gawa ng Signed URL (Valid for 1 Minute)
-    public function generatePrintUrl($id)
-    {
-        $section = Section::findOrFail($id);
-        $user = auth()->user()->id; // Kunin ang ID ng user na nag-request
-
-        // LOG ACTIVITY: DOWNLOAD MASTERLIST
-        ActivityLog::create([
-            'user_id' => Auth::id(),
-            'action' => 'download',
-            'description' => "Downloaded Masterlist for section: {$section->name}",
-            'ip_address' => request()->ip()
-        ]);
-
-        // Gumawa ng URL na may "Signature"
-        $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-            'masterlist.print', // Route Name
-            now()->addMinute(), // Expiration
-            [
-                'section' => $section->id, 
-                'user' => $user
-            ]
-        );
-
-        return response()->json(['url' => $url]);
-    }
-
-    // UPDATED PRINT FUNCTION (Dynamic School Year & Semester)
-    public function printMasterList($sectionId, $userId)
-    {
-        if (ob_get_length()) ob_end_clean(); // Safety Clean
-
-        try {
-            // 1. Fetch Section Data
-            $section = Section::with('strand')->findOrFail($sectionId);
-            
-            // 2. Fetch User (Printed By)
-            $userObj = \App\Models\User::find($userId);
-            $printedBy = $userObj ? $userObj->name : 'Administrator';
-
-            // 3. Fetch Active Enrollment Settings (Dito tayo kukuha ng SY at Sem)
-            // Assumed model name: EnrollmentSetting
-            $settings = \App\Models\EnrollmentSetting::first(); 
-
-            // Fallback values kung sakaling walang laman ang settings table
-            $schoolYear = $settings ? $settings->school_year : date('Y') . '-' . (date('Y') + 1);
-            $semester = $settings ? $settings->semester : '1st Semester';
-
-            // 4. Fetch Students
-            $students = $section->students()
-                ->where('status', 'enrolled')
-                ->orderBy('last_name', 'asc')
-                ->get();
-
-            $males = $students->where('gender', 'Male')->values();
-            $females = $students->where('gender', 'Female')->values();
-
-            $data = [
-                'section' => $section,
-                'males' => $males,
-                'females' => $females,
-                'schoolYear' => $schoolYear,
-                'semester' => $semester,    
-                'printedBy' => $printedBy
-            ];
-
-            // Load View
-            $pdf = Pdf::loadView('pdf.masterlist', $data);
-            $pdf->setPaper('a4', 'portrait');
-
-            return $pdf->stream('MasterList-' . $section->name . '.pdf');
-
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+        if (! in_array($authUser->role, ['head', 'staff'])) {
+            abort(403, 'Unauthorized Access. You do not have permission to perform this action.');
         }
     }
 
-    // (RETAIN STORE, UPDATE, DESTROY METHODS HERE...)
-    public function store(Request $request) 
+    // read
+    public function index(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:50|unique:sections,name',
-            'strand_id' => 'required|exists:strands,id',
-            'grade_level' => 'required|in:11,12',
-            'capacity' => 'required|integer|min:1',
-        ]);
+        try {
+            $authUser = Auth::user();
+            $this->checkAccess($authUser);
 
-        $section = Section::create($validated);
+            $query = Section::with('strand');
 
-        // LOG ACTIVITY: CREATE
-        ActivityLog::create([
-            'user_id' => Auth::id(),
-            'action' => 'create',
-            'description' => "Created new section: {$section->name} (G{$section->grade_level})",
-            'ip_address' => $request->ip()
-        ]);
+            if ($request->has('search') && $request->search != '') {
+                $searchTerm = $request->search;
+                $query->where('name', 'LIKE', '%'.$searchTerm.'%');
+            }
 
-        return response()->json(['message' => 'Created', 'section' => $section]);
+            $query->withCount(['students as enrolled_count' => function ($query) {
+                $query->where('students.status', 'enrolled');
+            }]);
+
+            $perPage = $request->input('per_page', 10);
+            $sections = $query->latest()->paginate($perPage);
+
+            return response()->json($sections);
+
+        } catch (Exception $e) {
+            Log::error('SectionController index Error: '.$e->getMessage().' on line '.$e->getLine());
+
+            return response()->json(['message' => 'Failed to load section records.'], 500);
+        }
     }
 
-    public function update(Request $request, $id) 
+    // create
+    public function store(Request $request)
     {
-        $section = Section::find($id);
+        try {
+            $authUser = Auth::user();
+            $this->checkAccess($authUser);
 
-        if(!$section) return response()->json(['message'=>'Not found'], 404);
-        // ADDED: Validation with Unique Check (Ignored ang sariling ID)
-        $validated = $request->validate([
-            'name' => 'required|string|max:50|unique:sections,name,' . $id, 
-            'strand_id' => 'required|exists:strands,id',
-            'grade_level' => 'required|in:11,12',
-            'capacity' => 'required|integer|min:1',
-        ]);
-        $section->update($validated);
-
-        // LOG ACTIVITY: UPDATE
-        ActivityLog::create([
-            'user_id' => Auth::id(),
-            'action' => 'update',
-            'description' => "Updated section details: {$section->name}",
-            'ip_address' => $request->ip()
-        ]);
-
-        return response()->json(['message' => 'Updated', 'section' => $section]);
-    }
-
-    public function destroy($id) 
-    {
-        $section = Section::find($id);
-
-        if($section) { 
-            $name = $section->name; // Save name before delete
-            $section->delete(); 
-
-            // LOG ACTIVITY: DELETE
-            ActivityLog::create([
-                'user_id' => Auth::id(),
-                'action' => 'delete',
-                'description' => "Deleted section: {$name}",
-                'ip_address' => request()->ip()
+            $validated = $request->validate([
+                'name' => 'required|string|max:50|unique:sections,name',
+                'strand_id' => 'required|exists:strands,id',
+                'grade_level' => 'required|in:11,12',
+                'capacity' => 'required|integer|min:1',
             ]);
 
-            return response()->json(['message'=>'Deleted']); 
+            $section = Section::create($validated);
+
+            ActivityLog::create([
+                'user_id' => $authUser->id,
+                'action' => 'create',
+                'description' => "Created new section: {$section->name}",
+                'ip_address' => $request->ip(),
+            ]);
+
+            return response()->json(['message' => 'Section Created successfully', 'section' => $section], 201);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('SectionController store Error: '.$e->getMessage().' on line '.$e->getLine());
+
+            return response()->json(['message' => 'Failed to create section due to server error.'], 500);
         }
-        
-        return response()->json(['message'=>'Not found'], 404);
+    }
+
+    // update
+    public function update(Request $request, $id)
+    {
+        try {
+            $authUser = Auth::user();
+            $this->checkAccess($authUser);
+
+            $section = Section::findOrFail($id);
+
+            $validated = $request->validate([
+                'name' => 'required|string|max:50|unique:sections,name,'.$id,
+                'strand_id' => 'required|exists:strands,id',
+                'grade_level' => 'required|in:11,12',
+                'capacity' => 'required|integer|min:1',
+            ]);
+
+            $section->update($validated);
+
+            ActivityLog::create([
+                'user_id' => $authUser->id,
+                'action' => 'update',
+                'description' => "Updated section details: {$section->name}",
+                'ip_address' => $request->ip(),
+            ]);
+
+            return response()->json(['message' => 'Section Updated successfully', 'section' => $section]);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('SectionController update Error: '.$e->getMessage().' on line '.$e->getLine());
+
+            return response()->json(['message' => 'Failed to update section due to server error.'], 500);
+        }
+    }
+
+    // single delete
+    public function destroy($id)
+    {
+        try {
+            $authUser = Auth::user();
+            $this->checkAccess($authUser);
+
+            $section = Section::findOrFail($id);
+            $name = $section->name;
+
+            $section->delete();
+
+            ActivityLog::create([
+                'user_id' => $authUser->id,
+                'action' => 'delete',
+                'description' => "Deleted section: {$name}",
+                'ip_address' => request()->ip(),
+            ]);
+
+            return response()->json(['message' => 'Section Deleted successfully']);
+        } catch (Exception $e) {
+            Log::error('SectionController destroy Error: '.$e->getMessage().' on line '.$e->getLine());
+
+            return response()->json(['message' => 'Failed to delete section.'], 500);
+        }
+    }
+
+    // bulk delete
+    public function bulkDelete(Request $request)
+    {
+        try {
+            $authUser = Auth::user();
+            $this->checkAccess($authUser);
+
+            $request->validate([
+                'ids' => 'required|array|max:50',
+                'ids.*' => 'exists:sections,id',
+            ], [
+                'ids.max' => 'You can only delete up to 50 sections at a single time.',
+            ]);
+
+            $sections = Section::whereIn('id', $request->ids)->get();
+            $names = $sections->pluck('name')->toArray();
+
+            Section::whereIn('id', $request->ids)->delete();
+
+            $namesString = implode(', ', $names);
+            ActivityLog::create([
+                'user_id' => $authUser->id,
+                'action' => 'bulk_delete',
+                'description' => "Bulk deleted sections: {$namesString}",
+                'ip_address' => $request->ip(),
+            ]);
+
+            return response()->json(['message' => 'Sections deleted successfully.']);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('SectionController bulkDelete Error: '.$e->getMessage().' on line '.$e->getLine());
+
+            return response()->json(['message' => 'Failed to process bulk deletion.'], 500);
+        }
+    }
+
+    // export CSV
+    public function exportCsv(Request $request)
+    {
+        try {
+            $authUser = Auth::user();
+            $this->checkAccess($authUser);
+
+            $sectionId = $request->input('section_id');
+            $section = Section::findOrFail($sectionId);
+
+            $students = $section->students()
+                ->where('students.status', 'enrolled')
+                ->with(['profile', 'family', 'academic'])
+                ->get()
+                ->sortBy('last_name')
+                ->values();
+
+            ActivityLog::create([
+                'user_id' => $authUser->id,
+                'action' => 'export_csv',
+                'description' => "Exported CSV Full Data for section: {$section->name}",
+                'ip_address' => $request->ip(),
+            ]);
+
+            return response()->json([
+                'section_name' => $section->name,
+                'students' => $students,
+            ]);
+        } catch (Exception $e) {
+            Log::error('SectionController exportCsv Error: '.$e->getMessage().' on line '.$e->getLine());
+
+            return response()->json(['message' => 'Failed to prepare CSV data.'], 500);
+        }
+    }
+
+    // export PDF
+    public function exportPdf(Request $request)
+    {
+        try {
+            $authUser = Auth::user();
+            $this->checkAccess($authUser);
+
+            $sectionId = $request->input('section_id');
+            $section = Section::findOrFail($sectionId);
+
+            if ($request->boolean('log')) {
+                ActivityLog::create([
+                    'user_id' => $authUser->id,
+                    'action' => 'export_pdf',
+                    'description' => "Exported PDF Masterlist for section: {$section->name}",
+                    'ip_address' => $request->ip(),
+                ]);
+
+                $url = URL::temporarySignedRoute(
+                    'section.masterlist.download',
+                    now()->addMinutes(30),
+                    [
+                        'section' => $section->id,
+                        'pb' => $authUser->first_name.' '.$authUser->last_name,
+                    ]
+                );
+
+                return response()->json([
+                    'message' => 'Export logged successfully.',
+                    'url' => $url,
+                ]);
+            }
+
+            $students = $section->students()
+                ->where('students.status', 'enrolled')
+                ->leftJoin('student_profiles', 'students.id', '=', 'student_profiles.student_id')
+                ->select(
+                    'students.id', 'students.student_number', 'students.lrn',
+                    'students.first_name', 'students.last_name', 'students.middle_name', 'students.suffix',
+                    'student_profiles.gender',
+                    'student_academics.learning_modality'
+                )
+                ->orderBy('student_profiles.gender', 'desc')
+                ->orderBy('students.last_name')
+                ->get();
+
+            return response()->json([
+                'section_name' => $section->name,
+                'grade_level' => $section->grade_level,
+                'students' => $students,
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('SectionController exportPdf Error: '.$e->getMessage().' on line '.$e->getLine());
+
+            return response()->json(['message' => 'Failed to prepare PDF data.'], 500);
+        }
+    }
+
+    // download PDF
+    public function downloadSectionMasterlist(Request $request, $id)
+    {
+        if (! $request->hasValidSignature()) {
+            abort(401, 'Invalid or expired download link. Please generate a new PDF request.');
+        }
+
+        $section = Section::with('strand')->findOrFail($id);
+        $settings = EnrollmentSetting::first();
+        $schoolYear = $settings ? $settings->school_year : date('Y').'-'.(date('Y') + 1);
+
+        $students = $section->students()
+            ->where('students.status', 'enrolled')
+            ->leftJoin('student_profiles', 'students.id', '=', 'student_profiles.student_id')
+            ->select(
+                'students.*',
+                'student_profiles.gender',
+                'student_academics.learning_modality'
+            )
+            ->orderBy('student_profiles.gender', 'desc')
+            ->orderBy('students.last_name')
+            ->get();
+
+        $pdf = Pdf::loadView('pdf.section_masterlist', [
+            'section' => $section,
+            'students' => $students,
+            'schoolYear' => $schoolYear,
+            'printedBy' => $request->query('pb', 'System Admin'),
+        ]);
+
+        $currentYear = date('Y');
+        $fileName = strtoupper($section->name).'MasterList'.$currentYear.'.pdf';
+
+        return $pdf->download($fileName);
     }
 }
