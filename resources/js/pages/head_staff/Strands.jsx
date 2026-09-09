@@ -4,6 +4,7 @@ import Toast from "../../utils/toast";
 import Loading from "../../utils/Loading";
 import StrandModal from "../../components/StrandModal";
 import StrandConfirmation from "../../components/StrandConfirmation";
+import StrandListModal from "../../components/StrandListModal";
 
 const BULK_DELETE_LIMIT = 50;
 
@@ -23,6 +24,13 @@ export default function Strands() {
     const [showModal, setShowModal] = useState(false);
     const [modalType, setModalType] = useState("create");
     const [selectedStrand, setSelectedStrand] = useState(null);
+
+    const [showListModal, setShowListModal] = useState(false);
+    const [listData, setListData] = useState({
+        strandCode: "",
+        strandId: "",
+        students: [],
+    });
 
     const [confirmConfig, setConfirmConfig] = useState({ show: false });
     const [selectedIds, setSelectedIds] = useState([]);
@@ -85,7 +93,6 @@ export default function Strands() {
                 .slice(0, BULK_DELETE_LIMIT)
                 .map((s) => s.id);
             setSelectedIds(idsToSelect);
-
             if (strands.length > BULK_DELETE_LIMIT) {
                 Toast.fire({
                     icon: "info",
@@ -156,7 +163,7 @@ export default function Strands() {
             title: "EXPORT CSV?",
             message: (
                 <>
-                    Are you sure you want to download the CSV Masterlist for{" "}
+                    Are you sure you want to download the Full Data CSV for{" "}
                     <br />
                     <strong>{strandCode}</strong>?
                 </>
@@ -167,17 +174,43 @@ export default function Strands() {
         });
     };
 
-    const handleExportPDFClick = (strandId, strandCode) => {
+    const handleOpenListModal = async (strandId, strandCode) => {
+        setActionLoading(true);
+        setLoadingMessage("LOADING MASTER LIST...");
+        try {
+            const res = await axios.get("/api/strands/export-pdf", {
+                params: { strand_id: strandId },
+                headers: { Authorization: `Bearer ${getToken()}` },
+            });
+
+            setListData({
+                strandId: strandId,
+                strandCode: strandCode,
+                students: res.data.students || [],
+            });
+            setShowListModal(true);
+        } catch (error) {
+            Toast.fire({ icon: "error", title: "Failed to load master list." });
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleExportPDFClick = () => {
+        setShowListModal(false);
         setConfirmConfig({
             show: true,
             type: "export_pdf",
-            payload: { strandId, strandCode },
+            payload: {
+                strandId: listData.strandId,
+                strandCode: listData.strandCode,
+            },
             title: "EXPORT PDF?",
             message: (
                 <>
-                    Are you sure you want to download the PDF Masterlist for{" "}
-                    <br />
-                    <strong>{strandCode}</strong>?
+                    Are you sure you want to log and download the PDF Masterlist
+                    for <br />
+                    <strong>{listData.strandCode}</strong>?
                 </>
             ),
             confirmText: "YES, EXPORT",
@@ -190,14 +223,10 @@ export default function Strands() {
         const { type, payload } = confirmConfig;
         setConfirmConfig({ show: false });
 
-        if (type === "export_csv") {
-            await executeExportCSV(payload.strandId, payload.strandCode);
-            return;
-        }
-        if (type === "export_pdf") {
-            await executeExportPDF(payload.strandId, payload.strandCode);
-            return;
-        }
+        if (type === "export_csv")
+            return await executeExportCSV(payload.strandId, payload.strandCode);
+        if (type === "export_pdf")
+            return await executeExportPDF(payload.strandId, payload.strandCode);
 
         setActionLoading(true);
         setLoadingMessage(
@@ -228,13 +257,12 @@ export default function Strands() {
             }
         } catch (error) {
             let msg = "Action failed.";
-            if (error.response?.status === 422) {
+            if (error.response?.status === 422)
                 msg = Object.values(error.response.data.errors)
                     .flat()
                     .join("\n");
-            } else if (error.response?.data?.message) {
+            else if (error.response?.data?.message)
                 msg = error.response.data.message;
-            }
             Toast.fire({ icon: "error", title: msg });
         } finally {
             setActionLoading(false);
@@ -254,48 +282,186 @@ export default function Strands() {
             if (students.length === 0) {
                 Toast.fire({
                     icon: "info",
-                    title: "No enrolled students found for this strand.",
+                    title: "No enrolled students found.",
                 });
                 return;
             }
 
+            const grouped = students.reduce((acc, s) => {
+                const sec = s.academic?.section?.name || "UNASSIGNED SECTION";
+                if (!acc[sec]) acc[sec] = { Male: [], Female: [] };
+                const g = s.profile?.gender === "Female" ? "Female" : "Male";
+                acc[sec][g].push(s);
+                return acc;
+            }, {});
+
+            let csvRows = [];
             const headers = [
-                "Student Number",
+                "NO.",
+                "STUDENT NUMBER",
                 "LRN",
-                "Last Name",
-                "First Name",
-                "Middle Name",
-                "Suffix",
-                "Section",
+                "LAST NAME",
+                "FIRST NAME",
+                "MIDDLE NAME",
+                "SUFFIX",
+                "GENDER",
+                "DOB",
+                "PLACE OF BIRTH",
+                "CITIZENSHIP",
+                "CIVIL STATUS",
+                "RELIGION",
+                "EMAIL",
+                "CONTACT NUMBER",
+                "HOME ADDRESS",
+                "PROVINCIAL ADDRESS",
+                "SECTION",
+                "GRADE LEVEL",
+                "MODALITY",
+                "GEN AVE",
+                "FATHER'S NAME",
+                "FATHER'S OCCUPATION",
+                "FATHER'S CONTACT",
+                "MOTHER'S NAME",
+                "MOTHER'S OCCUPATION",
+                "MOTHER'S CONTACT",
+                "GUARDIAN'S NAME",
+                "GUARDIAN'S OCCUPATION",
+                "GUARDIAN'S CONTACT",
             ];
-            const rows = students.map((s) => [
-                s.student_number || "N/A",
-                s.lrn,
-                s.last_name,
-                s.first_name,
-                s.middle_name || "",
-                s.suffix || "",
-                s.section_name || "N/A",
-            ]);
+
+            Object.entries(grouped).forEach(([section, genders]) => {
+                const total = genders.Male.length + genders.Female.length;
+
+                csvRows.push([
+                    `SECTION: ${section}`,
+                    `TOTAL ENROLLED: ${total}`,
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                ]);
+                csvRows.push(headers);
+
+                let counter = 1;
+                ["Male", "Female"].forEach((gender) => {
+                    csvRows.push([
+                        `${gender.toUpperCase()}`,
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                    ]);
+
+                    genders[gender].forEach((s) => {
+                        csvRows.push([
+                            counter++,
+                            s.student_number || "N/A",
+                            s.lrn || "N/A",
+                            s.last_name || "N/A",
+                            s.first_name || "N/A",
+                            s.middle_name || "",
+                            s.suffix || "",
+                            s.profile?.gender || "N/A",
+                            s.profile?.date_of_birth || "N/A",
+                            s.profile?.place_of_birth || "N/A",
+                            s.profile?.citizenship || "N/A",
+                            s.profile?.civil_status || "N/A",
+                            s.profile?.religion || "N/A",
+                            s.email || "N/A",
+                            s.contact_number || "N/A",
+                            s.profile?.home_address || "N/A",
+                            s.profile?.provincial_address || "N/A",
+                            s.academic?.section?.name || "N/A",
+                            s.academic?.grade_level || "N/A",
+                            s.academic?.learning_modality || "N/A",
+                            s.academic?.general_average || "N/A",
+                            s.family?.father_name || "N/A",
+                            s.family?.father_occupation || "N/A",
+                            s.family?.father_contact || "N/A",
+                            s.family?.mother_name || "N/A",
+                            s.family?.mother_occupation || "N/A",
+                            s.family?.mother_contact || "N/A",
+                            s.family?.guardian_name || "N/A",
+                            s.family?.guardian_occupation || "N/A",
+                            s.family?.guardian_contact || "N/A",
+                        ]);
+                    });
+                });
+                csvRows.push([]);
+            });
 
             const csvContent =
                 "data:text/csv;charset=utf-8," +
-                [
-                    headers.join(","),
-                    ...rows.map((e) => e.map((item) => `"${item}"`).join(",")),
-                ].join("\n");
+                csvRows
+                    .map((e) => e.map((item) => `"${item}"`).join(","))
+                    .join("\n");
 
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `${strandCode}_Masterlist.csv`);
+
+            const currentYear = new Date().getFullYear();
+            link.setAttribute(
+                "download",
+                `${strandCode}MasterList${currentYear}.csv`,
+            );
+
             document.body.appendChild(link);
             link.click();
             link.remove();
 
             Toast.fire({
                 icon: "success",
-                title: "CSV Downloaded Successfully.",
+                title: "CSV Downloaded & Logged Successfully.",
             });
         } catch (error) {
             Toast.fire({ icon: "error", title: "Failed to export CSV." });
@@ -306,28 +472,51 @@ export default function Strands() {
 
     const executeExportPDF = async (strandId, strandCode) => {
         setActionLoading(true);
-        setLoadingMessage("PREPARING PDF...");
+        setLoadingMessage("LOGGING & DOWNLOADING PDF...");
         try {
             const res = await axios.get("/api/strands/export-pdf", {
-                params: { strand_id: strandId },
+                params: { strand_id: strandId, log: true },
                 headers: { Authorization: `Bearer ${getToken()}` },
             });
 
-            if (res.data.students.length === 0) {
-                Toast.fire({
-                    icon: "info",
-                    title: "No enrolled students found for this strand.",
+            if (res.data.url) {
+                const pdfRes = await axios.get(res.data.url, {
+                    responseType: "blob",
                 });
-                return;
-            }
 
-            console.log("PDF Data Ready", res.data);
-            Toast.fire({
-                icon: "success",
-                title: "PDF Data Retrieved (Needs Blade Implementation)",
-            });
+                const blob = new Blob([pdfRes.data], {
+                    type: "application/pdf",
+                });
+                const blobUrl = window.URL.createObjectURL(blob);
+
+                const link = document.createElement("a");
+                link.href = blobUrl;
+
+                const currentYear = new Date().getFullYear();
+                link.setAttribute(
+                    "download",
+                    `${strandCode}MasterList${currentYear}.pdf`,
+                );
+
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+
+                // Clean up memory
+                window.URL.revokeObjectURL(blobUrl);
+
+                Toast.fire({
+                    icon: "success",
+                    title: "PDF Downloaded Successfully!",
+                });
+            } else {
+                Toast.fire({
+                    icon: "error",
+                    title: "Failed to generate print URL.",
+                });
+            }
         } catch (error) {
-            Toast.fire({ icon: "error", title: "Failed to export PDF." });
+            Toast.fire({ icon: "error", title: "Failed to log/download PDF." });
         } finally {
             setActionLoading(false);
         }
@@ -356,7 +545,6 @@ export default function Strands() {
                             className="btn btn-danger btn-press-retro border-2 border-dark fw-bold px-4 py-2 d-flex align-items-center gap-2 text-white"
                             style={{ backgroundColor: "#F96E5B" }}
                             onClick={handleBulkDeleteClick}
-                            title="Delete Selected"
                         >
                             <i className="bi bi-trash-fill"></i> DELETE (
                             {selectedIds.length})
@@ -479,7 +667,6 @@ export default function Strands() {
                                         borderTopRightRadius: "6px",
                                     }}
                                 ></div>
-
                                 <div
                                     className="position-absolute"
                                     style={{
@@ -561,18 +748,19 @@ export default function Strands() {
                                         <button
                                             className="btn flex-grow-1 font-monospace fw-bold btn-retro-effect"
                                             style={{
-                                                backgroundColor: "#ff7675",
+                                                backgroundColor:
+                                                    "var(--color-primary)",
                                                 color: "#fff",
                                             }}
                                             onClick={() =>
-                                                handleExportPDFClick(
+                                                handleOpenListModal(
                                                     strand.id,
                                                     strand.code,
                                                 )
                                             }
                                         >
-                                            <i className="bi bi-filetype-pdf me-1"></i>{" "}
-                                            PDF
+                                            <i className="bi bi-list-check me-1"></i>{" "}
+                                            LIST
                                         </button>
                                     </div>
 
@@ -658,13 +846,18 @@ export default function Strands() {
                 onClose={() => setShowModal(false)}
                 onSuccess={fetchStrands}
             />
-
+            <StrandListModal
+                show={showListModal}
+                strandCode={listData.strandCode}
+                students={listData.students}
+                onClose={() => setShowListModal(false)}
+                onExportPdf={handleExportPDFClick}
+            />
             <StrandConfirmation
                 {...confirmConfig}
                 onCancel={() => setConfirmConfig({ show: false })}
                 onConfirm={handleConfirmAction}
             />
-
             <Loading show={loading || actionLoading} message={loadingMessage} />
         </div>
     );

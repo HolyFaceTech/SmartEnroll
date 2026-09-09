@@ -46,18 +46,18 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 // Private routes
 Route::middleware('auth:sanctum')->group(function () {
 
-    // user
+    // user info who login
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
 
-    // authentication
+    // logout
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // --- ADMIN DASHBOARD ---
     Route::get('/admin/analytics', [AdminController::class, 'getAnalytics']);
 
-    // user records
+    // user
     Route::middleware('throttle:15,1')->group(function () {
         Route::post('users/import', [UserController::class, 'importUsers']);
         Route::post('users/bulk-delete', [UserController::class, 'bulkDelete']);
@@ -152,6 +152,11 @@ Route::get('/print/masterlist/{section}/{user}', [SectionController::class, 'pri
     ->name('masterlist.print')
     ->middleware('signed');
 
-// Emails
+// download strand masterlist
+Route::get('/download/strand-masterlist/{strand}', [StrandController::class, 'downloadStrandMasterlist'])
+    ->name('strand.masterlist.download')
+    ->middleware('signed');
+
+// emails
 Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
     ->name('verification.verify.api');

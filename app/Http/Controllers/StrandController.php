@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\Strand;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
 
 class StrandController extends Controller
@@ -199,7 +201,7 @@ class StrandController extends Controller
         }
     }
 
-    // Export CSV
+    // export CSV
     public function exportCsv(Request $request)
     {
         try {
@@ -207,25 +209,27 @@ class StrandController extends Controller
             $this->checkAccess($authUser);
 
             $strandId = $request->input('strand_id');
+            $strand = Strand::findOrFail($strandId);
 
-            $strand = Strand::with(['students' => function ($q) {
-                $q->where('status', 'enrolled')
-                    ->join('student_academics', 'students.id', '=', 'student_academics.student_id')
-                    ->join('sections', 'student_academics.section_id', '=', 'sections.id')
-                    ->select('students.*', 'sections.name as section_name')
-                    ->orderBy('sections.name');
-            }])->findOrFail($strandId);
+            $students = $strand->students()
+                ->where('students.status', 'enrolled')
+                ->with(['profile', 'family', 'academic.section'])
+                ->get()
+                ->sortBy(function ($student) {
+                    return $student->academic?->section?->name.'-'.$student->last_name;
+                })
+                ->values();
 
             ActivityLog::create([
                 'user_id' => $authUser->id,
                 'action' => 'export_csv',
-                'description' => "Exported CSV Masterlist for strand: {$strand->code}",
+                'description' => "Exported CSV Full Data for strand: {$strand->code}",
                 'ip_address' => $request->ip(),
             ]);
 
             return response()->json([
                 'strand_code' => $strand->code,
-                'students' => $strand->students,
+                'students' => $students,
             ]);
 
         } catch (Exception $e) {
@@ -235,7 +239,7 @@ class StrandController extends Controller
         }
     }
 
-    // Export PDF
+    // export PDF
     public function exportPdf(Request $request)
     {
         try {
@@ -243,23 +247,50 @@ class StrandController extends Controller
             $this->checkAccess($authUser);
 
             $strandId = $request->input('strand_id');
+            $strand = Strand::findOrFail($strandId);
 
-            $strand = Strand::with(['students' => function ($q) {
-                $q->where('status', 'enrolled')
-                    ->select('students.id', 'students.student_number', 'students.lrn', 'students.first_name', 'students.last_name', 'students.middle_name', 'students.suffix')
-                    ->orderBy('students.last_name');
-            }])->findOrFail($strandId);
+            if ($request->boolean('log')) {
+                ActivityLog::create([
+                    'user_id' => $authUser->id,
+                    'action' => 'export_pdf',
+                    'description' => "Exported PDF Masterlist for strand: {$strand->code}",
+                    'ip_address' => $request->ip(),
+                ]);
 
-            ActivityLog::create([
-                'user_id' => $authUser->id,
-                'action' => 'export_pdf',
-                'description' => "Exported PDF Masterlist for strand: {$strand->code}",
-                'ip_address' => $request->ip(),
-            ]);
+                $url = URL::temporarySignedRoute(
+                    'strand.masterlist.download',
+                    now()->addMinutes(30),
+                    [
+                        'strand' => $strand->id,
+                        'pb' => $authUser->first_name.' '.$authUser->last_name,
+                    ]
+                );
+
+                return response()->json([
+                    'message' => 'Export logged successfully.',
+                    'url' => $url,
+                ]);
+            }
+
+            $students = $strand->students()
+                ->where('students.status', 'enrolled')
+                ->leftJoin('sections', 'student_academics.section_id', '=', 'sections.id')
+                ->leftJoin('student_profiles', 'students.id', '=', 'student_profiles.student_id')
+                ->select(
+                    'students.id', 'students.student_number', 'students.lrn',
+                    'students.first_name', 'students.last_name', 'students.middle_name', 'students.suffix',
+                    'sections.name as section_name',
+                    'student_profiles.gender',
+                    'student_academics.learning_modality'
+                )
+                ->orderBy('sections.name')
+                ->orderBy('student_profiles.gender', 'desc')
+                ->orderBy('students.last_name')
+                ->get();
 
             return response()->json([
                 'strand_code' => $strand->code,
-                'students' => $strand->students,
+                'students' => $students,
             ]);
 
         } catch (Exception $e) {
@@ -267,5 +298,41 @@ class StrandController extends Controller
 
             return response()->json(['message' => 'Failed to prepare PDF data. Please try again.'], 500);
         }
+    }
+
+    // download PDF
+    public function downloadStrandMasterlist(Request $request, $id)
+    {
+        if (! $request->hasValidSignature()) {
+            abort(401, 'Invalid or expired download link. Please generate a new PDF request.');
+        }
+
+        $strand = Strand::findOrFail($id);
+
+        $students = $strand->students()
+            ->where('students.status', 'enrolled')
+            ->leftJoin('sections', 'student_academics.section_id', '=', 'sections.id')
+            ->leftJoin('student_profiles', 'students.id', '=', 'student_profiles.student_id')
+            ->select(
+                'students.*',
+                'sections.name as section_name',
+                'student_profiles.gender',
+                'student_academics.learning_modality'
+            )
+            ->orderBy('sections.name')
+            ->orderBy('student_profiles.gender', 'desc')
+            ->orderBy('students.last_name')
+            ->get();
+
+        $pdf = Pdf::loadView('pdf.strand_masterlist', [
+            'strand' => $strand,
+            'students' => $students,
+            'printedBy' => $request->query('pb', 'System Admin'),
+        ]);
+
+        $currentYear = date('Y');
+        $fileName = strtoupper($strand->code).'MasterList'.$currentYear.'.pdf';
+
+        return $pdf->download($fileName);
     }
 }
