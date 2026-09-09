@@ -35,18 +35,6 @@ export default function Users() {
     const getToken = () =>
         localStorage.getItem("token") || sessionStorage.getItem("token");
 
-    const calculateAge = (dob) => {
-        if (!dob) return "";
-        const birthDate = new Date(dob);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-        return age;
-    };
-
     const fetchUsers = async () => {
         setLoadingMessage("FETCHING RECORDS...");
         setLoading(true);
@@ -368,15 +356,11 @@ export default function Users() {
                                             <i className="bi bi-shield-lock-fill me-1"></i>{" "}
                                             Role
                                         </th>
-                                        <th className="py-3 font-monospace text-dark text-center">
+                                        <th className="py-3 font-monospace text-dark">
                                             <i className="bi bi-gender-ambiguous me-1"></i>{" "}
                                             Gender
                                         </th>
-                                        <th className="py-3 font-monospace text-dark text-center">
-                                            <i className="bi bi-calendar2-heart-fill me-1"></i>{" "}
-                                            Age
-                                        </th>
-                                        <th className="py-3 font-monospace text-dark">
+                                        <th className="py-3 font-monospace text-dark text-end">
                                             <i className="bi bi-telephone-fill me-1"></i>{" "}
                                             Contact #
                                         </th>
@@ -532,7 +516,7 @@ export default function Users() {
                                                             {user.role.toUpperCase()}
                                                         </span>
                                                     </td>
-                                                    <td className="py-3 font-monospace fw-bold text-center">
+                                                    <td className="py-3 font-monospace fw-bold">
                                                         {user.gender ===
                                                             "Male" && (
                                                             <span
@@ -557,12 +541,7 @@ export default function Users() {
                                                         )}
                                                         {!user.gender && "-"}
                                                     </td>
-                                                    <td className="py-3 font-monospace fw-bold text-dark text-center">
-                                                        {calculateAge(
-                                                            user.birthday,
-                                                        ) || "-"}
-                                                    </td>
-                                                    <td className="py-3 font-monospace fw-bold text-dark">
+                                                    <td className="py-3 font-monospace fw-bold text-dark text-end">
                                                         {user.contact_number ||
                                                             "-"}
                                                     </td>

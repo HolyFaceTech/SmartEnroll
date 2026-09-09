@@ -203,7 +203,8 @@ export default function StrandListModal({
                                                 style={{
                                                     border: "2px solid #000",
                                                     backgroundColor: "#ff7675",
-                                                    boxShadow: "3px 3px 0 #000",
+                                                    boxShadow:
+                                                        "4px 4px 0 rgba(0,0,0,0.2)",
                                                 }}
                                             >
                                                 <span>
