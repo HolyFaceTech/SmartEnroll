@@ -72,7 +72,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('strands', StrandController::class);
     });
 
-    Route::apiResource('subjects', SubjectController::class);
+    // Subjects
+    Route::middleware('throttle:60,1')->group(function () {
+        Route::post('subjects/bulk-delete', [SubjectController::class, 'bulkDelete']);
+        Route::post('subjects/import', [SubjectController::class, 'import']);
+        Route::apiResource('subjects', SubjectController::class);
+    });
 
     // Sections
     Route::middleware('throttle:60,1')->group(function () {

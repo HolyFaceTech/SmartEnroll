@@ -27,11 +27,11 @@ import Users from "./pages/admin_head/Users";
 // Head & Staff Shared
 import HeadStaffStrands from "./pages/head_staff/Strands";
 import HeadStaffSections from "./pages/head_staff/Sections";
+import HeadStaffSubjects from "./pages/head_staff/Subjects";
 
 // --- ADMIN PAGES ---
 import AdminDashboard from "./pages/admin/Dashboard";
 import Students from "./pages/admin/Students";
-import Subjects from "./pages/admin/Subjects";
 import Reports from "./pages/admin/Reports";
 import Settings from "./pages/admin/Settings";
 import RecycleBin from "./pages/admin/RecycleBin";
@@ -39,7 +39,6 @@ import RecycleBin from "./pages/admin/RecycleBin";
 // --- STAFF PAGES ---
 import StaffDashboard from "./pages/staff/Dashboard";
 import StaffStudents from "./pages/staff/Students";
-import StaffSubjects from "./pages/staff/Subjects";
 import StaffReports from "./pages/staff/Reports";
 
 // Placeholder Component
@@ -114,10 +113,6 @@ function App() {
                         element={<Students title="Student Records" />}
                     />
                     <Route
-                        path="subjects"
-                        element={<Subjects title="Subject Management" />}
-                    />
-                    <Route
                         path="reports"
                         element={<Reports title="System Reports" />}
                     />
@@ -185,7 +180,9 @@ function App() {
                     />
                     <Route
                         path="subjects"
-                        element={<Placeholder title="Subject Management" />}
+                        element={
+                            <HeadStaffSubjects title="Subject Management" />
+                        }
                     />
                     <Route
                         path="reports"
@@ -229,7 +226,9 @@ function App() {
                     />
                     <Route
                         path="subjects"
-                        element={<StaffSubjects title="Subjects Management" />}
+                        element={
+                            <HeadStaffSubjects title="Subject Management" />
+                        }
                     />
                     <Route
                         path="reports"
