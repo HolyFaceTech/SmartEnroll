@@ -21,6 +21,9 @@ import Verify from "./pages/auth/Verify";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 
+// Head
+import Settings from "./pages/head/Setting";
+
 // Admin & Head Shared
 import Users from "./pages/admin_head/Users";
 
@@ -33,7 +36,6 @@ import HeadStaffSubjects from "./pages/head_staff/Subjects";
 import AdminDashboard from "./pages/admin/Dashboard";
 import Students from "./pages/admin/Students";
 import Reports from "./pages/admin/Reports";
-import Settings from "./pages/admin/Settings";
 import RecycleBin from "./pages/admin/RecycleBin";
 
 // --- STAFF PAGES ---
@@ -134,7 +136,7 @@ function App() {
                     />
                     <Route
                         path="settings"
-                        element={<Settings title="Enrollment Settings" />}
+                        element={<Placeholder title="Enrollment Settings" />}
                     />
                     <Route
                         path="recycle-bin"
@@ -190,7 +192,7 @@ function App() {
                     />
                     <Route
                         path="settings"
-                        element={<Placeholder title="System Settings" />}
+                        element={<Settings title="System Settings" />}
                     />
                     <Route
                         path="recycle-bin"

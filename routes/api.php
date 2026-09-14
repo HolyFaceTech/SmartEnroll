@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\PublicEnrollmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CORController;
 use App\Http\Controllers\EnrollmentSettingController;
+use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\RecycleBinController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SectionController;
@@ -99,11 +100,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/summary', [ReportController::class, 'generateSummary']);
     Route::get('/reports/masterlist', [ReportController::class, 'exportMasterlist']);
 
-    // --- SYSTEM SETTINGS & LOGS ---
-    Route::get('/settings', [EnrollmentSettingController::class, 'index']);
-    Route::post('/settings', [EnrollmentSettingController::class, 'store']);
-    Route::put('/settings/maintenance', [EnrollmentSettingController::class, 'toggleMaintenance']);
-    Route::delete('/settings/{id}', [EnrollmentSettingController::class, 'destroy']);
+    // enrollment setting
+    Route::middleware(['throttle:60,1'])->group(function () {
+        Route::get('/settings', [EnrollmentSettingController::class, 'index']);
+        Route::post('/settings', [EnrollmentSettingController::class, 'store']);
+        Route::put('/settings', [EnrollmentSettingController::class, 'update']);
+        Route::delete('/settings/{id?}', [EnrollmentSettingController::class, 'destroy']);
+
+        // Maintenance Mode
+        Route::put('/settings/maintenance', [MaintenanceController::class, 'toggleMaintenance']);
+    });
 
     // --- ACTIVITY LOGS ---
     Route::get('/activity-logs', [ActivityLogController::class, 'index']);

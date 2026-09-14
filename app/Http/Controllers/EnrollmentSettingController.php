@@ -2,94 +2,146 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\EnrollmentSetting;
-use App\Models\ActivityLog; 
+use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth; 
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class EnrollmentSettingController extends Controller
 {
-    // GET CURRENT SETTINGS
+    // security
+    private function checkAccess($authUser)
+    {
+        if ($authUser->role !== 'head') {
+            abort(403, 'Unauthorized Access. You do not have permission to perform this action.');
+        }
+    }
+
+    // read
     public function index()
     {
-        return response()->json(EnrollmentSetting::first());
+        try {
+            $authUser = Auth::user();
+            $this->checkAccess($authUser);
+
+            return response()->json(EnrollmentSetting::first(), 200);
+        } catch (Exception $e) {
+            Log::error('EnrollmentSettingController index Error: '.$e->getMessage().' on line '.$e->getLine());
+
+            return response()->json(['message' => 'Failed to fetch settings.'], 500);
+        }
     }
 
-    // CREATE / UPDATE SETTINGS
+    // create
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'school_year' => 'required|string',
-            'semester' => 'required|string',
-        ]);
+        try {
+            $authUser = Auth::user();
+            $this->checkAccess($authUser);
 
-        // Singleton approach: Update existing or Create new if empty
-        $setting = EnrollmentSetting::first();
+            if (EnrollmentSetting::exists()) {
+                return response()->json(['message' => 'Settings already exist. Please update instead.'], 400);
+            }
 
-        if ($setting) {
-            $setting->update($validated);
-            $action = 'update';
-            $desc = "Updated Enrollment Schedule for SY {$validated['school_year']} - {$validated['semester']}";
-        } else {
-            $setting = EnrollmentSetting::create($validated);
-            $action = 'create';
-            $desc = "Created new Enrollment Schedule for SY {$validated['school_year']} - {$validated['semester']}";
-        }
-
-        // LOG ACTIVITY: SETTINGS SAVED
-        ActivityLog::create([
-            'user_id' => Auth::id(),
-            'action' => $action,
-            'description' => $desc,
-            'ip_address' => $request->ip()
-        ]);
-
-        return response()->json(['message' => 'Settings saved successfully!', 'data' => $setting]);
-    }
-
-    // TOGGLE MAINTENANCE MODE
-    public function toggleMaintenance(Request $request)
-    {
-        $setting = EnrollmentSetting::first();
-        if (!$setting) return response()->json(['message' => 'No settings found.'], 404);
-
-        $setting->update(['maintenance_mode' => $request->maintenance_mode]);
-
-        $status = $request->maintenance_mode ? "ENABLED" : "DISABLED";
-
-        // LOG ACTIVITY: MAINTENANCE TOGGLE
-        ActivityLog::create([
-            'user_id' => Auth::id(),
-            'action' => 'maintenance',
-            'description' => "System Maintenance Mode was $status",
-            'ip_address' => $request->ip()
-        ]);
-
-        return response()->json(['message' => 'Maintenance mode updated!', 'status' => $setting->maintenance_mode]);
-    }
-
-    // DELETE SETTINGS (Reset)
-    public function destroy($id)
-    {
-        $setting = EnrollmentSetting::first();
-        if ($setting) {
-            $sy = $setting->school_year; // Save info before delete
-            // Option 1: Delete row (EnrollmentSetting::truncate())
-            // Option 2: Nullify fields. Gagamitin natin delete row for now based sa prompt.
-            $setting->delete();
-
-            // LOG ACTIVITY: RESET
-            ActivityLog::create([
-                'user_id' => Auth::id(),
-                'action' => 'delete',
-                'description' => "Reset Enrollment Schedule (Previously: SY $sy)",
-                'ip_address' => request()->ip()
+            $validated = $request->validate([
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after_or_equal:start_date',
+                'school_year' => 'required|string',
+                'term' => 'required|string',
             ]);
 
-            return response()->json(['message' => 'Schedule removed.']);
+            $setting = EnrollmentSetting::create($validated);
+
+            ActivityLog::create([
+                'user_id' => $authUser->id,
+                'action' => 'create',
+                'description' => "Created new Enrollment Schedule for SY {$setting->school_year} - {$setting->term}",
+                'ip_address' => $request->ip(),
+            ]);
+
+            return response()->json(['message' => 'Settings created successfully!', 'data' => $setting], 201);
+
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('EnrollmentSettingController store Error: '.$e->getMessage().' on line '.$e->getLine());
+
+            return response()->json(['message' => 'Failed to create settings due to server error.'], 500);
         }
-        return response()->json(['message' => 'Nothing to delete.'], 404);
+    }
+
+    // update
+    public function update(Request $request)
+    {
+        try {
+            $authUser = Auth::user();
+            $this->checkAccess($authUser);
+
+            $setting = EnrollmentSetting::first();
+
+            if (! $setting) {
+                return response()->json(['message' => 'No settings found to update. Please create one first.'], 404);
+            }
+
+            $validated = $request->validate([
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after_or_equal:start_date',
+                'school_year' => 'required|string',
+                'term' => 'required|string',
+            ]);
+
+            $setting->update($validated);
+
+            ActivityLog::create([
+                'user_id' => $authUser->id,
+                'action' => 'update',
+                'description' => "Updated Enrollment Schedule for SY {$setting->school_year} - {$setting->term}",
+                'ip_address' => $request->ip(),
+            ]);
+
+            return response()->json(['message' => 'Settings updated successfully!', 'data' => $setting], 200);
+
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('EnrollmentSettingController update Error: '.$e->getMessage().' on line '.$e->getLine());
+
+            return response()->json(['message' => 'Failed to update settings due to server error.'], 500);
+        }
+    }
+
+    // delete
+    public function destroy($id = null)
+    {
+        try {
+            $authUser = Auth::user();
+            $this->checkAccess($authUser);
+
+            $setting = EnrollmentSetting::first();
+
+            if ($setting) {
+                $sy = $setting->school_year;
+                $setting->delete();
+
+                ActivityLog::create([
+                    'user_id' => $authUser->id,
+                    'action' => 'delete',
+                    'description' => "Reset Enrollment Schedule (Previously: SY $sy)",
+                    'ip_address' => request()->ip(),
+                ]);
+
+                return response()->json(['message' => 'Schedule removed successfully.'], 200);
+            }
+
+            return response()->json(['message' => 'Nothing to delete.'], 404);
+
+        } catch (Exception $e) {
+            Log::error('EnrollmentSettingController destroy Error: '.$e->getMessage().' on line '.$e->getLine());
+
+            return response()->json(['message' => 'Failed to reset schedule.'], 500);
+        }
     }
 }
