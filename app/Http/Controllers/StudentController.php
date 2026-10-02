@@ -2,375 +2,566 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Student;
+use App\Mail\StudentApplication;
+use App\Mail\StudentUpdated;
+use App\Models\ActivityLog;
 use App\Models\Section;
 use App\Models\Strand;
-use App\Models\EnrollmentSetting;
-use App\Models\ActivityLog;
+use App\Models\Student;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-
-// Mailables
-use App\Mail\ApplicationReceived;
-use App\Mail\StudentUpdated;
-use App\Mail\EnrollmentInstruction;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class StudentController extends Controller
 {
-    /**
-     * GET ALL STUDENTS
-     */
-    public function index()
+    // security
+    private function checkAccess($authUser)
     {
-        return Student::with(['strand', 'section'])->latest()->get();
+        if (! in_array($authUser->role, ['head', 'staff'])) {
+            abort(403, 'Unauthorized Access. You do not have permission to manage students.');
+        }
     }
 
-    /**
-     * STORE (CREATE NEW STUDENT)
-     */
+    // folder name
+    private function getFolderName($student)
+    {
+        $lastName = trim("{$student->last_name} {$student->suffix}");
+        $firstName = trim("{$student->first_name} {$student->middle_name}");
+
+        return "{$lastName}, {$firstName} - {$student->lrn}";
+    }
+
+    // student number sequence
+    private function generateUniqueStudentNumber()
+    {
+        $currentYear = date('y');
+
+        $sequence = DB::table('student_number_sequences')
+            ->where('year_prefix', $currentYear)
+            ->lockForUpdate()
+            ->first();
+
+        if (! $sequence) {
+            DB::table('student_number_sequences')->insert([
+                'year_prefix' => $currentYear,
+                'last_number' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $lastNumber = 1;
+        } else {
+            $lastNumber = $sequence->last_number + 1;
+            DB::table('student_number_sequences')
+                ->where('year_prefix', $currentYear)
+                ->update(['last_number' => $lastNumber, 'updated_at' => now()]);
+        }
+
+        return $currentYear.'-'.str_pad($lastNumber, 5, '0', STR_PAD_LEFT);
+    }
+
+    // view
+    public function index(Request $request)
+    {
+        try {
+            $this->checkAccess(Auth::user());
+            $query = Student::with(['academic.strand', 'academic.section', 'profile', 'family', 'requirement']);
+
+            if ($search = $request->search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('first_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('lrn', 'like', "%{$search}%")
+                        ->orWhere('student_number', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            }
+
+            $perPage = $request->per_page ?? 10;
+
+            return response()->json($query->latest()->paginate($perPage));
+
+        } catch (\Throwable $e) {
+            Log::error('StudentController index Error: '.$e->getMessage());
+
+            return response()->json(['message' => 'Failed to load students: '.$e->getMessage()], 500);
+        }
+    }
+
+    // create
     public function store(Request $request)
     {
-        // 1. Get Active Settings
-        $settings = EnrollmentSetting::first();
-        $activeSem = $settings ? $settings->semester : '1st Semester';
-        $activeSY = $settings ? $settings->school_year : date('Y').'-'.(date('Y')+1);
-
-        // 2. Validate Input
-        $request->validate([
-            'lrn' => 'required|unique:students,lrn',
-            'email' => 'required|email|unique:students,email',
-            'last_name' => 'required',
-            'first_name' => 'required',
-            'strand_id' => 'required',
-            'date_of_birth' => 'required|date',
-            'age' => 'required|integer',
-            'general_average' => 'nullable|numeric|between:75,100',
-        ]);
-
-        $data = $request->all();
-        
-        // 3. Inject System Fields
-        $data['semester'] = $activeSem;
-        $data['school_year'] = $activeSY;
-        $data['status'] = 'pending'; 
-
-        // 4. Handle Empty Section ID
-        if (empty($data['section_id'])) {
-            $data['section_id'] = null;
-        }
-
-        // 5. Fill "null" Logic (Excluded Dates & Sensitive Fields)
-        foreach ($data as $key => $value) {
-            if (empty($value) && !in_array($key, [
-                'requirements', 
-                'fees', 
-                'section_id', 
-                'date_of_birth', 
-                'age',
-                'released_at',
-                'created_at',
-                'updated_at'
-            ])) {
-                $data[$key] = null;
-            }
-        }
-
-        // 6. Save to Database
-        $student = Student::create($data);
-
-        // LOG ACTIVITY: CREATE
-        ActivityLog::create([
-            'user_id' => Auth::id(),
-            'action' => 'create',
-            'description' => "Enrolled new student: {$student->last_name}, {$student->first_name}",
-            'ip_address' => $request->ip()
-        ]);
-        
-        // 7. Send Welcome Email
         try {
-            Mail::to($student->email)->send(new ApplicationReceived($student));
-        } catch (\Exception $e) {
-            Log::error("Email failed: " . $e->getMessage());
+            $this->checkAccess(Auth::user());
+
+            $validated = $request->validate([
+                'student_number' => 'nullable|string|unique:students,student_number',
+                'lrn' => 'required|digits:12|unique:students,lrn',
+                'email' => 'required|email|unique:students,email',
+                'last_name' => 'required|string|max:255',
+                'first_name' => 'required|string|max:255',
+                'strand_id' => 'required|exists:strands,id',
+                'date_of_birth' => 'required|date',
+                'gender' => 'required|in:Male,Female',
+                'civil_status' => 'required|string',
+                'citizenship' => 'required|string',
+                'religion' => 'required|string',
+                'place_of_birth' => 'required|string',
+                'contact_number' => 'required|digits:11',
+                'home_address' => 'required|string',
+                'guardian_name' => 'required|string',
+                'guardian_occupation' => 'required|string',
+                'guardian_contact' => 'required|digits:11',
+                'grade_level' => 'required|in:11,12',
+                'term' => 'required|in:1st,2nd,3rd',
+                'school_year' => 'required|string',
+                'learning_modality' => 'required|in:Face-to-Face,Modular',
+                'general_average' => 'nullable|numeric|min:75|max:100',
+
+                'file_psa' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'file_form137' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'file_good_moral' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'file_diploma' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'file_card' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'file_picture' => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
+            ]);
+
+            return DB::transaction(function () use ($request) {
+                $finalStatus = strtolower($request->status ?? 'pending');
+                $assignedStudentNumber = $request->student_number;
+
+                if ($finalStatus === 'enrolled' && $request->filled('section_id')) {
+                    $section = Section::where('id', $request->section_id)->lockForUpdate()->first();
+                    if ($section && $section->students()->where('status', 'enrolled')->count() >= $section->capacity) {
+                        return response()->json(['message' => 'FAILED: The selected section is FULL.'], 422);
+                    }
+                }
+
+                if (empty($assignedStudentNumber)) {
+                    if ($finalStatus === 'enrolled') {
+                        $assignedStudentNumber = $this->generateUniqueStudentNumber();
+                    } else {
+                        $assignedStudentNumber = null;
+                    }
+                }
+
+                $releasedBy = null;
+                $releasedAt = null;
+
+                if ($finalStatus === 'released') {
+                    $admin = Auth::user();
+                    $releasedBy = collect([$admin->first_name, $admin->middle_name, $admin->last_name, $admin->suffix])->filter()->implode(' ');
+                    $releasedAt = now();
+                }
+
+                $student = Student::create([
+                    'student_number' => $assignedStudentNumber,
+                    'lrn' => $request->lrn,
+                    'first_name' => $request->first_name,
+                    'last_name' => $request->last_name,
+                    'middle_name' => $request->middle_name,
+                    'suffix' => $request->suffix,
+                    'email' => $request->email,
+                    'contact_number' => $request->contact_number,
+                    'status' => $finalStatus,
+                    'released_by' => $releasedBy,
+                    'released_at' => $releasedAt,
+                ]);
+
+                $student->profile()->create($request->only(['date_of_birth', 'gender', 'place_of_birth', 'citizenship', 'civil_status', 'religion', 'home_address', 'provincial_address']));
+
+                $student->academic()->create([
+                    'current_school_attended' => $request->current_school_attended,
+                    'strand_id' => $request->strand_id,
+                    'section_id' => $request->section_id,
+                    'grade_level' => $request->grade_level,
+                    'term' => $request->term,
+                    'school_year' => $request->school_year,
+                    'learning_modality' => $request->learning_modality,
+                    'general_average' => $request->general_average,
+                ]);
+
+                $student->family()->create($request->only(['employer_name', 'employer_contact', 'father_name', 'father_occupation', 'father_contact', 'mother_name', 'mother_occupation', 'mother_contact', 'guardian_name', 'guardian_occupation', 'guardian_contact']));
+
+                $folderName = $this->getFolderName($student);
+                Storage::disk('public')->makeDirectory("students/{$folderName}");
+
+                $filePaths = [];
+                $fileMap = ['file_psa' => 'psa', 'file_form137' => 'form_137', 'file_good_moral' => 'good_moral', 'file_diploma' => 'diploma', 'file_card' => 'form_138', 'file_picture' => 'photo_2x2'];
+
+                foreach ($fileMap as $requestKey => $dbKey) {
+                    if ($request->hasFile($requestKey)) {
+                        $file = $request->file($requestKey);
+                        $filename = time().'_'.preg_replace('/[^A-Za-z0-9\-\.]/', '_', $file->getClientOriginalName());
+                        $path = $file->storeAs("students/{$folderName}", $filename, 'public');
+                        $filePaths[$dbKey] = $path;
+                    }
+                }
+
+                $reqData = ['hard_copies' => json_decode($request->requirements, true) ?? []];
+                $student->requirement()->create(array_merge($reqData, $filePaths));
+
+                ActivityLog::create([
+                    'user_id' => Auth::id(),
+                    'action' => 'create',
+                    'description' => "Enrolled new student: {$student->last_name}, {$student->first_name}",
+                    'ip_address' => $request->ip(),
+                ]);
+
+                try {
+                    Mail::to($student->email)->send(new StudentApplication($student));
+                } catch (\Throwable $e) {
+                    Log::warning('Email Failed to Send: '.$e->getMessage());
+                }
+
+                return response()->json([
+                    'message' => 'Application submitted successfully!',
+                    'student' => $student->load(['academic.section', 'academic.strand']),
+                ], 201);
+            });
+
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::error('StudentController store Error: '.$e->getMessage());
+
+            return response()->json(['message' => 'Backend Error: '.$e->getMessage()], 500);
         }
-
-        return response()->json(['message' => 'Application submitted successfully!']);
     }
 
-    /**
-     * SHOW SINGLE STUDENT
-     */
-    public function show($id)
-    {
-        return Student::with(['strand', 'section'])->findOrFail($id);
-    }
-
-    /**
-     * UPDATE STUDENT RECORD (With Anti-Overbooking Lock)
-     */
+    // update
     public function update(Request $request, $id)
     {
-        // GAMIT TAYO NG TRANSACTION PARA SAFE
-        return DB::transaction(function () use ($request, $id) {
-            
-            $student = Student::findOrFail($id);
+        try {
+            $this->checkAccess(Auth::user());
 
             $request->validate([
-                'lrn' => 'required|unique:students,lrn,'.$id,
+                'student_number' => 'nullable|string|unique:students,student_number,'.$id,
+                'lrn' => 'required|digits:12|unique:students,lrn,'.$id,
                 'email' => 'required|email|unique:students,email,'.$id,
-                'date_of_birth' => 'nullable|date',
-                'age' => 'nullable|integer',
-                'general_average' => 'nullable|numeric|between:75,100',
+                'last_name' => 'required|string|max:255',
+                'first_name' => 'required|string|max:255',
+                'strand_id' => 'required|exists:strands,id',
+                'date_of_birth' => 'required|date',
+                'gender' => 'required|in:Male,Female',
+                'contact_number' => 'required|digits:11',
+                'guardian_contact' => 'required|digits:11',
+                'general_average' => 'nullable|numeric|min:75|max:100',
+
+                'file_psa' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'file_form137' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'file_good_moral' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'file_diploma' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'file_card' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'file_picture' => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
             ]);
 
-            $data = $request->all();
+            return DB::transaction(function () use ($request, $id) {
+                $student = Student::with(['profile', 'academic', 'family', 'requirement'])->findOrFail($id);
+                $oldFolderName = $this->getFolderName($student);
+                $finalStatus = strtolower($request->status ?? $student->status);
+                $assignedStudentNumber = $request->student_number;
 
-            // CLEANUP DATA
-            unset($data['id'], $data['created_at'], $data['updated_at'], $data['deleted_at'], $data['strand'], $data['section']);
-
-            if (empty($data['section_id'])) {
-                $data['section_id'] = null;
-            }
-
-            // NULLIFY EMPTY FIELDS
-            foreach ($data as $key => $value) {
-                if (empty($value) && !in_array($key, ['requirements', 'fees', 'section_id', 'date_of_birth', 'age', 'released_at'])) {
-                    $data[$key] = null;
-                }
-            }
-
-            // ---------------------------------------------------------
-            // CRITICAL: RACE CONDITION & CAPACITY CHECK
-            // ---------------------------------------------------------
-            // Check kung nagbago ang Section ID o naging 'enrolled' ang status
-            $isAssigningSection = !empty($data['section_id']) && $data['section_id'] != $student->section_id;
-            $isEnrolling = isset($data['status']) && $data['status'] === 'enrolled' && $student->status !== 'enrolled';
-
-            if ($isAssigningSection || $isEnrolling) {
-                $targetSectionId = $data['section_id'] ?? $student->section_id;
-
-                if ($targetSectionId) {
-                    // 1. LOCK THE SECTION ROW (Iba muna mag-aantay)
-                    $section = Section::where('id', $targetSectionId)->lockForUpdate()->first();
-
-                    if ($section) {
-                        // 2. BILANGIN ANG CURRENT ENROLLED (Real-time count inside lock)
-                        $currentEnrolled = $section->students()->where('status', 'enrolled')->count();
-
-                        // 3. CHECK CAPACITY
-                        // Kung puno na, ABORT TRANSACTION agad.
-                        if ($currentEnrolled >= $section->capacity) {
-                            return response()->json([
-                                'message' => "FAILED: Section '{$section->name}' is FULL ({$currentEnrolled}/{$section->capacity}). Please choose another section."
-                            ], 422);
-                        }
+                if ($finalStatus === 'enrolled' && $request->filled('section_id') && $request->section_id != $student->academic->section_id) {
+                    $section = Section::where('id', $request->section_id)->lockForUpdate()->first();
+                    if ($section && $section->students()->where('status', 'enrolled')->count() >= $section->capacity) {
+                        return response()->json(['message' => 'FAILED: Section is FULL.'], 422);
                     }
                 }
-            }
-            // ---------------------------------------------------------
-            // END CRITICAL SECTION
-            // ---------------------------------------------------------
 
-            // PROCEED UPDATE
-            $student->fill($data);
+                if (empty($assignedStudentNumber)) {
+                    if ($finalStatus === 'enrolled') {
+                        $assignedStudentNumber = $this->generateUniqueStudentNumber();
+                    } else {
+                        $assignedStudentNumber = null;
+                    }
+                }
 
-            if ($student->isDirty()) {
-                $rawChanges = $student->getDirty();
-                $student->save(); // Save inside transaction
+                $releasedBy = $student->released_by;
+                $releasedAt = $student->released_at;
 
-                // LOG ACTIVITY
+                if ($finalStatus === 'released') {
+                    $admin = Auth::user();
+                    $releasedBy = collect([$admin->first_name, $admin->middle_name, $admin->last_name, $admin->suffix])->filter()->implode(' ');
+                    $releasedAt = now();
+                } elseif ($finalStatus !== 'released' && $student->status === 'released') {
+                    $releasedBy = null;
+                    $releasedAt = null;
+                }
+
+                $student->update(array_merge($request->only(['lrn', 'first_name', 'last_name', 'middle_name', 'suffix', 'email', 'contact_number']), [
+                    'status' => $finalStatus,
+                    'student_number' => $assignedStudentNumber,
+                    'released_by' => $releasedBy,
+                    'released_at' => $releasedAt,
+                ]));
+
+                if ($student->profile) {
+                    $student->profile->update($request->only(['date_of_birth', 'gender', 'place_of_birth', 'citizenship', 'civil_status', 'religion', 'home_address', 'provincial_address']));
+                }
+                if ($student->academic) {
+                    $student->academic->update($request->only(['current_school_attended', 'strand_id', 'section_id', 'grade_level', 'term', 'school_year', 'learning_modality', 'general_average']));
+                }
+                if ($student->family) {
+                    $student->family->update($request->only(['employer_name', 'employer_contact', 'father_name', 'father_occupation', 'father_contact', 'mother_name', 'mother_occupation', 'mother_contact', 'guardian_name', 'guardian_occupation', 'guardian_contact']));
+                }
+
+                $newFolderName = $this->getFolderName($student);
+                if ($oldFolderName !== $newFolderName) {
+                    if (Storage::disk('public')->exists("students/{$oldFolderName}")) {
+                        Storage::disk('public')->move("students/{$oldFolderName}", "students/{$newFolderName}");
+                    } else {
+                        Storage::disk('public')->makeDirectory("students/{$newFolderName}");
+                    }
+                }
+
+                $filePaths = [];
+                $fileMap = ['file_psa' => 'psa', 'file_form137' => 'form_137', 'file_good_moral' => 'good_moral', 'file_diploma' => 'diploma', 'file_card' => 'form_138', 'file_picture' => 'photo_2x2'];
+
+                foreach ($fileMap as $requestKey => $dbKey) {
+                    if ($request->hasFile($requestKey)) {
+                        $file = $request->file($requestKey);
+                        $filename = time().'_'.preg_replace('/[^A-Za-z0-9\-\.]/', '_', $file->getClientOriginalName());
+                        $path = $file->storeAs("students/{$newFolderName}", $filename, 'public');
+                        $filePaths[$dbKey] = $path;
+                    }
+                }
+
+                $reqData = ['hard_copies' => json_decode($request->requirements, true) ?? []];
+                $student->requirement()->updateOrCreate(['student_id' => $student->id], array_merge($reqData, $filePaths));
+
                 ActivityLog::create([
-                    'user_id' => Auth::id(),
-                    'action' => 'update',
-                    'description' => "Updated profile of student: {$student->last_name}, {$student->first_name}",
-                    'ip_address' => $request->ip()
+                    'user_id' => Auth::id(), 'action' => 'update', 'description' => "Updated record of: {$student->last_name}", 'ip_address' => $request->ip(),
                 ]);
 
-                // EMAIL LOGIC (Copied from your existing code)
-                $formattedChanges = [];
-                foreach ($rawChanges as $key => $newValue) {
-                    if (in_array($key, ['updated_at', 'created_at', 'id', 'previous_status', 'released_by', 'released_at'])) continue;
-
-                    if ($key === 'strand_id') {
-                        $strandName = 'Unknown Strand';
-                        if ($newValue) {
-                            $strand = Strand::find($newValue);
-                            if ($strand) $strandName = $strand->code;
-                        }
-                        $formattedChanges['Strand'] = $strandName;
-                        continue;
-                    }
-
-                    if ($key === 'section_id') {
-                        $secName = 'No Section Assigned';
-                        if ($newValue) {
-                            $sec = Section::find($newValue);
-                            if ($sec) $secName = $sec->name;
-                        }
-                        $formattedChanges['Assigned Section'] = $secName;
-                        continue;
-                    }
-
-                    if ($key === 'requirements') {
-                        $reqs = $student->requirements;
-                        if (is_string($reqs)) $reqs = json_decode($reqs, true);
-                        $missing = [];
-                        $labels = [
-                            'psa' => 'PSA Birth Certificate',
-                            'form137' => 'Form 137 / SF10',
-                            'good_moral' => 'Good Moral Certificate',
-                            'diploma' => 'Grade 10 Diploma',
-                            'card' => 'Report Card (Form 138)',
-                            'picture' => '2x2 Picture (2pcs)'      
-                        ];
-                        foreach ($labels as $k => $label) {
-                            if (empty($reqs[$k])) $missing[] = $label;
-                        }
-                        if (empty($missing)) {
-                            $formattedChanges['Requirements Status'] = 'COMPLETED (Congratulations!)';
-                        } else {
-                            $formattedChanges['Pending Requirements'] = implode(', ', $missing);
-                        }
-                        continue;
-                    }
-                    $label = ucwords(str_replace('_', ' ', $key));
-                    $formattedChanges[$label] = $newValue;
+                try {
+                    Mail::to($student->email)->send(new StudentUpdated($student, ['Profile' => 'Data Updated by Admin']));
+                } catch (\Throwable $e) {
                 }
 
-                if (!empty($formattedChanges)) {
-                    try {
-                        Mail::to($student->email)->send(new StudentUpdated($student, $formattedChanges));
-                    } catch (\Exception $e) {
-                        Log::error("Update email failed: " . $e->getMessage());
-                    }
-                }
-            }
+                return response()->json([
+                    'message' => 'Student updated successfully.',
+                    'student' => $student->load(['academic.section', 'academic.strand']),
+                ]);
+            });
 
-            return response()->json(['message' => 'Student record updated successfully.']);
-        });
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::error('StudentController update Error: '.$e->getMessage());
+
+            return response()->json(['message' => 'Backend Error: '.$e->getMessage()], 500);
+        }
     }
 
-    /**
-     * CHANGE STATUS (With Anti-Overbooking Protection)
-     */
+    // change status
     public function changeStatus(Request $request, $id)
     {
-        // WRAP SA TRANSACTION PARA SAFE ANG CHECKING
-        return DB::transaction(function () use ($request, $id) {
-            
-            $student = Student::findOrFail($id);
-            $newStatus = $request->status;
-            $oldStatus = $student->status; 
-            $user = Auth::user(); 
+        try {
+            $this->checkAccess(Auth::user());
 
-            // ---------------------------------------------------------
-            // SAFETY CHECK: KAPAG GAGAWING 'ENROLLED'
-            // ---------------------------------------------------------
-            if ($newStatus === 'enrolled' && $student->section_id) {
-                // 1. LOCK THE SECTION
-                $section = Section::where('id', $student->section_id)->lockForUpdate()->first();
+            return DB::transaction(function () use ($request, $id) {
+                $student = Student::with('academic')->findOrFail($id);
+                $newStatus = strtolower($request->status);
 
-                if ($section) {
-                    // 2. COUNT CURRENT ENROLLED
-                    $currentEnrolled = $section->students()->where('status', 'enrolled')->count();
-
-                    // 3. CHECK IF FULL
-                    if ($currentEnrolled >= $section->capacity) {
-                        // STOP & RETURN ERROR
-                        return response()->json([
-                            'message' => "FAILED: Section '{$section->name}' is already FULL ({$currentEnrolled}/{$section->capacity}). Cannot enroll student."
-                        ], 422);
+                if ($newStatus === 'enrolled' && $student->academic->section_id) {
+                    $section = Section::where('id', $student->academic->section_id)->lockForUpdate()->first();
+                    if ($section && $section->students()->where('status', 'enrolled')->count() >= $section->capacity) {
+                        return response()->json(['message' => 'FAILED: Section is FULL.'], 422);
                     }
                 }
-            }
-            // ---------------------------------------------------------
-            // END SAFETY CHECK
-            // ---------------------------------------------------------
 
-            // PREPARE PREVIOUS STATUS
-            if ($newStatus !== 'reset') {
-                $student->update(['previous_status' => $student->status]);
-            }
-
-            // A. RESET LOGIC
-            if ($newStatus === 'reset') {
-                $prev = $student->previous_status ?? 'pending';
-                $student->update([
-                    'status' => $prev,
-                    'released_by' => null,
-                    'released_at' => null
-                ]);
-
-                ActivityLog::create([
-                    'user_id' => Auth::id(),
-                    'action' => 'update',
-                    'description' => "Reset status of {$student->last_name} from " . strtoupper($oldStatus) . " back to " . strtoupper($prev),
-                    'ip_address' => $request->ip()
-                ]);
-
-                return response()->json(['message' => 'Status reset to ' . $prev]);
-            }
-
-            // B. PASSED LOGIC
-            if ($newStatus === 'passed') {
-                try {
-                    Mail::to($student->email)->send(new EnrollmentInstruction($student));
-                } catch (\Exception $e) {
-                    Log::error("Instruction email failed: " . $e->getMessage());
+                if ($newStatus !== 'reset') {
+                    $student->update(['previous_status' => $student->status]);
                 }
-            }
 
-            // C. RELEASED LOGIC
-            if ($newStatus === 'released') {
-                $student->update([
-                    'status' => 'released',
-                    'released_by' => $user ? $user->name : 'Administrator',
-                    'released_at' => now()
-                ]);
+                $mailChanges = ['Status' => strtoupper($newStatus)];
 
-                ActivityLog::create([
-                    'user_id' => Auth::id(),
-                    'action' => 'update',
-                    'description' => "Released record of student: {$student->last_name}, {$student->first_name}",
-                    'ip_address' => $request->ip()
-                ]);
+                if ($newStatus === 'cleared' && $student->academic) {
+                    $acad = $student->academic;
+                    $acad->update(['previous_level' => $acad->grade_level, 'previous_term' => $acad->term]);
 
-                return response()->json(['message' => 'Record marked as Released.']);
-            }
+                    if ($acad->grade_level == '11' && $acad->term == '1st Term') {
+                        $acad->update(['term' => '2nd Term']);
+                        $newStatus = 'enrolled';
+                    } elseif ($acad->grade_level == '11' && $acad->term == '2nd Term') {
+                        $acad->update(['term' => '3rd Term']);
+                        $newStatus = 'enrolled';
+                    } elseif ($acad->grade_level == '11' && $acad->term == '3rd Term') {
+                        $acad->update(['grade_level' => '12', 'term' => '1st Term', 'section_id' => null]);
+                        $newStatus = 'pending';
+                    } elseif ($acad->grade_level == '12' && $acad->term == '1st Term') {
+                        $acad->update(['term' => '2nd Term']);
+                        $newStatus = 'enrolled';
+                    } elseif ($acad->grade_level == '12' && $acad->term == '2nd Term') {
+                        $acad->update(['term' => '3rd Term']);
+                        $newStatus = 'enrolled';
+                    } elseif ($acad->grade_level == '12' && $acad->term == '3rd Term') {
+                        $newStatus = 'graduate';
+                    }
 
-            // D. GENERIC UPDATE (INCLUDES ENROLLED)
-            $student->update(['status' => $newStatus]);
+                    $mailChanges['Grade Level'] = $acad->grade_level;
+                    $mailChanges['Term'] = $acad->term;
+                }
 
-            ActivityLog::create([
-                'user_id' => Auth::id(),
-                'action' => 'update',
-                'description' => "Changed status of {$student->last_name} from " . strtoupper($oldStatus) . " to " . strtoupper($newStatus),
-                'ip_address' => $request->ip()
-            ]);
+                $updateData = [];
 
-            return response()->json(['message' => 'Status updated to ' . strtoupper($newStatus)]);
-        });
+                if ($newStatus === 'reset') {
+                    $newStatus = $student->previous_status ?? 'pending';
+                    $updateData = ['status' => $newStatus, 'released_by' => null, 'released_at' => null];
+                } elseif ($newStatus === 'released') {
+                    $updateData = ['status' => 'released', 'released_by' => Auth::user()->name, 'released_at' => now()];
+                } else {
+                    $updateData = ['status' => $newStatus];
+                }
+
+                if ($newStatus === 'enrolled' && empty($student->student_number)) {
+                    $updateData['student_number'] = $this->generateUniqueStudentNumber();
+                }
+
+                $student->update($updateData);
+
+                ActivityLog::create(['user_id' => Auth::id(), 'action' => 'update', 'description' => "Changed status of {$student->last_name} to ".strtoupper($newStatus), 'ip_address' => $request->ip()]);
+                try {
+                    Mail::to($student->email)->send(new StudentUpdated($student, $mailChanges));
+                } catch (\Throwable $e) {
+                }
+
+                return response()->json(['message' => 'Status updated successfully.']);
+            });
+
+        } catch (\Throwable $e) {
+            Log::error('StudentController changeStatus Error: '.$e->getMessage());
+
+            return response()->json(['message' => 'Backend Error: '.$e->getMessage()], 500);
+        }
     }
 
-    /**
-     * DELETE STUDENT
-     */
+    // single delete
     public function destroy($id)
     {
-        $student = Student::findOrFail($id);
-        $name = "{$student->last_name}, {$student->first_name}";
-        $student->delete();
+        try {
+            $this->checkAccess(Auth::user());
+            $student = Student::find($id);
+            if (! $student) {
+                return response()->json(['message' => 'Deletion Failed: Student record not found or was already removed.'], 404);
+            }
 
-        // LOG ACTIVITY: DELETE
-        ActivityLog::create([
-            'user_id' => Auth::id(),
-            'action' => 'delete',
-            'description' => "Deleted student record: {$name}",
-            'ip_address' => request()->ip()
-        ]);
+            $name = trim("{$student->last_name}, {$student->first_name}");
+            $student->delete();
 
-        return response()->json(['message' => 'Student record deleted successfully.']);
+            ActivityLog::create(['user_id' => Auth::id(), 'action' => 'delete', 'description' => "Deleted student record: {$name}", 'ip_address' => request()->ip()]);
+
+            return response()->json(['message' => 'Student record has been successfully deleted.']);
+        } catch (\Throwable $e) {
+            Log::error('StudentController destroy Error: '.$e->getMessage());
+
+            return response()->json(['message' => 'Backend Error: '.$e->getMessage()], 500);
+        }
+    }
+
+    // bulk delete
+    public function bulkDelete(Request $request)
+    {
+        try {
+            $this->checkAccess(Auth::user());
+            $request->validate(['ids' => 'required|array|max:50', 'ids.*' => 'exists:students,id']);
+
+            $students = Student::whereIn('id', $request->ids)->get();
+            $deletedCount = 0;
+
+            foreach ($students as $student) {
+                $name = "{$student->last_name}, {$student->first_name}";
+                $student->delete();
+                $deletedCount++;
+                ActivityLog::create(['user_id' => Auth::id(), 'action' => 'delete', 'description' => "Bulk Deleted student: {$name}", 'ip_address' => $request->ip()]);
+            }
+
+            return response()->json(['message' => "Successfully deleted {$deletedCount} student(s)."]);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::error('StudentController bulkDelete Error: '.$e->getMessage());
+
+            return response()->json(['message' => 'Backend Error: '.$e->getMessage()], 500);
+        }
+    }
+
+    // import
+    public function importStudents(Request $request)
+    {
+        try {
+            $this->checkAccess(Auth::user());
+            $request->validate(['file' => 'required|file|mimes:csv,txt|max:2048']);
+
+            $file = $request->file('file');
+            $csvData = file_get_contents($file);
+            $rows = array_map('str_getcsv', explode("\n", trim($csvData)));
+
+            if (count($rows) < 2) {
+                return response()->json(['message' => 'CSV is empty.'], 422);
+            }
+
+            $header = array_map('trim', array_shift($rows));
+            $requiredHeaders = ['lrn', 'first_name', 'last_name', 'email', 'contact_number'];
+
+            if (array_diff($requiredHeaders, $header)) {
+                return response()->json(['message' => 'Missing required columns.'], 422);
+            }
+
+            $importedCount = 0;
+
+            DB::transaction(function () use ($rows, $header, &$importedCount) {
+                foreach ($rows as $row) {
+                    if (count($header) !== count($row)) {
+                        continue;
+                    }
+                    $data = array_combine($header, $row);
+
+                    $validator = Validator::make($data, [
+                        'lrn' => 'required|digits:12|unique:students,lrn',
+                        'email' => 'required|email|unique:students,email',
+                        'last_name' => 'required',
+                        'first_name' => 'required',
+                    ]);
+
+                    if ($validator->fails()) {
+                        continue;
+                    }
+
+                    $student = Student::create([
+                        'lrn' => $data['lrn'],
+                        'first_name' => $data['first_name'],
+                        'last_name' => $data['last_name'],
+                        'email' => $data['email'],
+                        'contact_number' => $data['contact_number'] ?? 'N/A',
+                        'status' => 'pending',
+                    ]);
+
+                    $student->profile()->create(['date_of_birth' => now(), 'gender' => 'Male', 'place_of_birth' => 'N/A', 'citizenship' => 'Filipino', 'civil_status' => 'Single', 'religion' => 'N/A', 'home_address' => 'N/A']);
+                    $student->academic()->create(['strand_id' => Strand::first()->id ?? null, 'grade_level' => '11', 'term' => '1st Term', 'school_year' => '2026-2027']);
+                    $student->family()->create([]);
+                    $student->requirement()->create(['hard_copies' => []]);
+
+                    $folderName = $this->getFolderName($student);
+                    Storage::disk('public')->makeDirectory("students/{$folderName}");
+
+                    $importedCount++;
+                }
+            });
+
+            return response()->json(['message' => "Successfully imported {$importedCount} students."]);
+
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::error('StudentController import Error: '.$e->getMessage());
+
+            return response()->json(['message' => 'Backend Error: '.$e->getMessage()], 500);
+        }
     }
 }

@@ -2,147 +2,150 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Student;
+use App\Models\ActivityLog;
 use App\Models\Section;
+use App\Models\Student;
 use App\Models\Subject;
-use App\Models\ActivityLog; 
-use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\URL;
+use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Auth; 
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 class CORController extends Controller
 {
-    // 1. GET DATA FOR MODAL (Populate Dropdowns & Inputs)
     public function getCORData($studentId)
     {
-        $student = Student::with(['strand', 'section'])->findOrFail($studentId);
+        try {
+            $student = Student::with(['strand', 'section', 'academic'])->findOrFail($studentId);
 
-        // FIX: ADD 'withCount' PARA MAKUHA ANG ENROLLED COUNT
-        $sections = Section::where('strand_id', $student->strand_id)
-            ->where('grade_level', $student->grade_level)
-            ->withCount(['students as enrolled_count' => function ($query) {
-                $query->where('status', 'enrolled'); // Bilangin lang ang 'Enrolled' status
-            }])
-            ->get();
+            $sections = Section::where('strand_id', $student->academic?->strand_id)
+                ->where('grade_level', $student->academic?->grade_level)
+                ->withCount(['students as enrolled_count' => function ($query) {
+                    $query->where('status', 'enrolled');
+                }])
+                ->get();
 
-        // FIX: CLEAN SEMESTER DATA
-        $semKey = explode(' ', trim($student->semester))[0]; 
+            $semKey = explode(' ', trim($student->academic?->term))[0];
 
-        // Get Subjects...
-        $subjects = Subject::where(function($q) use ($student) {
-                $q->where('strand_id', $student->strand_id)
-                  ->orWhereNull('strand_id');
+            $subjects = Subject::where(function ($q) use ($student) {
+                $q->where('strand_id', $student->academic?->strand_id)
+                    ->orWhereNull('strand_id');
             })
-            ->where('grade_level', $student->grade_level)
-            ->where('semester', 'LIKE', "%{$semKey}%")
-            ->get();
+                ->where('grade_level', $student->academic?->grade_level)
+                ->where('semester', 'LIKE', "%{$semKey}%")
+                ->get();
 
-        return response()->json([
-            'student' => $student,
-            'available_sections' => $sections,
-            'suggested_subjects' => $subjects
-        ]);
+            return response()->json([
+                'student' => $student,
+                'available_sections' => $sections,
+                'suggested_subjects' => $subjects,
+                'default_or' => 'OR-'.strtoupper(Str::random(6)), // Automatic OR Generator
+            ]);
+        } catch (Exception $e) {
+            Log::error('CORController getCORData Error: '.$e->getMessage());
+
+            return response()->json(['message' => 'Failed to load COR data.'], 500);
+        }
     }
 
-    // 2. GENERATE SIGNED URL (WITH SAFETY CHECK)
     public function generateUrl(Request $request)
     {
-        // WRAP SA TRANSACTION PARA SAFE
-        return DB::transaction(function () use ($request) {
-            
-            $lrn = $request->input('info.lrn');
-            $sectionId = $request->input('info.section_id');
-            $student = Student::where('lrn', $lrn)->first();
+        try {
+            return DB::transaction(function () use ($request) {
 
-            // --- START: CRITICAL SAFETY CHECK ---
-            if ($student && $sectionId && $student->section_id != $sectionId) {
-                
-                // 1. LOCK THE TARGET SECTION
-                $section = Section::where('id', $sectionId)->lockForUpdate()->first();
+                $lrn = $request->input('info.lrn');
+                $sectionId = $request->input('info.section_id');
+                $student = Student::with('academic')->where('lrn', $lrn)->first();
 
-                if ($section) {
-                    // 2. COUNT REAL-TIME ENROLLED
-                    $currentEnrolled = $section->students()->where('status', 'enrolled')->count();
+                // SAFETY CHECK FOR SECTION
+                if ($student && $sectionId && $student->academic?->section_id != $sectionId) {
+                    $section = Section::where('id', $sectionId)->lockForUpdate()->first();
 
-                    // 3. CHECK CAPACITY
-                    if ($currentEnrolled >= $section->capacity) {
-                        // STOP PROCESS & RETURN ERROR
-                        return response()->json([
-                            'message' => "FAILED: Section '{$section->name}' is FULL ({$currentEnrolled}/{$section->capacity}). Cannot update section via COR."
-                        ], 422);
+                    if ($section) {
+                        $currentEnrolled = $section->students()->where('status', 'enrolled')->count();
+
+                        if ($currentEnrolled >= $section->capacity) {
+                            return response()->json([
+                                'message' => "FAILED: Section is FULL ({$currentEnrolled}/{$section->capacity}).",
+                            ], 422);
+                        }
+
+                        $student->academic()->update(['section_id' => $sectionId]);
+
+                        ActivityLog::create([
+                            'user_id' => Auth::id(),
+                            'action' => 'update',
+                            'description' => "Assigned section via COR for: {$student->last_name}",
+                            'ip_address' => $request->ip(),
+                        ]);
                     }
-
-                    // 4. UPDATE IF SAFE
-                    $student->update(['section_id' => $sectionId]);
-
-                    // Optional: Log this specific action
-                    ActivityLog::create([
-                        'user_id' => Auth::id(),
-                        'action' => 'update',
-                        'description' => "Updated section to {$section->name} via COR for: {$student->last_name}",
-                        'ip_address' => $request->ip()
-                    ]);
                 }
-            }
-            // --- END: CRITICAL SAFETY CHECK ---
 
-            // PROCEED TO GENERATE URL (Existing Code)
-            $tempId = Str::random(40);
-            Cache::put('cor_data_' . $tempId, $request->all(), now()->addMinutes(5));
+                $tempId = Str::random(40);
+                Cache::put('cor_data_'.$tempId, $request->all(), now()->addMinutes(5));
 
-            $studentName = $request->input('info.name') ?? 'Student';
-            
-            ActivityLog::create([
-                'user_id' => Auth::id(),
-                'action' => 'download',
-                'description' => "Downloaded COR for student: {$studentName}",
-                'ip_address' => $request->ip()
-            ]);
+                $url = URL::temporarySignedRoute(
+                    'cor.print',
+                    now()->addMinutes(5),
+                    ['id' => $tempId]
+                );
 
-            $url = URL::temporarySignedRoute(
-                'cor.print', 
-                now()->addMinutes(5), 
-                ['id' => $tempId]
-            );
+                return response()->json(['url' => $url]);
+            });
+        } catch (Exception $e) {
+            Log::error('CORController generateUrl Error: '.$e->getMessage());
 
-            return response()->json(['url' => $url]);
-        });
+            return response()->json(['message' => 'Failed to generate document link.'], 500);
+        }
     }
 
-    // 3. PRINT PDF
     public function printCOR($tempId)
     {
-        $data = Cache::get('cor_data_' . $tempId);
+        $data = Cache::get('cor_data_'.$tempId);
 
-        if (!$data) {
+        if (! $data) {
             abort(404, 'Link expired or invalid.');
         }
 
         // Logo Logic
-        $logoData = null;
+        $data['logo'] = null;
         try {
             $path = public_path('images/logo.png');
             if (file_exists($path)) {
-                $img = file_get_contents($path);
-                $logoData = 'data:image/png;base64,' . base64_encode($img);
+                $data['logo'] = 'data:image/png;base64,'.base64_encode(file_get_contents($path));
             }
-        } catch (\Exception $e) {}
+        } catch (Exception $e) {
+        }
 
-        $data['logo'] = $logoData;
+        // Fetch Student for the 2x2 Picture logic
+        $student = Student::with('requirement')->where('lrn', $data['info']['lrn'])->first();
+        $data['photo_2x2'] = null;
+
+        if ($student && $student->requirement && $student->requirement->photo_2x2) {
+            try {
+                $photoPath = storage_path('app/public/'.$student->requirement->photo_2x2);
+                if (file_exists($photoPath)) {
+                    $ext = pathinfo($photoPath, PATHINFO_EXTENSION);
+                    $data['photo_2x2'] = 'data:image/'.$ext.';base64,'.base64_encode(file_get_contents($photoPath));
+                }
+            } catch (Exception $e) {
+            }
+        }
+
         $data['printed_at'] = now()->format('F d, Y h:i A');
 
-        // Grade & Section Display
         $grade = $data['info']['grade_level'] ?? 'N/A';
         $section = $data['info']['section_name'] ?? 'TBA';
-        $data['info']['grade_section'] = "$grade / $section"; 
+        $data['info']['grade_section'] = "$grade / $section";
 
         $pdf = Pdf::loadView('pdf.cor', $data);
         $pdf->setPaper('a4', 'portrait');
 
-        return $pdf->stream('COR-' . ($data['info']['lrn'] ?? 'Student') . '.pdf');
+        return $pdf->stream('COR-'.($data['info']['lrn'] ?? 'Student').'.pdf');
     }
 }

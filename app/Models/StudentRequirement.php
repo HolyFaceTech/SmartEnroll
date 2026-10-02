@@ -12,18 +12,17 @@ class StudentRequirement extends Model
 
     protected $fillable = [
         'student_id',
-        'requirements',
+        'hard_copies',
         'psa',
         'form_137',
         'good_moral',
         'diploma',
         'form_138',
         'photo_2x2',
-        'e_sign',
     ];
 
     protected $casts = [
-        'requirements' => 'array',
+        'hard_copies' => 'array',
     ];
 
     public function student()

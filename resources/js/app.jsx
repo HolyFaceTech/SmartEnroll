@@ -31,16 +31,15 @@ import Users from "./pages/admin_head/Users";
 import HeadStaffStrands from "./pages/head_staff/Strands";
 import HeadStaffSections from "./pages/head_staff/Sections";
 import HeadStaffSubjects from "./pages/head_staff/Subjects";
+import HeadStaffStudents from "./pages/head_staff/Students";
 
 // --- ADMIN PAGES ---
 import AdminDashboard from "./pages/admin/Dashboard";
-import Students from "./pages/admin/Students";
 import Reports from "./pages/admin/Reports";
 import RecycleBin from "./pages/admin/RecycleBin";
 
 // --- STAFF PAGES ---
 import StaffDashboard from "./pages/staff/Dashboard";
-import StaffStudents from "./pages/staff/Students";
 import StaffReports from "./pages/staff/Reports";
 
 // Placeholder Component
@@ -111,10 +110,6 @@ function App() {
                         element={<Placeholder title="Keeps Management" />}
                     />
                     <Route
-                        path="students"
-                        element={<Students title="Student Records" />}
-                    />
-                    <Route
                         path="reports"
                         element={<Reports title="System Reports" />}
                     />
@@ -160,7 +155,7 @@ function App() {
                     />
                     <Route
                         path="students"
-                        element={<Placeholder title="Students Management" />}
+                        element={<HeadStaffStudents title="Student Records" />}
                     />
                     <Route
                         path="keeps"
@@ -212,7 +207,7 @@ function App() {
                     <Route path="dashboard" element={<StaffDashboard />} />
                     <Route
                         path="students"
-                        element={<StaffStudents title="Student Records" />}
+                        element={<HeadStaffStudents title="Student Records" />}
                     />
                     <Route
                         path="strands"

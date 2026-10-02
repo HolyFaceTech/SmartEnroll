@@ -19,7 +19,7 @@ return new class extends Migration
             $table->unsignedBigInteger('size')->nullable();
             $table->uuid('fileable_id')->nullable();
             $table->string('fileable_type')->nullable();
-            $table->foreignUuid('user_id')->nullable()->constrained('users')->onDelete('cascade');
+            $table->foreignUuid('student_id')->nullable()->constrained('students')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
         });

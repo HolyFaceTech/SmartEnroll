@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class StudentAcademic extends Model
 {
@@ -16,7 +16,9 @@ class StudentAcademic extends Model
         'strand_id',
         'section_id',
         'grade_level',
+        'previous_level',
         'term',
+        'previous_term',
         'school_year',
         'learning_modality',
         'general_average',

@@ -6,8 +6,19 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
+        // Sequence Table for Auto-Generating Student Numbers
+        Schema::create('student_number_sequences', function (Blueprint $table) {
+            $table->id();
+            $table->string('year_prefix', 2)->unique();
+            $table->integer('last_number')->default(0);
+            $table->timestamps();
+        });
+
         // Core Students Table
         Schema::create('students', function (Blueprint $table) {
             $table->uuid('id')->primary();
@@ -50,7 +61,9 @@ return new class extends Migration
             $table->foreignUuid('strand_id')->constrained('strands')->onDelete('cascade');
             $table->foreignUuid('section_id')->nullable()->constrained('sections')->onDelete('set null');
             $table->string('grade_level');
+            $table->string('previous_level')->nullable();
             $table->string('term');
+            $table->string('previous_term')->nullable();
             $table->string('school_year');
             $table->string('learning_modality')->default('Face-to-Face');
             $table->decimal('general_average', 5, 2)->nullable();
@@ -79,18 +92,20 @@ return new class extends Migration
         Schema::create('student_requirements', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('student_id')->constrained('students')->onDelete('cascade');
-            $table->json('requirements')->nullable();
+            $table->json('hard_copies')->nullable();
             $table->string('psa')->nullable();
             $table->string('form_137')->nullable();
             $table->string('good_moral')->nullable();
             $table->string('diploma')->nullable();
             $table->string('form_138')->nullable();
             $table->string('photo_2x2')->nullable();
-            $table->string('e_sign')->nullable();
             $table->timestamps();
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('student_requirements');
@@ -98,5 +113,6 @@ return new class extends Migration
         Schema::dropIfExists('student_academics');
         Schema::dropIfExists('student_profiles');
         Schema::dropIfExists('students');
+        Schema::dropIfExists('student_number_sequences');
     }
 };

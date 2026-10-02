@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class File extends Model
@@ -18,7 +18,7 @@ class File extends Model
         'size',
         'fileable_id',
         'fileable_type',
-        'user_id',
+        'student_id',
     ];
 
     public function fileable()
@@ -26,8 +26,8 @@ class File extends Model
         return $this->morphTo();
     }
 
-    public function user()
+    public function student()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Student::class);
     }
 }

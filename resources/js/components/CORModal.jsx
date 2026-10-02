@@ -6,20 +6,16 @@ export default function CORModal({
     show,
     student,
     onClose,
-    onSuccess, // NEW PROP: Para mag-refresh ang table pagtapos
+    onSuccess,
     apiPrefix = "/api",
 }) {
     if (!show || !student) return null;
 
-    // STATES
-    const [fetchingData, setFetchingData] = useState(true); // Initial Load
-    const [submitting, setSubmitting] = useState(false); // Button Action
+    const [fetchingData, setFetchingData] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
     const [availableSections, setAvailableSections] = useState([]);
-
-    // STATUS STATE
     const [targetStatus, setTargetStatus] = useState("");
 
-    // FORM DATA
     const [formData, setFormData] = useState({
         info: {
             name: "",
@@ -33,38 +29,38 @@ export default function CORModal({
         },
         subjects: [],
         fees: { tuition: 0, miscellaneous: 0, books: 0, total: 0 },
-        signatories: {
-            adviser: "",
-            registrar: "",
-            finance: "",
-        },
+        signatories: { adviser: "", registrar: "", finance: "" },
+        terms: { parent_name: "", student_name: "" },
         or_number: "",
     });
 
-    // --- INITIAL FETCH ---
     useEffect(() => {
         if (student) {
             setFetchingData(true);
             setTargetStatus(student.status || "enrolled");
+            const token =
+                localStorage.getItem("token") ||
+                sessionStorage.getItem("token");
 
             axios
-                .get(`${apiPrefix}/students/${student.id}/cor-data`)
+                .get(`${apiPrefix}/students/${student.id}/cor-data`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                })
                 .then((res) => {
-                    const { available_sections, suggested_subjects } = res.data;
-                    setAvailableSections(available_sections);
-
+                    setAvailableSections(res.data.available_sections);
                     setFormData({
                         info: {
                             name: `${student.last_name}, ${student.first_name} ${student.middle_name || ""} ${student.suffix || ""}`.toUpperCase(),
                             lrn: student.lrn,
-                            strand: student.strand?.code || "N/A",
-                            grade_level: student.grade_level,
-                            section_id: student.section_id || "",
-                            section_name: student.section?.name || "",
-                            school_year: student.school_year || "2025-2026",
-                            semester: student.semester || "1st Semester",
+                            strand: student.academic?.strand?.code || "N/A",
+                            grade_level: student.academic?.grade_level,
+                            section_id: student.academic?.section_id || "",
+                            section_name: student.academic?.section?.name || "",
+                            school_year:
+                                student.academic?.school_year || "2026-2027",
+                            semester: student.academic?.term || "1st Semester",
                         },
-                        subjects: suggested_subjects.map((s) => ({
+                        subjects: res.data.suggested_subjects.map((s) => ({
                             code: s.code,
                             desc: s.description,
                             sched: "",
@@ -77,60 +73,26 @@ export default function CORModal({
                             total: 8500,
                         },
                         signatories: {
-                            adviser: student.section?.adviser_name || "",
+                            adviser:
+                                student.academic?.section?.adviser_name || "",
                             registrar: "",
                             finance: "",
                         },
+                        terms: { parent_name: "", student_name: "" },
                         or_number:
+                            res.data.default_or ||
                             "OR-" + Math.floor(100000 + Math.random() * 900000),
                     });
                 })
-                .catch((err) => {
-                    console.error(err);
+                .catch(() =>
                     Toast.fire({
                         icon: "error",
                         title: "Failed to load data.",
-                    });
-                })
+                    }),
+                )
                 .finally(() => setFetchingData(false));
         }
     }, [student, apiPrefix]);
-
-    // --- HANDLERS ---
-    const handleSectionChange = (e) => {
-        const secId = e.target.value;
-        const selectedSec = availableSections.find((s) => s.id == secId);
-        setFormData((prev) => ({
-            ...prev,
-            info: {
-                ...prev.info,
-                section_id: secId,
-                section_name: selectedSec ? selectedSec.name : "",
-            },
-            signatories: {
-                ...prev.signatories,
-                adviser: selectedSec ? selectedSec.adviser_name || "" : "",
-            },
-        }));
-    };
-
-    const handleFeeChange = (e) => {
-        const { name, value } = e.target;
-        const val = parseFloat(value) || 0;
-        const newFees = { ...formData.fees, [name]: val };
-        newFees.total = newFees.tuition + newFees.miscellaneous + newFees.books;
-        setFormData((prev) => ({ ...prev, fees: newFees }));
-    };
-
-    const handleSigChange = (e) => {
-        setFormData((prev) => ({
-            ...prev,
-            signatories: {
-                ...prev.signatories,
-                [e.target.name]: e.target.value,
-            },
-        }));
-    };
 
     const handleSubjectChange = (index, field, value) => {
         const updatedSubjects = [...formData.subjects];
@@ -152,55 +114,40 @@ export default function CORModal({
         setFormData((prev) => ({ ...prev, subjects: updatedSubjects }));
     };
 
-    // --- DOWNLOAD & UPDATE ---
     const handleDownloadPDF = async () => {
-        if (!formData.info.section_id) {
-            Toast.fire({
+        if (!formData.info.section_id)
+            return Toast.fire({
                 icon: "warning",
-                title: "Please select a section first.",
+                title: "Select a section first.",
             });
-            return;
-        }
-
-        setSubmitting(true); // BUTTON SPINNER ONLY
-
-        Toast.fire({
-            icon: "info",
-            title: "Updating Status & Generating Document...",
-        });
+        setSubmitting(true);
+        const token =
+            localStorage.getItem("token") || sessionStorage.getItem("token");
 
         try {
-            // STEP 1: UPDATE STATUS
-            await axios.put(`${apiPrefix}/students/${student.id}/status`, {
-                status: targetStatus,
-            });
-
-            // STEP 2: GENERATE PDF
-            const response = await axios.post(`${apiPrefix}/cor/generate-url`, {
-                ...formData,
-                printed_by: "Admin",
-            });
+            await axios.put(
+                `${apiPrefix}/students/${student.id}/status`,
+                { status: targetStatus },
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
+            const response = await axios.post(
+                `${apiPrefix}/cor/generate-url`,
+                { ...formData, printed_by: "Admin" },
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
 
             window.open(response.data.url, "_blank");
-
             Toast.fire({
                 icon: "success",
-                title: `Status Updated to ${targetStatus.toUpperCase()} & COR Generated!`,
+                title: "COR Generated & Status Updated!",
             });
-
-            // REFRESH TABLE & CLOSE
             if (onSuccess) onSuccess();
             onClose();
         } catch (error) {
-            let msg = "Action Failed.";
-            if (
-                error.response &&
-                error.response.data &&
-                error.response.data.message
-            ) {
-                msg = error.response.data.message;
-            }
-            Toast.fire({ icon: "error", title: msg });
+            Toast.fire({
+                icon: "error",
+                title: error.response?.data?.message || "Action Failed.",
+            });
         } finally {
             setSubmitting(false);
         }
@@ -210,15 +157,14 @@ export default function CORModal({
         <>
             <div
                 className="modal-backdrop fade show"
-                style={{ backgroundColor: "rgba(0,0,0,0.7)", zIndex: 1050 }}
+                style={{ backgroundColor: "rgba(0,0,0,0.8)", zIndex: 1050 }}
             ></div>
             <div
                 className="modal fade show d-block"
                 style={{ zIndex: 1055, overflowY: "auto" }}
             >
-                <div className="modal-dialog modal-lg">
-                    <div className="modal-content border-2 border-dark rounded-0 shadow-lg">
-                        {/* HEADER */}
+                <div className="modal-dialog modal-xl modal-dialog-centered">
+                    <div className="modal-content border-2 border-dark rounded-0 shadow-lg card-retro">
                         <div className="modal-header bg-dark text-white border-bottom border-dark rounded-0 py-3">
                             <h5 className="modal-title fw-bold font-monospace mx-auto">
                                 <i className="bi bi-printer-fill me-2 text-warning"></i>{" "}
@@ -230,26 +176,20 @@ export default function CORModal({
                                 onClick={onClose}
                             ></button>
                         </div>
-
-                        {/* BODY */}
-                        <div className="modal-body bg-light">
+                        <div className="modal-body bg-light p-4">
                             {fetchingData ? (
                                 <div className="text-center py-5">
                                     <div className="spinner-border"></div>
-                                    <p className="mt-2 font-monospace small">
-                                        Fetching Student Data...
-                                    </p>
                                 </div>
                             ) : (
                                 <div className="container-fluid font-monospace small">
-                                    {/* TOP ROW */}
-                                    <div className="row mb-3 g-2 align-items-end">
+                                    <div className="row mb-3 g-2">
                                         <div className="col-md-3">
                                             <label className="fw-bold mb-1 text-primary">
-                                                CHANGE STATUS TO:
+                                                CHANGE STATUS:
                                             </label>
                                             <select
-                                                className="form-select form-select-sm border-dark rounded-0 fw-bold bg-warning bg-opacity-25"
+                                                className="form-select border-dark rounded-0 fw-bold bg-warning bg-opacity-25"
                                                 value={targetStatus}
                                                 onChange={(e) =>
                                                     setTargetStatus(
@@ -263,83 +203,61 @@ export default function CORModal({
                                                 <option value="pending">
                                                     PENDING
                                                 </option>
-                                                <option value="passed">
-                                                    PASSED
-                                                </option>
-                                                <option value="graduate">
-                                                    GRADUATE
-                                                </option>
-                                                <option value="dropped">
-                                                    DROPPED
-                                                </option>
-                                                <option value="released">
-                                                    RELEASED
+                                                <option value="cleared">
+                                                    CLEARED
                                                 </option>
                                             </select>
                                         </div>
-
                                         <div className="col-md-5">
                                             <label className="fw-bold mb-1">
-                                                SELECT SECTION:
+                                                SECTION ASSIGNMENT:
                                             </label>
                                             <select
-                                                className="form-select form-select-sm border-dark rounded-0 fw-bold"
+                                                className="form-select border-dark rounded-0 fw-bold"
                                                 value={formData.info.section_id}
-                                                onChange={handleSectionChange}
+                                                onChange={(e) =>
+                                                    setFormData((p) => ({
+                                                        ...p,
+                                                        info: {
+                                                            ...p.info,
+                                                            section_id:
+                                                                e.target.value,
+                                                        },
+                                                    }))
+                                                }
                                             >
                                                 <option value="" disabled>
-                                                    -- Select Section --
+                                                    -- Select --
                                                 </option>
                                                 {availableSections.map(
-                                                    (sec) => {
-                                                        const enrolled =
-                                                            sec.enrolled_count ||
-                                                            0;
-                                                        const capacity =
-                                                            sec.capacity || 40;
-                                                        const isFull =
-                                                            enrolled >=
-                                                                capacity &&
-                                                            sec.id !==
-                                                                student.section_id;
-                                                        return (
-                                                            <option
-                                                                key={sec.id}
-                                                                value={sec.id}
-                                                                disabled={
-                                                                    isFull
-                                                                }
-                                                                style={
-                                                                    isFull
-                                                                        ? {
-                                                                              color: "#d63031",
-                                                                              fontStyle:
-                                                                                  "italic",
-                                                                          }
-                                                                        : {}
-                                                                }
-                                                            >
-                                                                {sec.name} (
-                                                                {enrolled}/
-                                                                {capacity}){" "}
-                                                                {isFull
-                                                                    ? "(FULL)"
-                                                                    : ""}
-                                                            </option>
-                                                        );
-                                                    },
+                                                    (sec) => (
+                                                        <option
+                                                            key={sec.id}
+                                                            value={sec.id}
+                                                            disabled={
+                                                                sec.enrolled_count >=
+                                                                sec.capacity
+                                                            }
+                                                        >
+                                                            {sec.name} (
+                                                            {sec.enrolled_count}
+                                                            /{sec.capacity}){" "}
+                                                            {sec.enrolled_count >=
+                                                            sec.capacity
+                                                                ? "(FULL)"
+                                                                : ""}
+                                                        </option>
+                                                    ),
                                                 )}
                                             </select>
                                         </div>
                                         <div className="col-md-4">
                                             <label className="fw-bold mb-1">
-                                                OFFICIAL RECEIPT NO:
+                                                OFFICIAL RECEIPT (OR) NO:
                                             </label>
-                                            {/* ⭐ PLACEHOLDER RESTORED */}
                                             <input
                                                 type="text"
-                                                className="form-control form-control-sm border-dark rounded-0 text-danger fw-bold"
-                                                placeholder="OR NUMBER"
+                                                className="form-control border-dark rounded-0 text-danger fw-bold bg-white"
                                                 value={formData.or_number}
                                                 onChange={(e) =>
                                                     setFormData({
@@ -353,7 +271,7 @@ export default function CORModal({
                                     </div>
 
                                     {/* SUBJECTS TABLE */}
-                                    <div className="d-flex justify-content-between align-items-end mb-1">
+                                    <div className="d-flex justify-content-between align-items-end mb-1 mt-4">
                                         <label className="fw-bold">
                                             SUBJECTS (Editable):
                                         </label>
@@ -389,11 +307,10 @@ export default function CORModal({
                                                     (sub, idx) => (
                                                         <tr key={idx}>
                                                             <td className="p-0">
-                                                                {/* ⭐ PLACEHOLDER RESTORED */}
                                                                 <input
                                                                     type="text"
                                                                     className="form-control form-control-sm border-0 rounded-0 text-center fw-bold"
-                                                                    placeholder="SUBJ CODE"
+                                                                    placeholder="CODE"
                                                                     value={
                                                                         sub.code
                                                                     }
@@ -500,61 +417,57 @@ export default function CORModal({
                                                     FEES
                                                 </div>
                                                 <div className="card-body p-2">
-                                                    {/* ⭐ PLACEHOLDER RESTORED */}
-                                                    <div className="input-group input-group-sm mb-1">
-                                                        <span className="input-group-text bg-white border-dark rounded-0 w-50">
-                                                            Tuition:
-                                                        </span>
-                                                        <input
-                                                            type="number"
-                                                            name="tuition"
-                                                            className="form-control border-dark rounded-0 text-end"
-                                                            placeholder="0.00"
-                                                            value={
-                                                                formData.fees
-                                                                    .tuition
-                                                            }
-                                                            onChange={
-                                                                handleFeeChange
-                                                            }
-                                                        />
-                                                    </div>
-                                                    <div className="input-group input-group-sm mb-1">
-                                                        <span className="input-group-text bg-white border-dark rounded-0 w-50">
-                                                            Misc:
-                                                        </span>
-                                                        <input
-                                                            type="number"
-                                                            name="miscellaneous"
-                                                            className="form-control border-dark rounded-0 text-end"
-                                                            placeholder="0.00"
-                                                            value={
-                                                                formData.fees
-                                                                    .miscellaneous
-                                                            }
-                                                            onChange={
-                                                                handleFeeChange
-                                                            }
-                                                        />
-                                                    </div>
-                                                    <div className="input-group input-group-sm mb-1">
-                                                        <span className="input-group-text bg-white border-dark rounded-0 w-50">
-                                                            Books:
-                                                        </span>
-                                                        <input
-                                                            type="number"
-                                                            name="books"
-                                                            className="form-control border-dark rounded-0 text-end"
-                                                            placeholder="0.00"
-                                                            value={
-                                                                formData.fees
-                                                                    .books
-                                                            }
-                                                            onChange={
-                                                                handleFeeChange
-                                                            }
-                                                        />
-                                                    </div>
+                                                    {[
+                                                        "tuition",
+                                                        "miscellaneous",
+                                                        "books",
+                                                    ].map((fee) => (
+                                                        <div
+                                                            className="input-group input-group-sm mb-1"
+                                                            key={fee}
+                                                        >
+                                                            <span className="input-group-text bg-white border-dark rounded-0 w-50 text-uppercase">
+                                                                {fee}:
+                                                            </span>
+                                                            <input
+                                                                type="number"
+                                                                className="form-control border-dark rounded-0 text-end"
+                                                                value={
+                                                                    formData
+                                                                        .fees[
+                                                                        fee
+                                                                    ]
+                                                                }
+                                                                onChange={(
+                                                                    e,
+                                                                ) => {
+                                                                    const val =
+                                                                        parseFloat(
+                                                                            e
+                                                                                .target
+                                                                                .value,
+                                                                        ) || 0;
+                                                                    const newFees =
+                                                                        {
+                                                                            ...formData.fees,
+                                                                            [fee]: val,
+                                                                        };
+                                                                    newFees.total =
+                                                                        newFees.tuition +
+                                                                        newFees.miscellaneous +
+                                                                        newFees.books;
+                                                                    setFormData(
+                                                                        (
+                                                                            p,
+                                                                        ) => ({
+                                                                            ...p,
+                                                                            fees: newFees,
+                                                                        }),
+                                                                    );
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    ))}
                                                     <div className="d-flex justify-content-between fw-bold bg-secondary bg-opacity-25 p-1 border border-dark mt-2">
                                                         <span>TOTAL:</span>
                                                         <span>
@@ -576,99 +489,128 @@ export default function CORModal({
                                                     SIGNATORIES
                                                 </div>
                                                 <div className="card-body p-2">
-                                                    {/* PLACEHOLDER RESTORED */}
-                                                    <label
-                                                        className="fw-bold mb-0 text-muted"
-                                                        style={{
-                                                            fontSize: "10px",
-                                                        }}
-                                                    >
-                                                        CLASS ADVISER:
-                                                    </label>
-                                                    <input
-                                                        name="adviser"
-                                                        className="form-control form-control-sm border-dark rounded-0 mb-1 fw-bold text-uppercase"
-                                                        placeholder="ADVISER NAME"
-                                                        value={
-                                                            formData.signatories
-                                                                .adviser
-                                                        }
-                                                        onChange={
-                                                            handleSigChange
-                                                        }
-                                                    />
-                                                    <label
-                                                        className="fw-bold mb-0 text-muted"
-                                                        style={{
-                                                            fontSize: "10px",
-                                                        }}
-                                                    >
-                                                        REGISTRAR:
-                                                    </label>
-                                                    <input
-                                                        name="registrar"
-                                                        className="form-control form-control-sm border-dark rounded-0 mb-1 fw-bold text-uppercase"
-                                                        placeholder="REGISTRAR NAME"
-                                                        value={
-                                                            formData.signatories
-                                                                .registrar
-                                                        }
-                                                        onChange={
-                                                            handleSigChange
-                                                        }
-                                                    />
-                                                    <label
-                                                        className="fw-bold mb-0 text-muted"
-                                                        style={{
-                                                            fontSize: "10px",
-                                                        }}
-                                                    >
-                                                        FINANCE:
-                                                    </label>
-                                                    <input
-                                                        name="finance"
-                                                        className="form-control form-control-sm border-dark rounded-0 fw-bold text-uppercase"
-                                                        placeholder="FINANCE OFFICER"
-                                                        value={
-                                                            formData.signatories
-                                                                .finance
-                                                        }
-                                                        onChange={
-                                                            handleSigChange
-                                                        }
-                                                    />
+                                                    {[
+                                                        "adviser",
+                                                        "registrar",
+                                                        "finance",
+                                                    ].map((sig) => (
+                                                        <div
+                                                            key={sig}
+                                                            className="mb-1"
+                                                        >
+                                                            <label
+                                                                className="fw-bold mb-0 text-muted text-uppercase"
+                                                                style={{
+                                                                    fontSize:
+                                                                        "10px",
+                                                                }}
+                                                            >
+                                                                {sig}:
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                className="form-control form-control-sm border-dark rounded-0 fw-bold text-uppercase"
+                                                                value={
+                                                                    formData
+                                                                        .signatories[
+                                                                        sig
+                                                                    ]
+                                                                }
+                                                                onChange={(e) =>
+                                                                    setFormData(
+                                                                        (
+                                                                            p,
+                                                                        ) => ({
+                                                                            ...p,
+                                                                            signatories:
+                                                                                {
+                                                                                    ...p.signatories,
+                                                                                    [sig]: e
+                                                                                        .target
+                                                                                        .value,
+                                                                                },
+                                                                        }),
+                                                                    )
+                                                                }
+                                                            />
+                                                        </div>
+                                                    ))}
                                                 </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* TERMS */}
+                                    <div className="card rounded-0 border-dark mt-3">
+                                        <div className="card-header py-1 bg-danger text-white fw-bold border-bottom border-dark small">
+                                            PULL-OUT AGREEMENT SIGNATORIES
+                                            (TERMS)
+                                        </div>
+                                        <div className="card-body p-2 row g-2">
+                                            <div className="col-md-6">
+                                                <input
+                                                    type="text"
+                                                    className="form-control border-dark rounded-0 fw-bold text-uppercase"
+                                                    placeholder="PARENT / GUARDIAN NAME"
+                                                    value={
+                                                        formData.terms
+                                                            .parent_name
+                                                    }
+                                                    onChange={(e) =>
+                                                        setFormData((p) => ({
+                                                            ...p,
+                                                            terms: {
+                                                                ...p.terms,
+                                                                parent_name:
+                                                                    e.target
+                                                                        .value,
+                                                            },
+                                                        }))
+                                                    }
+                                                />
+                                            </div>
+                                            <div className="col-md-6">
+                                                <input
+                                                    type="text"
+                                                    className="form-control border-dark rounded-0 fw-bold text-uppercase"
+                                                    placeholder="STUDENT NAME"
+                                                    value={
+                                                        formData.terms
+                                                            .student_name
+                                                    }
+                                                    onChange={(e) =>
+                                                        setFormData((p) => ({
+                                                            ...p,
+                                                            terms: {
+                                                                ...p.terms,
+                                                                student_name:
+                                                                    e.target
+                                                                        .value,
+                                                            },
+                                                        }))
+                                                    }
+                                                />
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             )}
                         </div>
-
-                        {/* FOOTER - BUTTON WITH TOGA SPINNER */}
-                        <div className="modal-footer bg-light border-top border-dark d-flex justify-content-between py-3">
+                        <div className="modal-footer bg-white border-top border-dark">
                             <button
-                                className="btn btn-success rounded-0 fw-bold px-4 btn-retro-effect"
-                                onClick={handleDownloadPDF}
-                                disabled={submitting} // Disabled while submitting
-                            >
-                                {submitting ? (
-                                    <>
-                                        <i className="bi bi-mortarboard-fill toga-spin me-2"></i>
-                                        PROCESSING...
-                                    </>
-                                ) : (
-                                    <>
-                                        <i className="bi bi-file-earmark-pdf-fill me-2"></i>
-                                        DOWNLOAD COR
-                                    </>
-                                )}
-                            </button>
-                            <button
-                                className="btn btn-secondary rounded-0 fw-bold px-4 btn-retro-effect"
+                                className="btn btn-secondary rounded-0 fw-bold px-4 btn-press-retro border-dark border-2"
                                 onClick={onClose}
                             >
                                 CLOSE
+                            </button>
+                            <button
+                                className="btn btn-success rounded-0 fw-bold px-4 btn-press-retro border-dark border-2"
+                                onClick={handleDownloadPDF}
+                                disabled={submitting}
+                            >
+                                {submitting
+                                    ? "PROCESSING..."
+                                    : "SAVE & DOWNLOAD COR"}
                             </button>
                         </div>
                     </div>

@@ -60,4 +60,39 @@ class Student extends Model
             'section_id'
         );
     }
+
+    public function files()
+    {
+        return $this->hasMany(File::class);
+    }
+
+    public function getRequirementsAttribute()
+    {
+        return $this->requirement ? $this->requirement->hard_copies : [];
+    }
+
+    public function getGradeLevelAttribute()
+    {
+        return $this->academic?->grade_level;
+    }
+
+    public function getSemesterAttribute()
+    {
+        return $this->academic?->term;
+    }
+
+    public function getSchoolYearAttribute()
+    {
+        return $this->academic?->school_year;
+    }
+
+    public function getStrandIdAttribute()
+    {
+        return $this->academic?->strand_id;
+    }
+
+    public function getSectionIdAttribute()
+    {
+        return $this->academic?->section_id;
+    }
 }

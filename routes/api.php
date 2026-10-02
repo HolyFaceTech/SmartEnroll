@@ -88,13 +88,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('sections', SectionController::class);
     });
 
-    // --- STUDENT MANAGEMENT ---
-    Route::apiResource('students', StudentController::class);
-    Route::put('/students/{id}/status', [StudentController::class, 'changeStatus']); // Change Status (Passed, Released, etc.)
+    // Student
+    Route::middleware(['throttle:60,1'])->group(function () {
+        Route::post('students/bulk-delete', [StudentController::class, 'bulkDelete']);
+        Route::post('students/import', [StudentController::class, 'importStudents']);
+        Route::apiResource('students', StudentController::class);
+        Route::put('students/{id}/status', [StudentController::class, 'changeStatus']);
 
-    // COR (Certificate of Registration)
-    Route::get('/students/{id}/cor-data', [CORController::class, 'getCORData']);
-    Route::post('/cor/generate-url', [CORController::class, 'generateUrl']);
+        // COR (Certificate of Registration)
+        Route::get('students/{id}/cor-data', [CORController::class, 'getCORData']);
+        Route::post('cor/generate-url', [CORController::class, 'generateUrl']);
+    });
 
     // --- Reports ---
     Route::get('/reports/summary', [ReportController::class, 'generateSummary']);

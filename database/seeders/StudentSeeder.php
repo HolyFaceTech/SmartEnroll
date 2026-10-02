@@ -7,6 +7,7 @@ use App\Models\Strand;
 use App\Models\Student;
 use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class StudentSeeder extends Seeder
 {
@@ -30,6 +31,16 @@ class StudentSeeder extends Seeder
         for ($i = 1; $i <= 50; $i++) {
             $this->createStudent($i, $faker, $strands, $sections);
         }
+
+        $currentYear = date('y');
+        DB::table('student_number_sequences')->updateOrInsert(
+            ['year_prefix' => $currentYear],
+            [
+                'last_number' => 50,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
     }
 
     private function createStudent($i, $faker, $strands, $sections): void
@@ -47,10 +58,11 @@ class StudentSeeder extends Seeder
         $middleName = $faker->randomElement($middles);
         $suffix = ($gender === 'Male' && rand(1, 10) === 1) ? 'Jr.' : null;
 
-        $status = $faker->randomElement(['enrolled', 'enrolled', 'pending', 'passed', 'released']);
+        $status = $faker->randomElement(['pending', 'enrolled', 'on hold', 'graduate', 'drop out', 'released']);
         $releasedBy = $status === 'released' ? 'Admin Staff' : null;
         $releasedAt = $status === 'released' ? now()->subDays(rand(1, 30)) : null;
-        $prevStatus = in_array($status, ['passed', 'released']) ? 'enrolled' : null;
+
+        $prevStatus = in_array($status, ['graduate', 'drop out', 'released']) ? 'enrolled' : null;
 
         if ($sections->isNotEmpty() && ($status === 'enrolled' || rand(1, 2) === 1)) {
             $sec = $sections->random();
@@ -100,28 +112,16 @@ class StudentSeeder extends Seeder
             'strand_id' => $strandId,
             'section_id' => $sectionId,
             'grade_level' => $gradeLevel,
-            'term' => '1st Semester',
+            'term' => $faker->randomElement(['1st', '2nd', '3rd']),
             'school_year' => '2026-2027',
             'learning_modality' => 'Face-to-Face',
             'general_average' => round(rand(8200, 9800) / 100, 2),
         ]);
 
-        $student->family()->create([
-            'father_name' => $faker->randomElement($males).' '.$lastName,
-            'father_occupation' => $faker->randomElement($jobs),
-            'father_contact' => '09'.rand(10, 99).rand(100, 999).rand(1000, 9999),
-            'mother_name' => $faker->randomElement($females).' '.$faker->randomElement($surnames),
-            'mother_occupation' => $faker->randomElement($jobs),
-            'mother_contact' => '09'.rand(10, 99).rand(100, 999).rand(1000, 9999),
-            'guardian_name' => $faker->randomElement($males).' '.$lastName,
-            'guardian_occupation' => $faker->randomElement($jobs),
-            'guardian_contact' => '09'.rand(10, 99).rand(100, 999).rand(1000, 9999),
-        ]);
-
-        $isComp = $status === 'enrolled' || $status === 'passed';
+        $isComp = in_array($status, ['enrolled', 'graduate', 'drop out', 'released']);
 
         $student->requirement()->create([
-            'requirements' => [
+            'hard_copies' => [
                 'psa' => $isComp,
                 'form137' => $isComp,
                 'good_moral' => $isComp,
@@ -135,7 +135,6 @@ class StudentSeeder extends Seeder
             'diploma' => $isComp ? 'uploads/requirements/diploma_'.$student->id.'.pdf' : null,
             'form_138' => $isComp ? 'uploads/requirements/f138_'.$student->id.'.pdf' : null,
             'photo_2x2' => $isComp ? 'uploads/requirements/photo_'.$student->id.'.jpg' : null,
-            'e_sign' => $isComp ? 'uploads/requirements/esign_'.$student->id.'.png' : null,
         ]);
     }
 }
