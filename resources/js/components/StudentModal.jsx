@@ -63,6 +63,8 @@ export default function StudentModal({
             diploma: false,
             card: false,
             picture: false,
+            saf_annex_e_g11: false,
+            saf_annex_e_g12: false,
         },
         files: {
             psa: null,
@@ -83,7 +85,6 @@ export default function StudentModal({
     const [existingFiles, setExistingFiles] = useState({});
     const [removedFiles, setRemovedFiles] = useState([]);
 
-    // HTML5 Validation Ref
     const formRef = useRef(null);
 
     const getToken = () =>
@@ -107,6 +108,8 @@ export default function StudentModal({
         if (show) {
             setStep(1);
             setFileSizes({});
+            setExistingFiles({});
+            setRemovedFiles([]);
 
             axios
                 .get(`${apiPrefix}/sections`, {
@@ -120,13 +123,12 @@ export default function StudentModal({
                 })
                 .catch(() => setSectionsList([]));
 
-            if ((type === "edit" || type === "view") && selectedStudent) {
+            if (type === "edit" && selectedStudent) {
                 let parsedReqs =
                     typeof selectedStudent.requirements === "string"
                         ? JSON.parse(selectedStudent.requirements)
                         : selectedStudent.requirements;
 
-                // FIX: Ginaya na natin yung logic ng UserModal para hindi ma-corrupt ang date_of_birth string format
                 let formattedDOB = "";
                 if (
                     selectedStudent.profile &&
@@ -144,11 +146,21 @@ export default function StudentModal({
                     }
                 }
 
-                setFormData({
+                const rawData = {
                     ...initialForm,
                     ...selectedStudent,
                     ...selectedStudent.profile,
                     ...selectedStudent.family,
+                };
+
+                Object.keys(rawData).forEach((key) => {
+                    if (rawData[key] === null) {
+                        rawData[key] = "";
+                    }
+                });
+
+                setFormData({
+                    ...rawData,
                     date_of_birth: formattedDOB,
                     age: calculateAge(formattedDOB),
                     strand_id: selectedStudent.academic?.strand_id || "",
@@ -173,8 +185,8 @@ export default function StudentModal({
                     },
                     files: { ...initialForm.files },
                 });
+
                 if (selectedStudent.requirement) {
-                    // Populate local existing files state for UI tracking
                     setExistingFiles({
                         psa: selectedStudent.requirement.psa,
                         form_137: selectedStudent.requirement.form_137,
@@ -225,9 +237,8 @@ export default function StudentModal({
     }, [show, selectedStudent, type, apiPrefix]);
 
     const handleChange = (e) => {
-        const { name, value, checked, type: inputType } = e.target;
+        const { name, value, checked } = e.target;
 
-        // Strict Number Replacement
         if (
             [
                 "lrn",
@@ -271,32 +282,22 @@ export default function StudentModal({
         }));
     };
 
-    // CLEAR NEW FILE
     const handleClearNewFile = (reqId) => {
         setFormData((prev) => ({
             ...prev,
             files: { ...prev.files, [reqId]: null },
         }));
-        // Reset ang input element value manually para ma-trigger uli kung the same file i-upload
         const fileInput = document.getElementById(`file_${reqId}`);
         if (fileInput) fileInput.value = "";
     };
 
-    // REMOVE EXISTING SERVER FILE
     const handleRemoveExistingFile = (dbKey) => {
         setExistingFiles((prev) => ({ ...prev, [dbKey]: null }));
         setRemovedFiles((prev) => [...prev, dbKey]);
     };
 
-    // STRICT HTML5 STEP VALIDATION (Triggers the browser popup "Please fill out this field")
     const handleNextStep = () => {
-        if (isReadOnly) {
-            setStep(step + 1);
-            return;
-        }
-
         if (formRef.current) {
-            // Kunin lahat ng input, select, textarea na nasa current view
             const fields = formRef.current.querySelectorAll(
                 "input, select, textarea",
             );
@@ -304,9 +305,9 @@ export default function StudentModal({
 
             for (let i = 0; i < fields.length; i++) {
                 if (!fields[i].checkValidity()) {
-                    fields[i].reportValidity(); // Papalabasin nito ang Tooltip sa mismong field na nagka-error
+                    fields[i].reportValidity();
                     isValid = false;
-                    break; // Titigil sa unang field na may error
+                    break;
                 }
             }
 
@@ -372,8 +373,6 @@ export default function StudentModal({
                     }
                 });
             } else {
-                // FIX: Ipapasa na natin lahat ng values kahit pa empty string ("")
-                // para ma-detect ng Laravel na manually mong binura ang fields tulad ng middle name at suffix.
                 const val =
                     formData[key] === null || formData[key] === undefined
                         ? ""
@@ -429,14 +428,9 @@ export default function StudentModal({
 
     if (!show) return null;
 
-    const isReadOnly = type === "view";
     const isUpdate = type === "edit";
     const headerBgColor =
-        type === "create"
-            ? "var(--color-primary)"
-            : type === "edit"
-              ? "#F4D03F"
-              : "#34495e";
+        type === "create" ? "var(--color-primary)" : "#F4D03F";
     const headerTextColor = type === "edit" ? "text-dark" : "text-white";
 
     const filteredSections = Array.isArray(sectionsList)
@@ -487,9 +481,7 @@ export default function StudentModal({
         <label className="form-label fw-bold small mb-1 font-monospace text-uppercase text-muted text-nowrap d-flex justify-content-between w-100">
             <span>
                 <i className={`bi ${icon} me-1`}></i> {text}{" "}
-                {required && !isReadOnly && (
-                    <span className="text-danger ms-1">*</span>
-                )}
+                {required && <span className="text-danger ms-1">*</span>}
             </span>
         </label>
     );
@@ -524,15 +516,10 @@ export default function StudentModal({
                                         <i className="bi bi-person-plus-fill me-2"></i>
                                         NEW STUDENT WIZARD
                                     </>
-                                ) : type === "edit" ? (
+                                ) : (
                                     <>
                                         <i className="bi bi-pencil-square me-2"></i>
                                         UPDATE RECORD
-                                    </>
-                                ) : (
-                                    <>
-                                        <i className="bi bi-person-badge-fill me-2"></i>
-                                        STUDENT PROFILE (VIEW MODE)
                                     </>
                                 )}
                             </h5>
@@ -544,28 +531,10 @@ export default function StudentModal({
                         </div>
 
                         <div className="modal-body bg-light p-4 p-md-5 overflow-auto flex-grow-1 position-relative">
-                            {(type === "view" || type === "edit") && (
+                            {type === "edit" && (
                                 <div className="text-center mb-4">
                                     <div
-                                        className={`d-inline-block px-4 py-2 border border-2 border-dark font-monospace fw-bold text-uppercase shadow-sm ${
-                                            formData.status === "enrolled"
-                                                ? "bg-success text-white"
-                                                : formData.status === "cleared"
-                                                  ? "bg-primary text-white"
-                                                  : formData.status ===
-                                                      "on hold"
-                                                    ? "bg-danger text-white"
-                                                    : formData.status ===
-                                                        "graduate"
-                                                      ? "bg-info text-dark"
-                                                      : formData.status ===
-                                                          "drop out"
-                                                        ? "bg-dark text-white"
-                                                        : formData.status ===
-                                                            "released"
-                                                          ? "bg-secondary text-white"
-                                                          : "bg-warning text-dark"
-                                        }`}
+                                        className={`d-inline-block px-4 py-2 border border-2 border-dark font-monospace fw-bold text-uppercase shadow-sm ${formData.status === "enrolled" ? "bg-success text-white" : formData.status === "cleared" ? "bg-primary text-white" : formData.status === "on hold" ? "bg-danger text-white" : formData.status === "graduate" ? "bg-info text-dark" : formData.status === "drop out" ? "bg-dark text-white" : formData.status === "released" ? "bg-secondary text-white" : "bg-warning text-dark"}`}
                                     >
                                         STATUS:{" "}
                                         {formData.status
@@ -630,34 +599,32 @@ export default function StudentModal({
                                 </div>
                             </div>
 
-                            {!isReadOnly && (
-                                <div className="alert bg-white border border-2 border-dark text-dark font-monospace shadow-sm mb-4">
-                                    <h6 className="fw-bold mb-1 text-primary">
-                                        <i className="bi bi-info-circle-fill me-2"></i>
-                                        INSTRUCTIONS:
-                                    </h6>
-                                    <ul className="mb-0 small text-muted">
-                                        <li>
-                                            Fill out all required fields marked
-                                            with a red asterisk (
-                                            <span className="text-danger fw-bold fs-6">
-                                                *
-                                            </span>
-                                            ).
-                                        </li>
-                                        <li>
-                                            Fields without an asterisk are
-                                            optional and may be left blank.
-                                        </li>
-                                        <li>
-                                            Student Number is{" "}
-                                            <strong>auto-generated</strong> once
-                                            the status is marked as Enrolled.
-                                            You may also assign it manually.
-                                        </li>
-                                    </ul>
-                                </div>
-                            )}
+                            <div className="alert bg-white border border-2 border-dark text-dark font-monospace shadow-sm mb-4">
+                                <h6 className="fw-bold mb-1 text-primary">
+                                    <i className="bi bi-info-circle-fill me-2"></i>
+                                    INSTRUCTIONS:
+                                </h6>
+                                <ul className="mb-0 small text-muted">
+                                    <li>
+                                        Fill out all required fields marked with
+                                        a red asterisk (
+                                        <span className="text-danger fw-bold fs-6">
+                                            *
+                                        </span>
+                                        ).
+                                    </li>
+                                    <li>
+                                        Fields without an asterisk are optional
+                                        and may be left blank.
+                                    </li>
+                                    <li>
+                                        Student Number is{" "}
+                                        <strong>auto-generated</strong> once the
+                                        status is marked as Enrolled. You may
+                                        also assign it manually.
+                                    </li>
+                                </ul>
+                            </div>
 
                             <form
                                 id="studentWizard"
@@ -691,10 +658,7 @@ export default function StudentModal({
                                                             formData.first_name
                                                         }
                                                         onChange={handleChange}
-                                                        disabled={
-                                                            isReadOnly ||
-                                                            isLoading
-                                                        }
+                                                        disabled={isLoading}
                                                         required
                                                     />
                                                 </div>
@@ -712,10 +676,7 @@ export default function StudentModal({
                                                             formData.middle_name
                                                         }
                                                         onChange={handleChange}
-                                                        disabled={
-                                                            isReadOnly ||
-                                                            isLoading
-                                                        }
+                                                        disabled={isLoading}
                                                     />
                                                 </div>
                                                 <div className="col-md-4 col-lg">
@@ -733,10 +694,7 @@ export default function StudentModal({
                                                             formData.last_name
                                                         }
                                                         onChange={handleChange}
-                                                        disabled={
-                                                            isReadOnly ||
-                                                            isLoading
-                                                        }
+                                                        disabled={isLoading}
                                                         required
                                                     />
                                                 </div>
@@ -749,13 +707,10 @@ export default function StudentModal({
                                                         type="text"
                                                         name="suffix"
                                                         className="form-control border-dark text-center"
-                                                        placeholder="Jr."
+                                                        placeholder="e.g. Jr."
                                                         value={formData.suffix}
                                                         onChange={handleChange}
-                                                        disabled={
-                                                            isReadOnly ||
-                                                            isLoading
-                                                        }
+                                                        disabled={isLoading}
                                                     />
                                                 </div>
                                             </div>
@@ -773,9 +728,7 @@ export default function StudentModal({
                                                 className="form-control border-dark"
                                                 value={formData.date_of_birth}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             />
                                         </div>
@@ -804,9 +757,7 @@ export default function StudentModal({
                                                 className="form-select border-dark"
                                                 value={formData.gender}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             >
                                                 <option value="Male">
@@ -828,9 +779,7 @@ export default function StudentModal({
                                                 className="form-select border-dark"
                                                 value={formData.civil_status}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             >
                                                 <option value="Single">
@@ -838,6 +787,9 @@ export default function StudentModal({
                                                 </option>
                                                 <option value="Married">
                                                     Married
+                                                </option>
+                                                <option value="Seperated">
+                                                    Seperated
                                                 </option>
                                                 <option value="Widowed">
                                                     Widowed
@@ -858,9 +810,7 @@ export default function StudentModal({
                                                 placeholder="e.g. Filipino"
                                                 value={formData.citizenship}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             />
                                         </div>
@@ -877,9 +827,7 @@ export default function StudentModal({
                                                 placeholder="e.g. Roman Catholic"
                                                 value={formData.religion}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             />
                                         </div>
@@ -896,9 +844,7 @@ export default function StudentModal({
                                                 placeholder="e.g. Quezon City"
                                                 value={formData.place_of_birth}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             />
                                         </div>
@@ -916,9 +862,7 @@ export default function StudentModal({
                                                 placeholder="House No., Street, Brgy, City, Province"
                                                 value={formData.home_address}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             />
                                         </div>
@@ -936,9 +880,7 @@ export default function StudentModal({
                                                     formData.provincial_address
                                                 }
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                             />
                                         </div>
                                     </div>
@@ -964,12 +906,10 @@ export default function StudentModal({
                                                 type="email"
                                                 name="email"
                                                 className="form-control border-dark"
-                                                placeholder="example@email.com"
+                                                placeholder="example@gmail.com"
                                                 value={formData.email}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             />
                                         </div>
@@ -983,14 +923,12 @@ export default function StudentModal({
                                                 type="text"
                                                 name="contact_number"
                                                 className="form-control border-dark"
-                                                placeholder="11-digit mobile number"
+                                                placeholder="09*********"
                                                 minLength="11"
                                                 maxLength="11"
                                                 value={formData.contact_number}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             />
                                         </div>
@@ -1024,9 +962,7 @@ export default function StudentModal({
                                                 placeholder="Company Name"
                                                 value={formData.employer_name}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                             />
                                         </div>
                                         <div className="col-md-6">
@@ -1045,9 +981,7 @@ export default function StudentModal({
                                                     formData.employer_contact
                                                 }
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                             />
                                         </div>
                                     </div>
@@ -1080,9 +1014,7 @@ export default function StudentModal({
                                                 placeholder="Father's Full Name"
                                                 value={formData.father_name}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                             />
                                         </div>
                                         <div className="col-md-3">
@@ -1099,9 +1031,7 @@ export default function StudentModal({
                                                     formData.father_occupation
                                                 }
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                             />
                                         </div>
                                         <div className="col-md-3">
@@ -1113,14 +1043,12 @@ export default function StudentModal({
                                                 type="text"
                                                 name="father_contact"
                                                 className="form-control border-dark"
-                                                placeholder="09xxxxxxxxx"
+                                                placeholder="09*********"
                                                 minLength="11"
                                                 maxLength="11"
                                                 value={formData.father_contact}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                             />
                                         </div>
 
@@ -1141,9 +1069,7 @@ export default function StudentModal({
                                                 placeholder="Mother's Full Name"
                                                 value={formData.mother_name}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                             />
                                         </div>
                                         <div className="col-md-3">
@@ -1160,9 +1086,7 @@ export default function StudentModal({
                                                     formData.mother_occupation
                                                 }
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                             />
                                         </div>
                                         <div className="col-md-3">
@@ -1174,14 +1098,12 @@ export default function StudentModal({
                                                 type="text"
                                                 name="mother_contact"
                                                 className="form-control border-dark"
-                                                placeholder="09xxxxxxxxx"
+                                                placeholder="09*********"
                                                 minLength="11"
                                                 maxLength="11"
                                                 value={formData.mother_contact}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                             />
                                         </div>
 
@@ -1206,9 +1128,7 @@ export default function StudentModal({
                                                 placeholder="Guardian's Full Name"
                                                 value={formData.guardian_name}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             />
                                         </div>
@@ -1227,9 +1147,7 @@ export default function StudentModal({
                                                     formData.guardian_occupation
                                                 }
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             />
                                         </div>
@@ -1243,16 +1161,14 @@ export default function StudentModal({
                                                 type="text"
                                                 name="guardian_contact"
                                                 className="form-control border-dark"
-                                                placeholder="09xxxxxxxxx"
+                                                placeholder="09*********"
                                                 minLength="11"
                                                 maxLength="11"
                                                 value={
                                                     formData.guardian_contact
                                                 }
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             />
                                         </div>
@@ -1269,7 +1185,6 @@ export default function StudentModal({
                                             </h4>
                                         </div>
 
-                                        {/* Row 1: Previous School, Gen Ave */}
                                         <div className="col-md-9">
                                             <Label
                                                 icon="bi-building"
@@ -1285,9 +1200,7 @@ export default function StudentModal({
                                                     formData.current_school_attended
                                                 }
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             />
                                         </div>
@@ -1306,13 +1219,10 @@ export default function StudentModal({
                                                 step="0.01"
                                                 value={formData.general_average}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                             />
                                         </div>
 
-                                        {/* Row 2: School Year, Term, Learning Modality */}
                                         <div className="col-md-4">
                                             <Label
                                                 icon="bi-calendar-date"
@@ -1326,9 +1236,7 @@ export default function StudentModal({
                                                 placeholder="YYYY-YYYY"
                                                 value={formData.school_year}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             />
                                         </div>
@@ -1343,9 +1251,7 @@ export default function StudentModal({
                                                 className="form-select border-dark"
                                                 value={formData.term}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             >
                                                 <option value="1st">
@@ -1372,9 +1278,7 @@ export default function StudentModal({
                                                     formData.learning_modality
                                                 }
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             >
                                                 <option value="Face-to-Face">
@@ -1386,7 +1290,6 @@ export default function StudentModal({
                                             </select>
                                         </div>
 
-                                        {/* Row 3: Grade Level, Strand, Section */}
                                         <div className="col-md-4">
                                             <Label
                                                 icon="bi-bar-chart-steps"
@@ -1398,9 +1301,7 @@ export default function StudentModal({
                                                 className="form-select border-dark"
                                                 value={formData.grade_level}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             >
                                                 <option value="11">
@@ -1422,9 +1323,7 @@ export default function StudentModal({
                                                 className="form-select border-dark"
                                                 value={formData.strand_id}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             >
                                                 <option value="">
@@ -1450,12 +1349,10 @@ export default function StudentModal({
                                                 className="form-select border-dark bg-success bg-opacity-10 fw-bold"
                                                 value={formData.section_id}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                             >
                                                 <option value="">
-                                                    -- No Section --
+                                                    -- Select Section --
                                                 </option>
                                                 {filteredSections.map((s) => {
                                                     const isFull =
@@ -1483,7 +1380,6 @@ export default function StudentModal({
                                             </select>
                                         </div>
 
-                                        {/* Row 4: LRN, Student Number, Status */}
                                         <div className="col-md-4">
                                             <Label
                                                 icon="bi-upc-scan"
@@ -1494,14 +1390,12 @@ export default function StudentModal({
                                                 type="text"
                                                 name="lrn"
                                                 className="form-control border-dark fw-bold bg-warning bg-opacity-10"
-                                                placeholder="12-digit LRN"
+                                                placeholder="e.g. 123456789012"
                                                 minLength="12"
                                                 maxLength="12"
                                                 value={formData.lrn}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             />
                                         </div>
@@ -1526,9 +1420,7 @@ export default function StudentModal({
                                                             e.target.value,
                                                     })
                                                 }
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                             />
                                         </div>
                                         <div className="col-md-4">
@@ -1542,9 +1434,7 @@ export default function StudentModal({
                                                 className={`form-select border-dark fw-bold text-uppercase ${formData.status === "enrolled" ? "bg-success text-white" : formData.status === "cleared" ? "bg-primary text-white" : formData.status === "pending" ? "bg-warning text-dark" : formData.status === "on hold" ? "bg-danger text-white" : formData.status === "graduate" ? "bg-info text-dark" : formData.status === "drop out" ? "bg-dark text-white" : "bg-secondary text-white"}`}
                                                 value={formData.status}
                                                 onChange={handleChange}
-                                                disabled={
-                                                    isReadOnly || isLoading
-                                                }
+                                                disabled={isLoading}
                                                 required
                                             >
                                                 <option value="pending">
@@ -1647,7 +1537,6 @@ export default function StudentModal({
                                                                         "scale(1.2)",
                                                                 }}
                                                                 disabled={
-                                                                    isReadOnly ||
                                                                     isLoading
                                                                 }
                                                             />
@@ -1708,8 +1597,6 @@ export default function StudentModal({
                                                                   "form137"
                                                                 ? "form_137"
                                                                 : req.id;
-
-                                                    // Gamitin natin ang local existingFiles na state para kung mabura, mawawala sa UI
                                                     const existingFile =
                                                         existingFiles[dbKey];
                                                     const newFile =
@@ -1725,29 +1612,26 @@ export default function StudentModal({
                                                                     {req.label}
                                                                 </label>
 
-                                                                {!isReadOnly && (
-                                                                    <input
-                                                                        type="file"
-                                                                        id={`file_${req.id}`}
-                                                                        className="form-control form-control-sm border-dark rounded-0 font-monospace mb-2"
-                                                                        accept=".pdf,.jpg,.jpeg,.png"
-                                                                        onChange={(
-                                                                            e,
-                                                                        ) =>
-                                                                            handleFileChange(
-                                                                                req.id,
-                                                                                e
-                                                                                    .target
-                                                                                    .files[0],
-                                                                            )
-                                                                        }
-                                                                        disabled={
-                                                                            isLoading
-                                                                        }
-                                                                    />
-                                                                )}
+                                                                <input
+                                                                    type="file"
+                                                                    id={`file_${req.id}`}
+                                                                    className="form-control form-control-sm border-dark rounded-0 font-monospace mb-2"
+                                                                    accept=".pdf,.jpg,.jpeg,.png"
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) =>
+                                                                        handleFileChange(
+                                                                            req.id,
+                                                                            e
+                                                                                .target
+                                                                                .files[0],
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        isLoading
+                                                                    }
+                                                                />
 
-                                                                {/* NEW FILE SELECTED UI */}
                                                                 {newFile && (
                                                                     <div className="d-flex justify-content-between align-items-center bg-white border border-2 border-dark p-3 font-monospace mt-2 shadow-sm text-start">
                                                                         <div className="d-flex align-items-center overflow-hidden">
@@ -1779,7 +1663,11 @@ export default function StudentModal({
                                                                         {!isLoading && (
                                                                             <button
                                                                                 type="button"
-                                                                                className="btn btn-sm btn-danger border border-dark border-2 fw-bold btn-press-retro px-3 ms-2"
+                                                                                className="btn btn-sm border border-dark border-2 fw-bold btn-press-retro px-3 ms-2"
+                                                                                style={{
+                                                                                    backgroundColor:
+                                                                                        "#F96E5B",
+                                                                                }}
                                                                                 onClick={() =>
                                                                                     handleClearNewFile(
                                                                                         req.id,
@@ -1787,7 +1675,7 @@ export default function StudentModal({
                                                                                 }
                                                                                 title="Remove New Upload"
                                                                             >
-                                                                                <i className="bi bi-trash-fill"></i>
+                                                                                <i className="bi bi-trash-fill text-white"></i>
                                                                             </button>
                                                                         )}
                                                                     </div>
@@ -1807,7 +1695,6 @@ export default function StudentModal({
                                                                                     className={`bi ${existingFile.endsWith(".pdf") ? "bi-filetype-pdf text-danger" : "bi-image text-primary"} fs-2 me-3`}
                                                                                 ></i>
                                                                                 <div>
-                                                                                    {/* FIX: INALIS NA ANG NUMBERS GAMIT ANG REGEX (.replace(/^[0-9]+_/, '')) BAGO I-DISPLAY */}
                                                                                     <div
                                                                                         className="text-truncate fw-bold text-dark"
                                                                                         style={{
@@ -1835,37 +1722,27 @@ export default function StudentModal({
                                                                                     </div>
                                                                                 </div>
                                                                             </a>
-
-                                                                            {!isReadOnly &&
-                                                                                !isLoading && (
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        className="btn btn-sm btn-danger border border-dark border-2 fw-bold btn-press-retro px-3 ms-2"
-                                                                                        onClick={() =>
-                                                                                            handleRemoveExistingFile(
-                                                                                                dbKey,
-                                                                                            )
-                                                                                        }
-                                                                                        title="Remove Server File"
-                                                                                    >
-                                                                                        <i className="bi bi-trash-fill"></i>
-                                                                                    </button>
-                                                                                )}
-
-                                                                            {isReadOnly && (
-                                                                                <a
-                                                                                    href={`/storage/${existingFile}`}
-                                                                                    target="_blank"
-                                                                                    rel="noreferrer"
-                                                                                    className="ms-2"
+                                                                            {!isLoading && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="btn btn-sm border border-dark border-2 fw-bold btn-press-retro px-3 ms-2"
+                                                                                    style={{
+                                                                                        backgroundColor:
+                                                                                            "#F96E5B",
+                                                                                    }}
+                                                                                    onClick={() =>
+                                                                                        handleRemoveExistingFile(
+                                                                                            dbKey,
+                                                                                        )
+                                                                                    }
+                                                                                    title="Remove Server File"
                                                                                 >
-                                                                                    <i className="bi bi-box-arrow-up-right text-dark fw-bold"></i>
-                                                                                </a>
+                                                                                    <i className="bi bi-trash-fill text-white"></i>
+                                                                                </button>
                                                                             )}
                                                                         </div>
                                                                     )}
 
-                                                                {/* NO FILE UI */}
                                                                 {!existingFile &&
                                                                     !newFile && (
                                                                         <span className="small text-muted fst-italic mt-2 d-block">
@@ -1892,7 +1769,7 @@ export default function StudentModal({
                                 onClick={onClose}
                                 disabled={isLoading}
                             >
-                                CLOSE
+                                CANCEL
                             </button>
                             <div>
                                 {step > 1 && (
@@ -1902,7 +1779,7 @@ export default function StudentModal({
                                         onClick={prevStep}
                                         disabled={isLoading}
                                     >
-                                        <i className="bi bi-arrow-left me-2"></i>{" "}
+                                        <i className="bi bi-arrow-left"></i>{" "}
                                         BACK
                                     </button>
                                 )}
@@ -1912,15 +1789,15 @@ export default function StudentModal({
                                         className="btn btn-dark border-2 fw-bold px-4 btn-press-retro"
                                         onClick={handleNextStep}
                                     >
-                                        NEXT STEP{" "}
-                                        <i className="bi bi-arrow-right ms-2"></i>
+                                        NEXT{" "}
+                                        <i className="bi bi-arrow-right"></i>
                                     </button>
                                 )}
-                                {step === 6 && !isReadOnly && (
+                                {step === 6 && (
                                     <button
                                         form="studentWizard"
                                         type="submit"
-                                        className={`btn border-2 border-dark fw-bold px-4 btn-press-retro ${!isUpdate ? "text-white" : "text-dark"}`}
+                                        className={`btn border-2 border-dark fw-bold px-4 btn-press-retro ${type === "create" ? "text-white" : "text-dark"}`}
                                         style={{
                                             backgroundColor: headerBgColor,
                                         }}
@@ -1931,10 +1808,10 @@ export default function StudentModal({
                                                 <i className="bi bi-mortarboard-fill spinner-toga me-2"></i>
                                                 PROCESSING...
                                             </span>
-                                        ) : isUpdate ? (
+                                        ) : type === "edit" ? (
                                             "SAVE CHANGES"
                                         ) : (
-                                            "SUBMIT APPLICATION"
+                                            "SUBMIT"
                                         )}
                                     </button>
                                 )}

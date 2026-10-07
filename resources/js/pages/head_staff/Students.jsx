@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Toast from "../../utils/toast";
-
-// Modals
 import StudentModal from "../../components/StudentModal";
+import StudentViewModal from "../../components/StudentViewModal";
 import CORModal from "../../components/CORModal";
 import StudentImport from "../../components/StudentImport";
 import StudentConfirmation from "../../components/StudentConfirmation";
@@ -18,8 +17,6 @@ export default function Students() {
     const [searchTerm, setSearchTerm] = useState("");
     const [actionLoading, setActionLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState("LOADING RECORDS...");
-
-    // Server-side pagination states
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [totalUsers, setTotalUsers] = useState(0);
@@ -27,7 +24,6 @@ export default function Students() {
     const [toItem, setToItem] = useState(0);
     const [lastPage, setLastPage] = useState(1);
 
-    // Modals
     const [modalState, setModalState] = useState({
         show: false,
         type: "create",
@@ -35,11 +31,8 @@ export default function Students() {
     });
     const [corState, setCorState] = useState({ show: false, data: null });
     const [showImport, setShowImport] = useState(false);
-
     const [confirmConfig, setConfirmConfig] = useState({ show: false });
     const [selectedIds, setSelectedIds] = useState([]);
-
-    // Dropdown Fixed Position States
     const [openActionId, setOpenActionId] = useState(null);
     const [dropdownPos, setDropdownPos] = useState({
         top: "auto",
@@ -67,7 +60,6 @@ export default function Students() {
                 axios.get("/api/strands", { headers }),
             ]);
 
-            // Connect to server-side pagination structure
             setStudents(std.data.data);
             setTotalUsers(std.data.total);
             setFromItem(std.data.from || 0);
@@ -88,7 +80,6 @@ export default function Students() {
         return () => clearTimeout(delayDebounceFn);
     }, [searchTerm, currentPage, itemsPerPage]);
 
-    // Handle Dropdown Outside Click and Scroll
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (!event.target.closest(".custom-dropdown-trigger")) {
@@ -454,21 +445,21 @@ export default function Students() {
                                     </th>
                                     <th className="py-3 font-monospace text-dark">
                                         <i className="bi bi-person-badge-fill me-1"></i>{" "}
-                                        Name / LRN / Gender
+                                        Student Details
                                     </th>
-                                    <th className="py-3 font-monospace text-dark">
+                                    <th className="py-3 font-monospace text-dark text-center">
                                         <i className="bi bi-journal-text me-1"></i>{" "}
-                                        Strand / Term
+                                        Strand - Term
                                     </th>
-                                    <th className="py-3 font-monospace text-dark">
+                                    <th className="py-3 font-monospace text-dark text-center">
                                         <i className="bi bi-bar-chart-steps me-1"></i>{" "}
-                                        Grade / Section
+                                        Grade - Section
                                     </th>
-                                    <th className="py-3 font-monospace text-dark">
+                                    <th className="py-3 font-monospace text-dark text-center">
                                         <i className="bi bi-activity me-1"></i>{" "}
                                         Status
                                     </th>
-                                    <th className="py-3 font-monospace text-dark">
+                                    <th className="py-3 font-monospace text-dark text-center">
                                         <i className="bi bi-calendar-check me-1"></i>{" "}
                                         Created At
                                     </th>
@@ -517,6 +508,12 @@ export default function Students() {
                                 ) : students.length > 0 ? (
                                     students.map((s) => {
                                         const fullName = getFullName(s);
+                                        const defaultAvatar = `https://ui-avatars.com/api/?name=${fullName}&background=random&color=fff&size=128`;
+                                        const avatarUrl = s.requirement
+                                            ?.photo_2x2
+                                            ? `/storage/${s.requirement.photo_2x2}`
+                                            : defaultAvatar;
+
                                         return (
                                             <tr
                                                 key={s.id}
@@ -543,11 +540,19 @@ export default function Students() {
                                                 <td className="py-3">
                                                     <div className="d-flex align-items-center">
                                                         <img
-                                                            src={`https://ui-avatars.com/api/?name=${fullName}&background=random&color=fff`}
-                                                            className="rounded-circle me-3 border border-2 border-dark shadow-sm"
-                                                            width="45"
-                                                            height="45"
+                                                            src={avatarUrl}
+                                                            className="rounded-circle me-3 border border-2 border-dark shadow-sm bg-white"
+                                                            style={{
+                                                                width: "45px",
+                                                                height: "45px",
+                                                                objectFit:
+                                                                    "cover",
+                                                            }}
                                                             alt="Avatar"
+                                                            onError={(e) => {
+                                                                e.target.src =
+                                                                    defaultAvatar;
+                                                            }}
                                                         />
                                                         <div>
                                                             <div className="fw-bold text-dark d-flex align-items-center gap-2">
@@ -580,25 +585,25 @@ export default function Students() {
                                                     </div>
                                                 </td>
 
-                                                <td className="py-3 font-monospace fw-bold text-dark">
+                                                <td className="py-3 font-monospace fw-bold text-dark text-center">
                                                     {s.academic?.strand?.code ||
                                                         "N/A"}{" "}
                                                     - {""}
-                                                    <small className="text-muted fw-normal">
+                                                    <small className="text-dark fw-bold">
                                                         {s.academic?.term ||
-                                                            "TBA"}
+                                                            "N/A"}
                                                     </small>
                                                 </td>
-                                                <td className="py-3 font-monospace fw-bold text-dark">
+                                                <td className="py-3 font-monospace fw-bold text-dark text-center">
                                                     {s.academic?.grade_level ||
                                                         "11"}{" "}
                                                     - {""}
-                                                    <small className="text-muted fw-normal">
+                                                    <small className="text-success fw-bold">
                                                         {s.academic?.section
                                                             ?.name || "TBA"}
                                                     </small>
                                                 </td>
-                                                <td className="py-3">
+                                                <td className="py-3 text-center">
                                                     <span
                                                         className={`badge rounded-0 border border-dark px-3 py-2 btn-action-retro ${getStatusColor(s.status)}`}
                                                         style={{
@@ -609,7 +614,7 @@ export default function Students() {
                                                         {s.status.toUpperCase()}
                                                     </span>
                                                 </td>
-                                                <td className="py-3 font-monospace small text-muted fw-bold">
+                                                <td className="py-3 font-monospace small text-muted fw-bold text-center">
                                                     {new Date(
                                                         s.created_at,
                                                     ).toLocaleString("en-US", {
@@ -889,9 +894,8 @@ export default function Students() {
                 </div>
             )}
 
-            {/* FIX: Ipapasa ng tama sa component ang data at ang auto-popup function */}
             <StudentModal
-                show={modalState.show}
+                show={modalState.show && modalState.type !== "view"}
                 type={modalState.type}
                 selectedStudent={modalState.data}
                 strands={strands}
@@ -903,11 +907,21 @@ export default function Students() {
                     setCorState({ show: true, data: studentData })
                 }
             />
+
+            <StudentViewModal
+                show={modalState.show && modalState.type === "view"}
+                selectedStudent={modalState.data}
+                onClose={() =>
+                    setModalState({ show: false, type: "view", data: null })
+                }
+            />
+
             <StudentImport
                 show={showImport}
                 onClose={() => setShowImport(false)}
                 onSuccess={fetchData}
             />
+
             <CORModal
                 {...corState}
                 onClose={() => setCorState({ show: false, data: null })}
@@ -920,7 +934,6 @@ export default function Students() {
                 onConfirm={executeConfirmAction}
             />
 
-            {/* Global Loading component doing all the overlay loading task */}
             <Loading show={loading || actionLoading} message={loadingMessage} />
         </div>
     );
