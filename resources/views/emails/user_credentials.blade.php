@@ -15,7 +15,7 @@
                     
                     <div style="background-color: #F4D03F; padding: 20px; border-bottom: 3px solid #2d3436; text-align: center;">
                         <h1 style="margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; color: #2d3436;">
-                            🔑 Holy Face
+                            🔑 SmartEnroll
                         </h1>
                         <span style="font-size: 12px; font-weight: bold; background-color: #2d3436; color: #fff; padding: 2px 8px; margin-top: 5px; display: inline-block;">OFFICIAL ACCOUNT</span>
                     </div>

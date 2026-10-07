@@ -3,7 +3,6 @@ import axios from "axios";
 import Toast from "../utils/toast";
 import StudentConfirmation from "./StudentConfirmation";
 import Loading from "../utils/Loading";
-import moment from "moment";
 
 export default function StudentModal({
     show,
@@ -80,6 +79,9 @@ export default function StudentModal({
     const [isLoading, setIsLoading] = useState(false);
     const [sectionsList, setSectionsList] = useState([]);
     const [confirmConfig, setConfirmConfig] = useState({ show: false });
+    const [fileSizes, setFileSizes] = useState({});
+    const [existingFiles, setExistingFiles] = useState({});
+    const [removedFiles, setRemovedFiles] = useState([]);
 
     // HTML5 Validation Ref
     const formRef = useRef(null);
@@ -104,6 +106,7 @@ export default function StudentModal({
     useEffect(() => {
         if (show) {
             setStep(1);
+            setFileSizes({});
 
             axios
                 .get(`${apiPrefix}/sections`, {
@@ -122,15 +125,30 @@ export default function StudentModal({
                     typeof selectedStudent.requirements === "string"
                         ? JSON.parse(selectedStudent.requirements)
                         : selectedStudent.requirements;
-                let formattedDOB = selectedStudent.profile?.date_of_birth
-                    ? moment(selectedStudent.profile.date_of_birth).format(
-                          "YYYY-MM-DD",
-                      )
-                    : "";
+
+                // FIX: Ginaya na natin yung logic ng UserModal para hindi ma-corrupt ang date_of_birth string format
+                let formattedDOB = "";
+                if (
+                    selectedStudent.profile &&
+                    selectedStudent.profile.date_of_birth
+                ) {
+                    const rawDob = selectedStudent.profile.date_of_birth;
+                    if (rawDob.includes("T")) {
+                        const d = new Date(rawDob);
+                        const year = d.getFullYear();
+                        const month = String(d.getMonth() + 1).padStart(2, "0");
+                        const day = String(d.getDate()).padStart(2, "0");
+                        formattedDOB = `${year}-${month}-${day}`;
+                    } else {
+                        formattedDOB = rawDob.split(" ")[0];
+                    }
+                }
 
                 setFormData({
                     ...initialForm,
                     ...selectedStudent,
+                    ...selectedStudent.profile,
+                    ...selectedStudent.family,
                     date_of_birth: formattedDOB,
                     age: calculateAge(formattedDOB),
                     strand_id: selectedStudent.academic?.strand_id || "",
@@ -142,6 +160,8 @@ export default function StudentModal({
                     learning_modality:
                         selectedStudent.academic?.learning_modality ||
                         "Face-to-Face",
+                    current_school_attended:
+                        selectedStudent.academic?.current_school_attended || "",
                     general_average:
                         selectedStudent.academic?.general_average || "",
                     student_number: selectedStudent.student_number || "",
@@ -151,10 +171,53 @@ export default function StudentModal({
                         ...(selectedStudent.requirement?.hard_copies ||
                             parsedReqs),
                     },
-                    ...selectedStudent.profile,
-                    ...selectedStudent.family,
                     files: { ...initialForm.files },
                 });
+                if (selectedStudent.requirement) {
+                    // Populate local existing files state for UI tracking
+                    setExistingFiles({
+                        psa: selectedStudent.requirement.psa,
+                        form_137: selectedStudent.requirement.form_137,
+                        good_moral: selectedStudent.requirement.good_moral,
+                        diploma: selectedStudent.requirement.diploma,
+                        form_138: selectedStudent.requirement.form_138,
+                        photo_2x2: selectedStudent.requirement.photo_2x2,
+                    });
+
+                    const keysMap = {
+                        psa: "psa",
+                        form137: "form_137",
+                        good_moral: "good_moral",
+                        diploma: "diploma",
+                        card: "form_138",
+                        picture: "photo_2x2",
+                    };
+
+                    Object.keys(keysMap).forEach((reqId) => {
+                        const filePath =
+                            selectedStudent.requirement[keysMap[reqId]];
+                        if (filePath) {
+                            fetch(encodeURI(`/storage/${filePath}`), {
+                                method: "HEAD",
+                            })
+                                .then((res) => {
+                                    const size =
+                                        res.headers.get("content-length");
+                                    if (size) {
+                                        setFileSizes((prev) => ({
+                                            ...prev,
+                                            [reqId]: (
+                                                size /
+                                                1024 /
+                                                1024
+                                            ).toFixed(2),
+                                        }));
+                                    }
+                                })
+                                .catch(() => {});
+                        }
+                    });
+                }
             } else {
                 setFormData(initialForm);
             }
@@ -206,6 +269,23 @@ export default function StudentModal({
             ...prev,
             files: { ...prev.files, [reqId]: file },
         }));
+    };
+
+    // CLEAR NEW FILE
+    const handleClearNewFile = (reqId) => {
+        setFormData((prev) => ({
+            ...prev,
+            files: { ...prev.files, [reqId]: null },
+        }));
+        // Reset ang input element value manually para ma-trigger uli kung the same file i-upload
+        const fileInput = document.getElementById(`file_${reqId}`);
+        if (fileInput) fileInput.value = "";
+    };
+
+    // REMOVE EXISTING SERVER FILE
+    const handleRemoveExistingFile = (dbKey) => {
+        setExistingFiles((prev) => ({ ...prev, [dbKey]: null }));
+        setRemovedFiles((prev) => [...prev, dbKey]);
     };
 
     // STRICT HTML5 STEP VALIDATION (Triggers the browser popup "Please fill out this field")
@@ -292,11 +372,19 @@ export default function StudentModal({
                     }
                 });
             } else {
-                if (formData[key] !== null && formData[key] !== "") {
-                    payload.append(key, formData[key]);
-                }
+                // FIX: Ipapasa na natin lahat ng values kahit pa empty string ("")
+                // para ma-detect ng Laravel na manually mong binura ang fields tulad ng middle name at suffix.
+                const val =
+                    formData[key] === null || formData[key] === undefined
+                        ? ""
+                        : formData[key];
+                payload.append(key, val);
             }
         });
+
+        if (removedFiles.length > 0) {
+            payload.append("removed_files", JSON.stringify(removedFiles));
+        }
 
         if (type === "edit") payload.append("_method", "PUT");
 
@@ -319,7 +407,6 @@ export default function StudentModal({
 
             onClose();
         } catch (error) {
-            // FIX: Extracts the exact validation error message from backend (e.g. "The lrn has already been taken.")
             if (
                 error.response &&
                 error.response.status === 422 &&
@@ -576,7 +663,6 @@ export default function StudentModal({
                                 id="studentWizard"
                                 ref={formRef}
                                 onSubmit={handleFormSubmit}
-                                noValidate={false}
                             >
                                 {/* STEP 1: PERSONAL INFO */}
                                 {step === 1 && (
@@ -1210,7 +1296,6 @@ export default function StudentModal({
                                                 icon="bi-bar-chart"
                                                 text="GEN. AVERAGE"
                                             />
-                                            {/* FIX: Built in HTML5 Max, Min and Step logic para hindi mag next kapag mali. */}
                                             <input
                                                 type="number"
                                                 name="general_average"
@@ -1529,6 +1614,14 @@ export default function StudentModal({
                                                         id: "picture",
                                                         label: "2x2 Picture (2pcs)",
                                                     },
+                                                    {
+                                                        id: "saf_annex_e_g11",
+                                                        label: "SAF Annex E (Grade 11)",
+                                                    },
+                                                    {
+                                                        id: "saf_annex_e_g12",
+                                                        label: "SAF Annex E (Grade 12)",
+                                                    },
                                                 ].map((req) => (
                                                     <div
                                                         className="col-md-4"
@@ -1615,25 +1708,28 @@ export default function StudentModal({
                                                                   "form137"
                                                                 ? "form_137"
                                                                 : req.id;
+
+                                                    // Gamitin natin ang local existingFiles na state para kung mabura, mawawala sa UI
                                                     const existingFile =
-                                                        selectedStudent
-                                                            ?.requirement?.[
-                                                            dbKey
-                                                        ];
+                                                        existingFiles[dbKey];
+                                                    const newFile =
+                                                        formData.files[req.id];
 
                                                     return (
                                                         <div
                                                             className="col-md-6"
                                                             key={`file_${req.id}`}
                                                         >
-                                                            <div className="p-2 border border-dark bg-white d-inline-block w-100 shadow-sm">
-                                                                <label className="fw-bold small font-monospace d-block mb-1 text-uppercase text-muted">
+                                                            <div className="p-3 border border-dark bg-white d-inline-block w-100 shadow-sm h-100">
+                                                                <label className="fw-bold small font-monospace d-block mb-2 text-uppercase text-muted">
                                                                     {req.label}
                                                                 </label>
+
                                                                 {!isReadOnly && (
                                                                     <input
                                                                         type="file"
-                                                                        className="form-control form-control-sm border-dark rounded-0 font-monospace"
+                                                                        id={`file_${req.id}`}
+                                                                        className="form-control form-control-sm border-dark rounded-0 font-monospace mb-2"
                                                                         accept=".pdf,.jpg,.jpeg,.png"
                                                                         onChange={(
                                                                             e,
@@ -1650,21 +1746,129 @@ export default function StudentModal({
                                                                         }
                                                                     />
                                                                 )}
-                                                                {existingFile && (
-                                                                    <a
-                                                                        href={`/storage/${existingFile}`}
-                                                                        target="_blank"
-                                                                        rel="noreferrer"
-                                                                        className="badge bg-success text-white text-decoration-none mt-2 d-inline-block p-2 border border-dark"
-                                                                    >
-                                                                        <i className="bi bi-eye-fill me-1"></i>{" "}
-                                                                        VIEW
-                                                                        FILE
-                                                                    </a>
+
+                                                                {/* NEW FILE SELECTED UI */}
+                                                                {newFile && (
+                                                                    <div className="d-flex justify-content-between align-items-center bg-white border border-2 border-dark p-3 font-monospace mt-2 shadow-sm text-start">
+                                                                        <div className="d-flex align-items-center overflow-hidden">
+                                                                            <i className="bi bi-file-earmark-check-fill text-success fs-2 me-3"></i>
+                                                                            <div>
+                                                                                <div
+                                                                                    className="text-truncate fw-bold text-dark"
+                                                                                    style={{
+                                                                                        maxWidth:
+                                                                                            "150px",
+                                                                                    }}
+                                                                                >
+                                                                                    {
+                                                                                        newFile.name
+                                                                                    }
+                                                                                </div>
+                                                                                <div className="text-muted small">
+                                                                                    {(
+                                                                                        newFile.size /
+                                                                                        1024 /
+                                                                                        1024
+                                                                                    ).toFixed(
+                                                                                        2,
+                                                                                    )}{" "}
+                                                                                    MB
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        {!isLoading && (
+                                                                            <button
+                                                                                type="button"
+                                                                                className="btn btn-sm btn-danger border border-dark border-2 fw-bold btn-press-retro px-3 ms-2"
+                                                                                onClick={() =>
+                                                                                    handleClearNewFile(
+                                                                                        req.id,
+                                                                                    )
+                                                                                }
+                                                                                title="Remove New Upload"
+                                                                            >
+                                                                                <i className="bi bi-trash-fill"></i>
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
                                                                 )}
+
+                                                                {existingFile &&
+                                                                    !newFile && (
+                                                                        <div className="d-flex justify-content-between align-items-center bg-light border border-2 border-dark p-3 font-monospace shadow-sm text-start mt-2">
+                                                                            <a
+                                                                                href={`/storage/${existingFile}`}
+                                                                                target="_blank"
+                                                                                rel="noreferrer"
+                                                                                className="text-decoration-none d-flex align-items-center overflow-hidden flex-grow-1"
+                                                                                title="View File"
+                                                                            >
+                                                                                <i
+                                                                                    className={`bi ${existingFile.endsWith(".pdf") ? "bi-filetype-pdf text-danger" : "bi-image text-primary"} fs-2 me-3`}
+                                                                                ></i>
+                                                                                <div>
+                                                                                    {/* FIX: INALIS NA ANG NUMBERS GAMIT ANG REGEX (.replace(/^[0-9]+_/, '')) BAGO I-DISPLAY */}
+                                                                                    <div
+                                                                                        className="text-truncate fw-bold text-dark"
+                                                                                        style={{
+                                                                                            maxWidth:
+                                                                                                "140px",
+                                                                                        }}
+                                                                                    >
+                                                                                        {existingFile
+                                                                                            .split(
+                                                                                                "/",
+                                                                                            )
+                                                                                            .pop()
+                                                                                            .replace(
+                                                                                                /^[0-9]+_/,
+                                                                                                "",
+                                                                                            )}
+                                                                                    </div>
+                                                                                    <div className="text-muted small">
+                                                                                        {fileSizes[
+                                                                                            req
+                                                                                                .id
+                                                                                        ]
+                                                                                            ? `${fileSizes[req.id]} MB`
+                                                                                            : "Calculating..."}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </a>
+
+                                                                            {!isReadOnly &&
+                                                                                !isLoading && (
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        className="btn btn-sm btn-danger border border-dark border-2 fw-bold btn-press-retro px-3 ms-2"
+                                                                                        onClick={() =>
+                                                                                            handleRemoveExistingFile(
+                                                                                                dbKey,
+                                                                                            )
+                                                                                        }
+                                                                                        title="Remove Server File"
+                                                                                    >
+                                                                                        <i className="bi bi-trash-fill"></i>
+                                                                                    </button>
+                                                                                )}
+
+                                                                            {isReadOnly && (
+                                                                                <a
+                                                                                    href={`/storage/${existingFile}`}
+                                                                                    target="_blank"
+                                                                                    rel="noreferrer"
+                                                                                    className="ms-2"
+                                                                                >
+                                                                                    <i className="bi bi-box-arrow-up-right text-dark fw-bold"></i>
+                                                                                </a>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+
+                                                                {/* NO FILE UI */}
                                                                 {!existingFile &&
-                                                                    isReadOnly && (
-                                                                        <span className="small text-muted fst-italic">
+                                                                    !newFile && (
+                                                                        <span className="small text-muted fst-italic mt-2 d-block">
                                                                             No
                                                                             file
                                                                             uploaded.

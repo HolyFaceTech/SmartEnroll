@@ -49,7 +49,7 @@ class StudentSeeder extends Seeder
         $males = ['Juan', 'Jose', 'Mark', 'Angelo', 'Joshua', 'Christian', 'Gabriel', 'Daniel', 'John Paul', 'Kevin'];
         $females = ['Maria', 'Angel', 'Bea', 'Princess', 'Nicole', 'Samantha', 'Andrea', 'Patricia', 'Jasmine', 'Sophia'];
         $middles = ['Alcantara', 'Bernardo', 'Cabrera', 'Dizon', 'Enriquez', 'Francisco', 'Gomez', 'Javier'];
-        $jobs = ['Teacher', 'Engineer', 'Accountant', 'Driver', 'Nurse', 'Office Clerk', 'IT Specialist'];
+        $jobs = ['Teacher', 'Engineer', 'Accountant', 'Driver', 'Nurse', 'Office Clerk', 'IT Specialist', 'Business Owner', 'Freelancer'];
         $cities = ['Manila', 'Quezon City', 'Caloocan', 'Pasig', 'Taguig', 'Makati', 'Valenzuela'];
 
         $gender = $faker->randomElement(['Male', 'Female']);
@@ -118,6 +118,24 @@ class StudentSeeder extends Seeder
             'general_average' => round(rand(8200, 9800) / 100, 2),
         ]);
 
+        $fatherName = $faker->randomElement($males).' '.$lastName;
+        $motherName = $faker->randomElement($females).' '.$lastName;
+        $guardianName = rand(1, 2) === 1 ? $fatherName : $motherName;
+
+        $student->family()->create([
+            'employer_name' => rand(1, 5) === 1 ? 'ABC Corporation' : null,
+            'employer_contact' => rand(1, 5) === 1 ? '09'.rand(10, 99).rand(100, 999).rand(1000, 9999) : null,
+            'father_name' => $fatherName,
+            'father_occupation' => $faker->randomElement($jobs),
+            'father_contact' => '09'.rand(10, 99).rand(100, 999).rand(1000, 9999),
+            'mother_name' => $motherName,
+            'mother_occupation' => $faker->randomElement($jobs),
+            'mother_contact' => '09'.rand(10, 99).rand(100, 999).rand(1000, 9999),
+            'guardian_name' => $guardianName,
+            'guardian_occupation' => $faker->randomElement($jobs),
+            'guardian_contact' => '09'.rand(10, 99).rand(100, 999).rand(1000, 9999),
+        ]);
+
         $isComp = in_array($status, ['enrolled', 'graduate', 'drop out', 'released']);
 
         $student->requirement()->create([
@@ -128,6 +146,8 @@ class StudentSeeder extends Seeder
                 'diploma' => $isComp,
                 'card' => $isComp,
                 'picture' => $isComp,
+                'saf_annex_e_g11' => $isComp,
+                'saf_annex_e_g12' => $isComp,
             ],
             'psa' => $isComp ? 'uploads/requirements/psa_'.$student->id.'.pdf' : null,
             'form_137' => $isComp ? 'uploads/requirements/f137_'.$student->id.'.pdf' : null,

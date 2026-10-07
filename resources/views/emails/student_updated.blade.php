@@ -8,17 +8,43 @@
 <body style="margin: 0; padding: 0; font-family: 'Courier New', Courier, monospace; background-color: #eeeeee;">
 
     @php
-        // DYNAMIC STATUS LOGIC
         $statusColors = [
             'pending'  => ['bg' => '#ffeaa7', 'text' => '#d35400', 'label' => 'PENDING'],
             'enrolled' => ['bg' => '#55efc4', 'text' => '#00b894', 'label' => 'ENROLLED'],
-            'on hold'  => ['bg' => '#ff7675', 'text' => '#d63031', 'label' => 'ON HOLD'],
+            'onhold'   => ['bg' => '#ff7675', 'text' => '#d63031', 'label' => 'ON HOLD'],
             'dropout'  => ['bg' => '#b2bec3', 'text' => '#2d3436', 'label' => 'DROPOUT'],
             'graduate' => ['bg' => '#74b9ff', 'text' => '#0984e3', 'label' => 'GRADUATE'],
             'released' => ['bg' => '#dfe6e9', 'text' => '#636e72', 'label' => 'RELEASED'],
         ];
-        $currentStatus = strtolower($student->status ?? 'pending');
-        $theme = $statusColors[$currentStatus] ?? $statusColors['pending'];
+        
+        $currentStatus = str_replace(' ', '', strtolower($student->status ?? 'pending'));
+        if ($currentStatus === 'dropout') {
+            $theme = $statusColors['dropout'];
+        } else {
+            $theme = $statusColors[$currentStatus] ?? $statusColors['pending'];
+        }
+
+        $statusMsg = "";
+        switch($currentStatus) {
+            case 'enrolled': 
+                $statusMsg = "Congratulations! We are pleased to inform you that your enrollment has been successfully processed. You are now officially enrolled in our institution for the current academic term."; 
+                break;
+            case 'onhold': 
+                $statusMsg = "Please be advised that your enrollment status is currently marked as ON HOLD. This may be due to pending requirements or unsettled clearances. Kindly visit the Registrar's Office as soon as possible for clarification."; 
+                break;
+            case 'dropout': 
+                $statusMsg = "This is to formally confirm that your student record has been updated to DROP OUT. If you believe this is an error, or if you wish to apply for readmission in the future, please coordinate directly with the Registrar's Office."; 
+                break;
+            case 'graduate': 
+                $statusMsg = "Congratulations! We proudly recognize the completion of your academic requirements. Your status has now been officially updated to GRADUATE. We wish you the absolute best in your future endeavors!"; 
+                break;
+            case 'released': 
+                $statusMsg = "This is to formally notify you that your academic records and credentials have been officially RELEASED. You are now cleared of your document responsibilities with the institution."; 
+                break;
+            default: 
+                $statusMsg = "This is to formally notify you that there has been an update to your enrollment record. Please review the details below to ensure all information is accurate and up to date."; 
+                break;
+        }
     @endphp
 
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="min-width: 100%;">
@@ -27,7 +53,7 @@
                 <div style="max-width: 600px; margin: 0 auto; background-color: #fcfbf4; border: 3px solid #2d3436; padding: 0; box-shadow: 8px 8px 0px #2d3436; text-align: left;">
                     
                     <div style="background-color: #F4D03F; padding: 20px; border-bottom: 3px solid #2d3436; text-align: center;">
-                        <h1 style="margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; color: #2d3436;">🎓 Holy Face</h1>
+                        <h1 style="margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; color: #2d3436;">🎓 SmartEnroll/h1>
                         <span style="font-size: 12px; font-weight: bold; background-color: #2d3436; color: #fff; padding: 2px 8px; margin-top: 5px; display: inline-block;">RECORD UPDATE</span>
                     </div>
 
@@ -37,11 +63,16 @@
                         </p>
 
                         <p style="font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
-                            This is to inform you that your enrollment record has been updated by the school administration. <br>
-                            Current Status: <span style="background-color: {{ $theme['bg'] }}; color: {{ $theme['text'] }}; padding: 2px 6px; font-weight: bold;">{{ $theme['label'] }}</span>
+                            {{ $statusMsg }}
                         </p>
 
-                        {{-- SUMMARY OF CHANGES --}}
+                        @if($currentStatus === 'released' && !empty($student->released_by))
+                            <div style="background-color: #dfe6e9; border-left: 4px solid #636e72; padding: 12px 15px; margin-bottom: 25px; font-size: 13px;">
+                                <strong style="color: #2d3436;"><i style="font-style: normal;">🧑‍💼</i> RELEASED BY:</strong> {{ strtoupper($student->released_by) }} <br>
+                                <strong style="color: #2d3436;"><i style="font-style: normal;">📅</i> DATE RELEASED:</strong> {{ \Carbon\Carbon::parse($student->released_at)->format('F d, Y h:i A') }}
+                            </div>
+                        @endif
+
                         @if(!empty($changes))
                             <div style="background-color: #dfe6e9; border: 2px dashed #2d3436; padding: 15px; margin-bottom: 25px;">
                                 <strong style="display: block; font-size: 14px; color: #2d3436; text-transform: uppercase; margin-bottom: 10px;">
@@ -52,17 +83,33 @@
                                     @foreach($changes as $key => $value)
                                         <tr>
                                             <td style="font-weight: bold; color: #636e72; width: 40%; vertical-align: top;">{{ ucfirst(str_replace('_', ' ', $key)) }}:</td>
-                                            <td style="color: #2d3436; font-weight: bold; vertical-align: top;">{{ is_array($value) ? 'Updated' : $value }}</td>
+                                            <td style="color: #2d3436; font-weight: bold; vertical-align: top;">
+                                                @if(is_array($value) && isset($value['old']) && isset($value['new']))
+                                                    <span style="text-decoration: line-through; color: #d63031;">{{ $value['old'] }}</span> 
+                                                    &rarr; <span style="color: #00b894;">{{ $value['new'] }}</span>
+                                                @else
+                                                    {{ is_array($value) ? 'Data Updated' : $value }}
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </table>
                             </div>
                         @endif
 
+                        <div style="background-color: #dfe6e9; border: 2px dashed #2d3436; padding: 15px; margin-bottom: 25px;">
+                            <strong style="display: block; font-size: 14px; color: #2d3436; text-transform: uppercase; margin-bottom: 10px;">
+                                <span style="background-color: #2d3436; color: #fff; padding: 2px 5px;">NOTE</span> SUBMISSION INSTRUCTION:
+                            </strong>
+                            <p style="margin: 0; font-size: 13px; color: #2d3436;">
+                                Provide Photocopy and Original copies of requirements. Photocopies should be in Long Bond Paper. Place documents in a Long Blue Folder with a Long Clear Plastic Envelope and Label with your Full Name.
+                            </p>
+                        </div>
+
                         <h4 style="border-bottom: 2px solid #2d3436; padding-bottom: 10px; font-size: 16px; margin-bottom: 15px;">REQUIREMENT STATUS</h4>
 
                         @php
-                            $savedReqs = $student->requirements; // Gumagamit na ng accessor
+                            $savedReqs = $student->requirements;
                             $isComplete = true;
 
                             $priorityDocs = [
@@ -73,7 +120,9 @@
                             $supportingDocs = [
                                 'Form 137 / SF10'         => 'form137',
                                 'Good Moral Certificate'  => 'good_moral',
-                                'Diploma / Certificate'   => 'diploma'
+                                'Diploma / Certificate'   => 'diploma',
+                                'SAF Annex E (Grade 11)'  => 'saf_annex_e_g11',
+                                'SAF Annex E (Grade 12)'  => 'saf_annex_e_g12'
                             ];
                         @endphp
 

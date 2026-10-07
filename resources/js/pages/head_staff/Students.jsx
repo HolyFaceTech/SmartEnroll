@@ -479,7 +479,6 @@ export default function Students() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {/* Tinanggal ang table loading para gamitin exclusively ang global Loading component */}
                                 {students.length === 0 && !loading ? (
                                     <tr>
                                         <td
@@ -890,11 +889,19 @@ export default function Students() {
                 </div>
             )}
 
+            {/* FIX: Ipapasa ng tama sa component ang data at ang auto-popup function */}
             <StudentModal
-                {...modalState}
+                show={modalState.show}
+                type={modalState.type}
+                selectedStudent={modalState.data}
                 strands={strands}
-                onClose={() => setModalState({ show: false })}
+                onClose={() =>
+                    setModalState({ show: false, type: "create", data: null })
+                }
                 onSuccess={fetchData}
+                openCorModal={(studentData) =>
+                    setCorState({ show: true, data: studentData })
+                }
             />
             <StudentImport
                 show={showImport}
@@ -903,7 +910,7 @@ export default function Students() {
             />
             <CORModal
                 {...corState}
-                onClose={() => setCorState({ show: false })}
+                onClose={() => setCorState({ show: false, data: null })}
                 onSuccess={fetchData}
             />
 

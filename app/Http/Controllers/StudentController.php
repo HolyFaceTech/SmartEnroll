@@ -11,6 +11,7 @@ use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -30,10 +31,7 @@ class StudentController extends Controller
     // folder name
     private function getFolderName($student)
     {
-        $lastName = trim("{$student->last_name} {$student->suffix}");
-        $firstName = trim("{$student->first_name} {$student->middle_name}");
-
-        return "{$lastName}, {$firstName} - {$student->lrn}";
+        return trim($student->lrn);
     }
 
     // student number sequence
@@ -132,6 +130,15 @@ class StudentController extends Controller
 
             return DB::transaction(function () use ($request) {
                 $finalStatus = strtolower($request->status ?? 'pending');
+
+                if ($finalStatus === 'graduate' && ($request->grade_level != '12' || $request->term != '3rd')) {
+                    return response()->json([
+                        'errors' => [
+                            'status' => ['A student can only be marked as GRADUATE if their Grade Level is 12 and Term is 3rd.'],
+                        ],
+                    ], 422);
+                }
+
                 $assignedStudentNumber = $request->student_number;
 
                 if ($finalStatus === 'enrolled' && $request->filled('section_id')) {
@@ -248,8 +255,19 @@ class StudentController extends Controller
                 'strand_id' => 'required|exists:strands,id',
                 'date_of_birth' => 'required|date',
                 'gender' => 'required|in:Male,Female',
+                'civil_status' => 'required|string',
+                'citizenship' => 'required|string',
+                'religion' => 'required|string',
+                'place_of_birth' => 'required|string',
                 'contact_number' => 'required|digits:11',
+                'home_address' => 'required|string',
+                'guardian_name' => 'required|string',
+                'guardian_occupation' => 'required|string',
                 'guardian_contact' => 'required|digits:11',
+                'grade_level' => 'required|in:11,12',
+                'term' => 'required|in:1st,2nd,3rd',
+                'school_year' => 'required|string',
+                'learning_modality' => 'required|in:Face-to-Face,Modular',
                 'general_average' => 'nullable|numeric|min:75|max:100',
 
                 'file_psa' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
@@ -262,8 +280,18 @@ class StudentController extends Controller
 
             return DB::transaction(function () use ($request, $id) {
                 $student = Student::with(['profile', 'academic', 'family', 'requirement'])->findOrFail($id);
+
                 $oldFolderName = $this->getFolderName($student);
                 $finalStatus = strtolower($request->status ?? $student->status);
+
+                if ($finalStatus === 'graduate' && ($request->grade_level != '12' || $request->term != '3rd')) {
+                    return response()->json([
+                        'errors' => [
+                            'status' => ['A student can only be marked as GRADUATE if their Grade Level is 12 and Term is 3rd.'],
+                        ],
+                    ], 422);
+                }
+
                 $assignedStudentNumber = $request->student_number;
 
                 if ($finalStatus === 'enrolled' && $request->filled('section_id') && $request->section_id != $student->academic->section_id) {
@@ -288,42 +316,186 @@ class StudentController extends Controller
                     $admin = Auth::user();
                     $releasedBy = collect([$admin->first_name, $admin->middle_name, $admin->last_name, $admin->suffix])->filter()->implode(' ');
                     $releasedAt = now();
-                } elseif ($finalStatus !== 'released' && $student->status === 'released') {
+                } elseif ($finalStatus !== 'released' && strtolower($student->status) === 'released') {
                     $releasedBy = null;
                     $releasedAt = null;
                 }
 
-                $student->update(array_merge($request->only(['lrn', 'first_name', 'last_name', 'middle_name', 'suffix', 'email', 'contact_number']), [
+                $changesArray = [];
+
+                // Track Core Student Changes
+                $student->fill(array_merge($request->only(['lrn', 'first_name', 'last_name', 'middle_name', 'suffix', 'email', 'contact_number']), [
                     'status' => $finalStatus,
                     'student_number' => $assignedStudentNumber,
                     'released_by' => $releasedBy,
                     'released_at' => $releasedAt,
                 ]));
 
+                foreach ($student->getDirty() as $key => $newValue) {
+                    if (! in_array($key, ['updated_at', 'released_by', 'released_at'])) {
+                        $changesArray[$key] = [
+                            'old' => $student->getOriginal($key) ?? 'None',
+                            'new' => $newValue ?? 'None',
+                        ];
+                    }
+                }
+                $student->save();
+
+                // Track Profile Changes
                 if ($student->profile) {
-                    $student->profile->update($request->only(['date_of_birth', 'gender', 'place_of_birth', 'citizenship', 'civil_status', 'religion', 'home_address', 'provincial_address']));
-                }
-                if ($student->academic) {
-                    $student->academic->update($request->only(['current_school_attended', 'strand_id', 'section_id', 'grade_level', 'term', 'school_year', 'learning_modality', 'general_average']));
-                }
-                if ($student->family) {
-                    $student->family->update($request->only(['employer_name', 'employer_contact', 'father_name', 'father_occupation', 'father_contact', 'mother_name', 'mother_occupation', 'mother_contact', 'guardian_name', 'guardian_occupation', 'guardian_contact']));
+                    $student->profile->fill($request->only(['date_of_birth', 'gender', 'place_of_birth', 'citizenship', 'civil_status', 'religion', 'home_address', 'provincial_address']));
+                    foreach ($student->profile->getDirty() as $key => $newValue) {
+                        if ($key !== 'updated_at') {
+                            $changesArray[$key] = ['old' => $student->profile->getOriginal($key) ?? 'None', 'new' => $newValue ?? 'None'];
+                        }
+                    }
+                    $student->profile->save();
                 }
 
+                // Track Academic Changes
+                if ($student->academic) {
+                    $student->academic->fill($request->only(['current_school_attended', 'strand_id', 'section_id', 'grade_level', 'term', 'school_year', 'learning_modality', 'general_average']));
+                    foreach ($student->academic->getDirty() as $key => $newValue) {
+                        if ($key !== 'updated_at') {
+                            $oldValue = $student->academic->getOriginal($key);
+
+                            if ($key === 'strand_id') {
+                                $oldStrand = Strand::find($oldValue);
+                                $newStrand = Strand::find($newValue);
+                                $changesArray['Strand'] = [
+                                    'old' => $oldStrand ? $oldStrand->code : 'None',
+                                    'new' => $newStrand ? $newStrand->code : 'None',
+                                ];
+                            } elseif ($key === 'section_id') {
+                                $oldSection = Section::find($oldValue);
+                                $newSection = Section::find($newValue);
+                                $changesArray['Section'] = [
+                                    'old' => $oldSection ? $oldSection->name : 'None',
+                                    'new' => $newSection ? $newSection->name : 'None',
+                                ];
+                            } else {
+                                $changesArray[$key] = ['old' => $oldValue ?? 'None', 'new' => $newValue ?? 'None'];
+                            }
+                        }
+                    }
+                    $student->academic->save();
+                }
+
+                // Track Family Changes
+                if ($student->family) {
+                    $student->family->fill($request->only(['employer_name', 'employer_contact', 'father_name', 'father_occupation', 'father_contact', 'mother_name', 'mother_occupation', 'mother_contact', 'guardian_name', 'guardian_occupation', 'guardian_contact']));
+                    foreach ($student->family->getDirty() as $key => $newValue) {
+                        if ($key !== 'updated_at') {
+                            $changesArray[$key] = ['old' => $student->family->getOriginal($key) ?? 'None', 'new' => $newValue ?? 'None'];
+                        }
+                    }
+                    $student->family->save();
+                }
+
+                // Directory rename
                 $newFolderName = $this->getFolderName($student);
+
                 if ($oldFolderName !== $newFolderName) {
-                    if (Storage::disk('public')->exists("students/{$oldFolderName}")) {
-                        Storage::disk('public')->move("students/{$oldFolderName}", "students/{$newFolderName}");
-                    } else {
-                        Storage::disk('public')->makeDirectory("students/{$newFolderName}");
+                    $oldPathAbs = storage_path("app/public/students/{$oldFolderName}");
+                    $newPathAbs = storage_path("app/public/students/{$newFolderName}");
+
+                    if (file_exists($oldPathAbs) && is_dir($oldPathAbs)) {
+                        if (strtolower($oldFolderName) === strtolower($newFolderName)) {
+                            $tempPathAbs = storage_path('app/public/students/temp_'.time());
+                            @rename($oldPathAbs, $tempPathAbs);
+                            @rename($tempPathAbs, $newPathAbs);
+                        } else {
+                            if (file_exists($newPathAbs)) {
+                                $files = glob($oldPathAbs.'/*');
+                                foreach ($files as $file) {
+                                    if (is_file($file)) {
+                                        @rename($file, $newPathAbs.DIRECTORY_SEPARATOR.basename($file));
+                                    }
+                                }
+                                @rmdir($oldPathAbs);
+                            } else {
+                                if (! @rename($oldPathAbs, $newPathAbs)) {
+                                    File::copyDirectory($oldPathAbs, $newPathAbs);
+                                    File::deleteDirectory($oldPathAbs);
+                                }
+                            }
+                        }
+                    } elseif (! file_exists($newPathAbs)) {
+                        mkdir($newPathAbs, 0777, true);
+                    }
+
+                    if ($student->requirement) {
+                        $reqUpdate = [];
+                        $fileCols = ['psa', 'form_137', 'good_moral', 'diploma', 'form_138', 'photo_2x2'];
+                        foreach ($fileCols as $col) {
+                            if (! empty($student->requirement->$col)) {
+                                $reqUpdate[$col] = str_replace("students/{$oldFolderName}", "students/{$newFolderName}", $student->requirement->$col);
+                            }
+                        }
+                        if (! empty($reqUpdate)) {
+                            $student->requirement->update($reqUpdate);
+                        }
+                    }
+                } else {
+                    $pathAbs = storage_path("app/public/students/{$newFolderName}");
+                    if (! file_exists($pathAbs)) {
+                        mkdir($pathAbs, 0777, true);
                     }
                 }
 
+                $student->refresh();
+                $student->load('requirement');
+
+                // Hard delete existing files removed via 'Delete Icon' button
+                $removedFiles = json_decode($request->removed_files, true) ?? [];
+                $reqUpdateAfterRemoval = [];
+                if (! empty($removedFiles) && $student->requirement) {
+                    foreach ($removedFiles as $dbKey) {
+                        if (in_array($dbKey, ['psa', 'form_137', 'good_moral', 'diploma', 'form_138', 'photo_2x2'])) {
+                            if (! empty($student->requirement->$dbKey)) {
+
+                                $cleanPath = ltrim($student->requirement->$dbKey, '/');
+                                $fullPath = storage_path('app'.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $cleanPath));
+
+                                if (file_exists($fullPath)) {
+                                    @chmod($fullPath, 0777);
+                                    @unlink($fullPath);
+                                }
+
+                                $reqUpdateAfterRemoval[$dbKey] = null;
+                            }
+                        }
+                    }
+                    if (! empty($reqUpdateAfterRemoval)) {
+                        $student->requirement->update($reqUpdateAfterRemoval);
+                        $changesArray['Uploaded Files'] = ['old' => 'Existing Attachments', 'new' => 'Some attachments were removed'];
+                    }
+                }
+
+                $student->refresh();
+                $student->load('requirement');
+
+                // Upload new files and hard delete replaced ones
                 $filePaths = [];
                 $fileMap = ['file_psa' => 'psa', 'file_form137' => 'form_137', 'file_good_moral' => 'good_moral', 'file_diploma' => 'diploma', 'file_card' => 'form_138', 'file_picture' => 'photo_2x2'];
+                $hasNewFiles = false;
 
                 foreach ($fileMap as $requestKey => $dbKey) {
                     if ($request->hasFile($requestKey)) {
+                        $hasNewFiles = true;
+
+                        if ($student->requirement && ! empty($student->requirement->$dbKey)) {
+                            $oldFilePath = $student->requirement->$dbKey;
+
+                            $cleanPath = ltrim($oldFilePath, '/');
+                            $fullPath = storage_path('app'.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $cleanPath));
+
+                            if (file_exists($fullPath)) {
+                                @chmod($fullPath, 0777);
+                                @unlink($fullPath);
+                            }
+                        }
+
                         $file = $request->file($requestKey);
                         $filename = time().'_'.preg_replace('/[^A-Za-z0-9\-\.]/', '_', $file->getClientOriginalName());
                         $path = $file->storeAs("students/{$newFolderName}", $filename, 'public');
@@ -331,21 +503,53 @@ class StudentController extends Controller
                     }
                 }
 
+                // Track Document Checkbox Changes safely
                 $reqData = ['hard_copies' => json_decode($request->requirements, true) ?? []];
+                if ($student->requirement) {
+                    $oldReqs = $student->requirement->hard_copies ?? [];
+                    $newReqs = $reqData['hard_copies'];
+
+                    $oldNormalized = array_map(function ($val) {
+                        return filter_var($val, FILTER_VALIDATE_BOOLEAN);
+                    }, $oldReqs);
+                    $newNormalized = array_map(function ($val) {
+                        return filter_var($val, FILTER_VALIDATE_BOOLEAN);
+                    }, $newReqs);
+
+                    ksort($oldNormalized);
+                    ksort($newNormalized);
+
+                    if (json_encode($oldNormalized) !== json_encode($newNormalized)) {
+                        $changesArray['Document Status'] = ['old' => 'Pending Verification', 'new' => 'Updated by Registrar'];
+                    }
+                }
+
+                if ($hasNewFiles) {
+                    $changesArray['Uploaded Files'] = ['old' => 'Previous Attachments', 'new' => 'New Attachments Uploaded'];
+                }
+
                 $student->requirement()->updateOrCreate(['student_id' => $student->id], array_merge($reqData, $filePaths));
+                $student->refresh();
+                $student->load(['profile', 'academic.section', 'academic.strand', 'family', 'requirement']);
 
                 ActivityLog::create([
-                    'user_id' => Auth::id(), 'action' => 'update', 'description' => "Updated record of: {$student->last_name}", 'ip_address' => $request->ip(),
+                    'user_id' => Auth::id(),
+                    'action' => 'update',
+                    'description' => "Updated record of: {$student->last_name}",
+                    'ip_address' => $request->ip(),
                 ]);
 
-                try {
-                    Mail::to($student->email)->send(new StudentUpdated($student, ['Profile' => 'Data Updated by Admin']));
-                } catch (\Throwable $e) {
+                if (! empty($changesArray)) {
+                    try {
+                        Mail::to($student->email)->send(new StudentUpdated($student, $changesArray));
+                    } catch (\Throwable $e) {
+                        Log::warning('Email Failed to Send: '.$e->getMessage());
+                    }
                 }
 
                 return response()->json([
                     'message' => 'Student updated successfully.',
-                    'student' => $student->load(['academic.section', 'academic.strand']),
+                    'student' => $student,
                 ]);
             });
 
@@ -367,6 +571,13 @@ class StudentController extends Controller
             return DB::transaction(function () use ($request, $id) {
                 $student = Student::with('academic')->findOrFail($id);
                 $newStatus = strtolower($request->status);
+
+                // CONCERN #1 FIX (For Quick Status Change): Graduate Validation
+                if ($newStatus === 'graduate' && ($student->academic->grade_level != '12' || $student->academic->term != '3rd')) {
+                    return response()->json([
+                        'message' => 'A student can only be marked as GRADUATE if their Grade Level is 12 and Term is 3rd.',
+                    ], 422);
+                }
 
                 if ($newStatus === 'enrolled' && $student->academic->section_id) {
                     $section = Section::where('id', $student->academic->section_id)->lockForUpdate()->first();
@@ -417,6 +628,12 @@ class StudentController extends Controller
                     $updateData = ['status' => 'released', 'released_by' => Auth::user()->name, 'released_at' => now()];
                 } else {
                     $updateData = ['status' => $newStatus];
+
+                    // CONCERN #2 FIX (For Quick Status Change): Reset released_by and released_at if status was changed from 'released'
+                    if (strtolower($student->status) === 'released') {
+                        $updateData['released_by'] = null;
+                        $updateData['released_at'] = null;
+                    }
                 }
 
                 if ($newStatus === 'enrolled' && empty($student->student_number)) {
