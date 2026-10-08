@@ -69,6 +69,19 @@ export default function StudentViewModal({ show, selectedStudent, onClose }) {
         });
     };
 
+    const formatDateTime = (dateString) => {
+        if (!dateString) return "N/A";
+        let dateObj = new Date(dateString);
+        return dateObj.toLocaleString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+        });
+    };
+
     const calculateAge = (dob) => {
         if (!dob) return "N/A";
         const birthDate = new Date(dob);
@@ -678,6 +691,51 @@ export default function StudentViewModal({ show, selectedStudent, onClose }) {
                                     </div>
                                 </div>
                             </div>
+                            {selectedStudent.status?.toLowerCase() ===
+                                "released" && (
+                                <div
+                                    className="alert border border-2 border-dark rounded-0 p-3 mt-4"
+                                    style={{
+                                        backgroundColor: "#dfe6e9",
+                                        boxShadow: "4px 4px 0 rgba(0,0,0,0.2)",
+                                    }}
+                                >
+                                    <h6
+                                        className="fw-bold font-monospace text-uppercase text-dark mb-3"
+                                        style={{
+                                            borderBottom: "2px solid #2d3436",
+                                            paddingBottom: "8px",
+                                            letterSpacing: "1px",
+                                        }}
+                                    >
+                                        <i className="bi bi-box-arrow-right me-2 text-primary"></i>
+                                        Release Information
+                                    </h6>
+                                    <div className="row g-3">
+                                        <div className="col-md-6 border-md-end border-dark">
+                                            <span className="small font-monospace fw-bold text-muted text-uppercase d-block mb-1">
+                                                Released By:
+                                            </span>
+                                            <span className="font-monospace fw-bolder text-dark fs-5 text-uppercase">
+                                                <i className="bi bi-person-badge-fill me-2"></i>
+                                                {selectedStudent.released_by ||
+                                                    "Admin Staff"}
+                                            </span>
+                                        </div>
+                                        <div className="col-md-6 ps-md-4">
+                                            <span className="small font-monospace fw-bold text-muted text-uppercase d-block mb-1">
+                                                Date & Time Released:
+                                            </span>
+                                            <span className="font-monospace fw-bolder text-dark fs-5 text-uppercase">
+                                                <i className="bi bi-calendar-check-fill me-2"></i>
+                                                {formatDateTime(
+                                                    selectedStudent.released_at,
+                                                )}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="modal-footer border-top border-dark bg-light p-3 d-print-none">
