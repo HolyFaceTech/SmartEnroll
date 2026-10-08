@@ -42,7 +42,7 @@
                 $statusMsg = "This is to formally notify you that your academic records and credentials have been officially RELEASED. You are now cleared of your document responsibilities with the institution."; 
                 break;
             default: 
-                $statusMsg = "This is to formally notify you that there has been an update to your enrollment record. Please review the details below to ensure all information is accurate and up to date."; 
+                $statusMsg = "This is to formally notify you that there has been an update to your enrollment record. Your status is currently marked as PENDING and is undergoing evaluation. Please wait for further updates from the Registrar's Office."; 
                 break;
         }
     @endphp
@@ -53,7 +53,7 @@
                 <div style="max-width: 600px; margin: 0 auto; background-color: #fcfbf4; border: 3px solid #2d3436; padding: 0; box-shadow: 8px 8px 0px #2d3436; text-align: left;">
                     
                     <div style="background-color: #F4D03F; padding: 20px; border-bottom: 3px solid #2d3436; text-align: center;">
-                        <h1 style="margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; color: #2d3436;">🎓 SmartEnroll/h1>
+                        <h1 style="margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; color: #2d3436;">🎓 SmartEnroll</h1>
                         <span style="font-size: 12px; font-weight: bold; background-color: #2d3436; color: #fff; padding: 2px 8px; margin-top: 5px; display: inline-block;">RECORD UPDATE</span>
                     </div>
 
@@ -72,6 +72,37 @@
                                 <strong style="color: #2d3436;"><i style="font-style: normal;">📅</i> DATE RELEASED:</strong> {{ \Carbon\Carbon::parse($student->released_at)->format('F d, Y h:i A') }}
                             </div>
                         @endif
+
+                        <div style="background-color: #fff; border: 2px solid #2d3436; padding: 15px; margin-bottom: 25px;">
+                            <table width="100%" cellpadding="5" cellspacing="0" style="font-size: 14px;">
+                                <tr>
+                                    <td style="font-weight: bold; color: #636e72;">STUDENT NO:</td>
+                                    <td style="text-align: right; font-weight: bold; color: #0984e3;">{{ $student->student_number ?? 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold; color: #636e72;">LRN:</td>
+                                    <td style="text-align: right; font-weight: bold;">{{ $student->lrn }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold; color: #636e72;">STATUS:</td>
+                                    <td style="text-align: right;">
+                                        <span style="background-color: {{ $theme['bg'] }}; border: 1px solid #2d3436; padding: 2px 6px; font-weight: bold; color: {{ $theme['text'] }};">{{ $theme['label'] }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold; color: #636e72;">STRAND:</td>
+                                    <td style="text-align: right;">{{ $student->academic->strand->code ?? 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold; color: #636e72;">GRADE/SECTION:</td>
+                                    <td style="text-align: right;">{{ $student->academic->grade_level ?? 'N/A' }} - {{ $student->academic->section->name ?? 'TBA' }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold; color: #636e72;">TERM:</td>
+                                    <td style="text-align: right;">{{ $student->academic->term ?? 'N/A' }}</td>
+                                </tr>
+                            </table>
+                        </div>
 
                         @if(!empty($changes))
                             <div style="background-color: #dfe6e9; border: 2px dashed #2d3436; padding: 15px; margin-bottom: 25px;">

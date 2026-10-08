@@ -245,7 +245,7 @@ export default function Students() {
                         <strong>{action.toUpperCase()}</strong>?
                     </>
                 ),
-                confirmText: "PROCEED",
+                confirmText: "YES, PROCEED",
                 confirmColor: color,
                 iconClass: icon,
             });

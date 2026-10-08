@@ -61,9 +61,7 @@ return new class extends Migration
             $table->foreignUuid('strand_id')->constrained('strands')->onDelete('cascade');
             $table->foreignUuid('section_id')->nullable()->constrained('sections')->onDelete('set null');
             $table->string('grade_level');
-            $table->string('previous_level')->nullable();
             $table->string('term');
-            $table->string('previous_term')->nullable();
             $table->string('school_year');
             $table->string('learning_modality')->default('Face-to-Face');
             $table->decimal('general_average', 5, 2)->nullable();

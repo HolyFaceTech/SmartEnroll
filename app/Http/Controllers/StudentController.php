@@ -569,10 +569,11 @@ class StudentController extends Controller
             $this->checkAccess(Auth::user());
 
             return DB::transaction(function () use ($request, $id) {
-                $student = Student::with('academic')->findOrFail($id);
+                $student = Student::with(['academic.section', 'academic.strand'])->findOrFail($id);
                 $newStatus = strtolower($request->status);
+                $currentStatus = strtolower($student->status);
+                $mailChanges = [];
 
-                // CONCERN #1 FIX (For Quick Status Change): Graduate Validation
                 if ($newStatus === 'graduate' && ($student->academic->grade_level != '12' || $student->academic->term != '3rd')) {
                     return response()->json([
                         'message' => 'A student can only be marked as GRADUATE if their Grade Level is 12 and Term is 3rd.',
@@ -586,66 +587,104 @@ class StudentController extends Controller
                     }
                 }
 
-                if ($newStatus !== 'reset') {
-                    $student->update(['previous_status' => $student->status]);
-                }
-
-                $mailChanges = ['Status' => strtoupper($newStatus)];
-
                 if ($newStatus === 'cleared' && $student->academic) {
                     $acad = $student->academic;
-                    $acad->update(['previous_level' => $acad->grade_level, 'previous_term' => $acad->term]);
+                    $oldGrade = $acad->grade_level;
+                    $oldTerm = $acad->term;
 
-                    if ($acad->grade_level == '11' && $acad->term == '1st Term') {
-                        $acad->update(['term' => '2nd Term']);
+                    if ($oldGrade == '11' && $oldTerm == '1st') {
+                        $acad->update(['term' => '2nd']);
                         $newStatus = 'enrolled';
-                    } elseif ($acad->grade_level == '11' && $acad->term == '2nd Term') {
-                        $acad->update(['term' => '3rd Term']);
+                    } elseif ($oldGrade == '11' && $oldTerm == '2nd') {
+                        $acad->update(['term' => '3rd']);
                         $newStatus = 'enrolled';
-                    } elseif ($acad->grade_level == '11' && $acad->term == '3rd Term') {
-                        $acad->update(['grade_level' => '12', 'term' => '1st Term', 'section_id' => null]);
+                    } elseif ($oldGrade == '11' && $oldTerm == '3rd') {
+                        $acad->update(['grade_level' => '12', 'term' => '1st', 'section_id' => null]);
                         $newStatus = 'pending';
-                    } elseif ($acad->grade_level == '12' && $acad->term == '1st Term') {
-                        $acad->update(['term' => '2nd Term']);
+                    } elseif ($oldGrade == '12' && $oldTerm == '1st') {
+                        $acad->update(['term' => '2nd']);
                         $newStatus = 'enrolled';
-                    } elseif ($acad->grade_level == '12' && $acad->term == '2nd Term') {
-                        $acad->update(['term' => '3rd Term']);
+                    } elseif ($oldGrade == '12' && $oldTerm == '2nd') {
+                        $acad->update(['term' => '3rd']);
                         $newStatus = 'enrolled';
-                    } elseif ($acad->grade_level == '12' && $acad->term == '3rd Term') {
+                    } elseif ($oldGrade == '12' && $oldTerm == '3rd') {
                         $newStatus = 'graduate';
                     }
 
-                    $mailChanges['Grade Level'] = $acad->grade_level;
-                    $mailChanges['Term'] = $acad->term;
+                    $acad->refresh();
+
+                    if ($oldGrade !== $acad->grade_level) {
+                        $mailChanges['Grade Level'] = ['old' => "Grade $oldGrade", 'new' => "Grade {$acad->grade_level}"];
+                    }
+                    if ($oldTerm !== $acad->term) {
+                        $mailChanges['Term'] = ['old' => "$oldTerm Term", 'new' => "{$acad->term} Term"];
+                    }
                 }
 
                 $updateData = [];
 
                 if ($newStatus === 'reset') {
                     $newStatus = $student->previous_status ?? 'pending';
-                    $updateData = ['status' => $newStatus, 'released_by' => null, 'released_at' => null];
-                } elseif ($newStatus === 'released') {
-                    $updateData = ['status' => 'released', 'released_by' => Auth::user()->name, 'released_at' => now()];
-                } else {
-                    $updateData = ['status' => $newStatus];
+                    $updateData['status'] = $newStatus;
 
-                    // CONCERN #2 FIX (For Quick Status Change): Reset released_by and released_at if status was changed from 'released'
-                    if (strtolower($student->status) === 'released') {
+                    if ($currentStatus === 'released') {
+                        $updateData['released_by'] = null;
+                        $updateData['released_at'] = null;
+                    }
+                } elseif ($newStatus === 'released') {
+                    $admin = Auth::user();
+
+                    $releasedByName = trim(($admin->first_name ?? '').' '.($admin->last_name ?? ''));
+                    if (empty($releasedByName)) {
+                        $releasedByName = $admin->name ?? 'Admin Staff';
+                    }
+
+                    $updateData['status'] = 'released';
+                    $updateData['released_by'] = $releasedByName;
+                    $updateData['released_at'] = now();
+
+                    $mailChanges['Released By'] = ['old' => 'None', 'new' => $releasedByName];
+                } else {
+                    $updateData['status'] = $newStatus;
+
+                    if ($currentStatus === 'released') {
                         $updateData['released_by'] = null;
                         $updateData['released_at'] = null;
                     }
                 }
 
+                // Handle Student Number auto-generation
                 if ($newStatus === 'enrolled' && empty($student->student_number)) {
-                    $updateData['student_number'] = $this->generateUniqueStudentNumber();
+                    $assignedNumber = $this->generateUniqueStudentNumber();
+                    $updateData['student_number'] = $assignedNumber;
+                    $mailChanges['Student Number'] = ['old' => 'None', 'new' => $assignedNumber];
+                }
+
+                if ($currentStatus !== $newStatus) {
+                    $mailChanges['Status'] = ['old' => strtoupper($currentStatus), 'new' => strtoupper($newStatus)];
+
+                    if ($request->status !== 'reset') {
+                        $updateData['previous_status'] = $currentStatus;
+                    }
                 }
 
                 $student->update($updateData);
+                $student->refresh();
+                $student->load(['academic.section', 'academic.strand']);
 
-                ActivityLog::create(['user_id' => Auth::id(), 'action' => 'update', 'description' => "Changed status of {$student->last_name} to ".strtoupper($newStatus), 'ip_address' => $request->ip()]);
-                try {
-                    Mail::to($student->email)->send(new StudentUpdated($student, $mailChanges));
-                } catch (\Throwable $e) {
+                ActivityLog::create([
+                    'user_id' => Auth::id(),
+                    'action' => 'update',
+                    'description' => "Changed status of {$student->last_name} to ".strtoupper($newStatus),
+                    'ip_address' => $request->ip(),
+                ]);
+
+                if (strtolower($request->status) !== 'reset') {
+                    try {
+                        Mail::to($student->email)->send(new StudentUpdated($student, $mailChanges));
+                    } catch (\Throwable $e) {
+                        Log::warning('Email Failed to Send in changeStatus: '.$e->getMessage());
+                    }
                 }
 
                 return response()->json(['message' => 'Status updated successfully.']);

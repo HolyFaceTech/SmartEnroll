@@ -42,7 +42,7 @@
                 $statusMsg = "This is to formally notify you that your academic records and credentials have been officially RELEASED. You are now cleared of your document responsibilities with the institution."; 
                 break;
             default: 
-                $statusMsg = "This is to formally notify you that there has been an update to your enrollment record. Please review the details below to ensure all information is accurate and up to date."; 
+                $statusMsg = "Welcome to our institution! We have successfully received your student application. Your enrollment status is currently marked as PENDING and is queued for evaluation. Please wait for further updates once our Registrar has reviewed your records."; 
                 break;
         }
     @endphp
