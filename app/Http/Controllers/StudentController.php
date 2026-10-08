@@ -175,6 +175,7 @@ class StudentController extends Controller
                     'email' => $request->email,
                     'contact_number' => $request->contact_number,
                     'status' => $finalStatus,
+                    'previous_status' => null,
                     'released_by' => $releasedBy,
                     'released_at' => $releasedAt,
                 ]);
@@ -283,6 +284,7 @@ class StudentController extends Controller
 
                 $oldFolderName = $this->getFolderName($student);
                 $finalStatus = strtolower($request->status ?? $student->status);
+                $currentStatus = strtolower($student->status);
 
                 if ($finalStatus === 'graduate' && ($request->grade_level != '12' || $request->term != '3rd')) {
                     return response()->json([
@@ -324,15 +326,21 @@ class StudentController extends Controller
                 $changesArray = [];
 
                 // Track Core Student Changes
-                $student->fill(array_merge($request->only(['lrn', 'first_name', 'last_name', 'middle_name', 'suffix', 'email', 'contact_number']), [
+                $studentUpdateData = [
                     'status' => $finalStatus,
                     'student_number' => $assignedStudentNumber,
                     'released_by' => $releasedBy,
                     'released_at' => $releasedAt,
-                ]));
+                ];
+
+                if ($currentStatus !== $finalStatus) {
+                    $studentUpdateData['previous_status'] = $currentStatus;
+                }
+
+                $student->fill(array_merge($request->only(['lrn', 'first_name', 'last_name', 'middle_name', 'suffix', 'email', 'contact_number']), $studentUpdateData));
 
                 foreach ($student->getDirty() as $key => $newValue) {
-                    if (! in_array($key, ['updated_at', 'released_by', 'released_at'])) {
+                    if (! in_array($key, ['updated_at', 'released_by', 'released_at', 'previous_status'])) { // Added previous_status here to prevent showing in email
                         $changesArray[$key] = [
                             'old' => $student->getOriginal($key) ?? 'None',
                             'new' => $newValue ?? 'None',
@@ -710,7 +718,12 @@ class StudentController extends Controller
             $name = trim("{$student->last_name}, {$student->first_name}");
             $student->delete();
 
-            ActivityLog::create(['user_id' => Auth::id(), 'action' => 'delete', 'description' => "Deleted student record: {$name}", 'ip_address' => request()->ip()]);
+            ActivityLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'delete',
+                'description' => "Deleted student record: {$name}",
+                'ip_address' => request()->ip(),
+            ]);
 
             return response()->json(['message' => 'Student record has been successfully deleted.']);
         } catch (\Throwable $e) {
@@ -734,7 +747,12 @@ class StudentController extends Controller
                 $name = "{$student->last_name}, {$student->first_name}";
                 $student->delete();
                 $deletedCount++;
-                ActivityLog::create(['user_id' => Auth::id(), 'action' => 'delete', 'description' => "Bulk Deleted student: {$name}", 'ip_address' => $request->ip()]);
+                ActivityLog::create([
+                    'user_id' => Auth::id(),
+                    'action' => 'delete',
+                    'description' => "Bulk Deleted student: {$name}",
+                    'ip_address' => $request->ip(),
+                ]);
             }
 
             return response()->json(['message' => "Successfully deleted {$deletedCount} student(s)."]);

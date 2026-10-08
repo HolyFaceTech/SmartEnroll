@@ -330,6 +330,9 @@ export default function StudentModal({
         const actionName = type === "create" ? "SUBMIT" : "UPDATE";
         const btnColor = type === "create" ? "#3F9AAE" : "#F4D03F";
 
+        const modalIconClass =
+            type === "create" ? "bi-send-fill" : "bi-pencil-square";
+
         setConfirmConfig({
             show: true,
             title: `CONFIRM ${actionName}?`,
@@ -345,7 +348,7 @@ export default function StudentModal({
             ),
             confirmText: `YES, ${actionName}`,
             confirmColor: btnColor,
-            iconClass: "bi-send-fill",
+            iconClass: modalIconClass,
         });
     };
 
