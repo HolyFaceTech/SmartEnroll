@@ -98,7 +98,7 @@ export default function StudentImport({ show, onClose, onSuccess }) {
                 tabIndex="-1"
                 style={{ zIndex: 1050 }}
             >
-                <div className="modal-dialog modal-dialog-centered">
+                <div className="modal-dialog modal-dialog-centered modal-lg">
                     <div className="modal-content card-retro border-2 border-dark shadow">
                         <div
                             className="modal-header border-bottom border-dark text-dark"
@@ -106,7 +106,7 @@ export default function StudentImport({ show, onClose, onSuccess }) {
                         >
                             <h5 className="modal-title fw-bold font-monospace">
                                 <i className="bi bi-file-earmark-spreadsheet-fill me-2"></i>
-                                IMPORT STUDENTS
+                                IMPORT STUDENTS CSV
                             </h5>
                             <button
                                 type="button"
@@ -119,9 +119,9 @@ export default function StudentImport({ show, onClose, onSuccess }) {
                             <div className="alert bg-white border border-dark border-2 text-start p-3 mb-4 rounded-0 shadow-sm">
                                 <h6 className="fw-bold font-monospace mb-2 text-danger">
                                     <i className="bi bi-info-circle-fill me-2"></i>
-                                    IMPORT ADVISORY
+                                    IMPORT ADVISORY & FORMAT
                                 </h6>
-                                <ul className="small font-monospace mb-0 ps-3 text-muted">
+                                <ul className="small font-monospace mb-2 ps-3 text-muted">
                                     <li className="mb-1">
                                         <strong>Max Size:</strong> 2MB per file.
                                     </li>
@@ -132,12 +132,40 @@ export default function StudentImport({ show, onClose, onSuccess }) {
                                         </span>{" "}
                                         only.
                                     </li>
-                                    <li>
-                                        <strong>Required CSV Columns:</strong>{" "}
-                                        lrn, first_name, last_name, email,
-                                        contact_number.
+                                    <li className="mb-1">
+                                        <strong>Skipped Rows:</strong> Duplicate
+                                        LRN/Email, Invalid Status, or
+                                        Unregistered Strand Codes will be
+                                        auto-skipped.
                                     </li>
                                 </ul>
+
+                                <p className="small fw-bold font-monospace mb-1 mt-3">
+                                    EXACT CSV HEADER COLUMNS REQUIRED:
+                                </p>
+                                <div
+                                    className="border border-dark p-3 bg-light font-monospace small text-muted"
+                                    style={{
+                                        fontSize: "0.75rem",
+                                        wordWrap: "break-word",
+                                        lineHeight: "1.8",
+                                    }}
+                                >
+                                    student_number, lrn, first_name, last_name,
+                                    middle_name, suffix, email, contact_number,
+                                    status, date_of_birth, gender,
+                                    place_of_birth, citizenship, civil_status,
+                                    religion, home_address, provincial_address,
+                                    current_school_attended, strand_code,
+                                    section_name, grade_level, term,
+                                    school_year, learning_modality,
+                                    general_average, employer_name,
+                                    employer_contact, father_name,
+                                    father_occupation, father_contact,
+                                    mother_name, mother_occupation,
+                                    mother_contact, guardian_name,
+                                    guardian_occupation, guardian_contact
+                                </div>
                             </div>
 
                             <form
@@ -204,10 +232,14 @@ export default function StudentImport({ show, onClose, onSuccess }) {
                                         {!isLoading && (
                                             <button
                                                 type="button"
-                                                className="btn btn-sm btn-danger border border-dark border-2 fw-bold btn-press-retro px-3"
+                                                className="btn btn-sm border border-dark border-2 fw-bold btn-press-retro px-3 ms-2"
+                                                style={{
+                                                    backgroundColor: "#F96E5B",
+                                                }}
                                                 onClick={handleClearFile}
+                                                title="Remove Server File"
                                             >
-                                                <i className="bi bi-trash-fill"></i>
+                                                <i className="bi bi-trash-fill text-white"></i>
                                             </button>
                                         )}
                                     </div>

@@ -770,72 +770,187 @@ class StudentController extends Controller
     {
         try {
             $this->checkAccess(Auth::user());
-            $request->validate(['file' => 'required|file|mimes:csv,txt|max:2048']);
+
+            $request->validate([
+                'file' => 'required|file|mimes:csv,txt|max:2048',
+            ]);
 
             $file = $request->file('file');
             $csvData = file_get_contents($file);
             $rows = array_map('str_getcsv', explode("\n", trim($csvData)));
 
             if (count($rows) < 2) {
-                return response()->json(['message' => 'CSV is empty.'], 422);
+                return response()->json(['message' => 'CSV is empty or missing headers.'], 422);
             }
 
             $header = array_map('trim', array_shift($rows));
-            $requiredHeaders = ['lrn', 'first_name', 'last_name', 'email', 'contact_number'];
 
-            if (array_diff($requiredHeaders, $header)) {
-                return response()->json(['message' => 'Missing required columns.'], 422);
+            $requiredHeaders = [
+                'student_number', 'lrn', 'first_name', 'last_name', 'middle_name', 'suffix', 'email', 'contact_number', 'status',
+                'date_of_birth', 'gender', 'place_of_birth', 'citizenship', 'civil_status', 'religion', 'home_address', 'provincial_address',
+                'current_school_attended', 'strand_code', 'section_name', 'grade_level', 'term', 'school_year', 'learning_modality', 'general_average',
+                'employer_name', 'employer_contact', 'father_name', 'father_occupation', 'father_contact',
+                'mother_name', 'mother_occupation', 'mother_contact', 'guardian_name', 'guardian_occupation', 'guardian_contact',
+            ];
+
+            // Check if all exact columns are present
+            $missingHeaders = array_diff($requiredHeaders, $header);
+            if (! empty($missingHeaders)) {
+                return response()->json([
+                    'message' => 'CSV Format is incorrect. Missing required columns.',
+                    'missing_columns' => array_values($missingHeaders),
+                ], 422);
             }
 
             $importedCount = 0;
 
             DB::transaction(function () use ($rows, $header, &$importedCount) {
+                $rowNumber = 2;
+
                 foreach ($rows as $row) {
                     if (count($header) !== count($row)) {
-                        continue;
+                        throw new \Exception("Row {$rowNumber}: Missing or extra columns in this row.");
                     }
-                    $data = array_combine($header, $row);
 
+                    $data = array_combine($header, array_map('trim', $row));
+
+                    $data = array_map(function ($value) {
+                        return $value === '' ? null : $value;
+                    }, $data);
+
+                    if (isset($data['status'])) {
+                        $data['status'] = strtolower($data['status']);
+                    }
+
+                    // validation
                     $validator = Validator::make($data, [
+                        'student_number' => 'nullable|string|unique:students,student_number',
                         'lrn' => 'required|digits:12|unique:students,lrn',
+                        'first_name' => 'required|string|max:255',
+                        'last_name' => 'required|string|max:255',
                         'email' => 'required|email|unique:students,email',
-                        'last_name' => 'required',
-                        'first_name' => 'required',
+                        'contact_number' => 'required|digits:11',
+                        'status' => 'required|in:pending,enrolled,on hold,graduate,drop out,released',
+                        'date_of_birth' => 'required|date',
+                        'gender' => 'required|in:Male,Female',
+                        'grade_level' => 'required|in:11,12',
+                        'term' => 'required|in:1st,2nd,3rd',
+                        'learning_modality' => 'required|in:Face-to-Face,Modular',
+                        'general_average' => 'nullable|numeric|min:75|max:100',
+                        'employer_contact' => 'nullable|digits:11',
+                        'father_contact' => 'nullable|digits:11',
+                        'mother_contact' => 'nullable|digits:11',
+                        'guardian_name' => 'required|string',
+                        'guardian_contact' => 'required|digits:11',
                     ]);
 
                     if ($validator->fails()) {
-                        continue;
+                        throw new \Exception("Row {$rowNumber}: ".implode(', ', $validator->errors()->all()));
                     }
 
+                    // Map Strand Code and Section Name
+                    $strand = Strand::where('code', $data['strand_code'])->first();
+                    if (! $strand) {
+                        throw new \Exception("Row {$rowNumber}: Strand Code '{$data['strand_code']}' not found in the database.");
+                    }
+
+                    $sectionId = null;
+                    if ($data['section_name'] !== null) {
+                        $section = Section::where('name', $data['section_name'])->first();
+                        $sectionId = $section ? $section->id : null;
+                    }
+
+                    // Core Students
                     $student = Student::create([
+                        'student_number' => $data['student_number'],
                         'lrn' => $data['lrn'],
                         'first_name' => $data['first_name'],
                         'last_name' => $data['last_name'],
+                        'middle_name' => $data['middle_name'],
+                        'suffix' => $data['suffix'],
                         'email' => $data['email'],
-                        'contact_number' => $data['contact_number'] ?? 'N/A',
-                        'status' => 'pending',
+                        'contact_number' => $data['contact_number'],
+                        'status' => $data['status'],
+                        'previous_status' => null,
+                        'released_by' => null,
+                        'released_at' => null,
                     ]);
 
-                    $student->profile()->create(['date_of_birth' => now(), 'gender' => 'Male', 'place_of_birth' => 'N/A', 'citizenship' => 'Filipino', 'civil_status' => 'Single', 'religion' => 'N/A', 'home_address' => 'N/A']);
-                    $student->academic()->create(['strand_id' => Strand::first()->id ?? null, 'grade_level' => '11', 'term' => '1st Term', 'school_year' => '2026-2027']);
-                    $student->family()->create([]);
-                    $student->requirement()->create(['hard_copies' => []]);
+                    // Profiles
+                    $student->profile()->create([
+                        'date_of_birth' => $data['date_of_birth'],
+                        'gender' => $data['gender'],
+                        'place_of_birth' => $data['place_of_birth'],
+                        'citizenship' => $data['citizenship'],
+                        'civil_status' => $data['civil_status'],
+                        'religion' => $data['religion'],
+                        'home_address' => $data['home_address'],
+                        'provincial_address' => $data['provincial_address'],
+                    ]);
+
+                    // Academics
+                    $student->academic()->create([
+                        'current_school_attended' => $data['current_school_attended'],
+                        'strand_id' => $strand->id,
+                        'section_id' => $sectionId,
+                        'grade_level' => $data['grade_level'],
+                        'term' => $data['term'],
+                        'school_year' => $data['school_year'],
+                        'learning_modality' => $data['learning_modality'],
+                        'general_average' => $data['general_average'],
+                    ]);
+
+                    // Families
+                    $student->family()->create([
+                        'employer_name' => $data['employer_name'],
+                        'employer_contact' => $data['employer_contact'],
+                        'father_name' => $data['father_name'],
+                        'father_occupation' => $data['father_occupation'],
+                        'father_contact' => $data['father_contact'],
+                        'mother_name' => $data['mother_name'],
+                        'mother_occupation' => $data['mother_occupation'],
+                        'mother_contact' => $data['mother_contact'],
+                        'guardian_name' => $data['guardian_name'],
+                        'guardian_occupation' => $data['guardian_occupation'],
+                        'guardian_contact' => $data['guardian_contact'],
+                    ]);
+
+                    // Requirements
+                    $student->requirement()->create([
+                        'hard_copies' => [],
+                        'psa' => null,
+                        'form_137' => null,
+                        'good_moral' => null,
+                        'diploma' => null,
+                        'form_138' => null,
+                        'photo_2x2' => null,
+                    ]);
 
                     $folderName = $this->getFolderName($student);
                     Storage::disk('public')->makeDirectory("students/{$folderName}");
 
                     $importedCount++;
+                    $rowNumber++;
                 }
             });
 
-            return response()->json(['message' => "Successfully imported {$importedCount} students."]);
+            if ($importedCount > 0) {
+                ActivityLog::create([
+                    'user_id' => Auth::id(),
+                    'action' => 'import',
+                    'description' => "Imported {$importedCount} student record(s) via CSV file.",
+                    'ip_address' => $request->ip(),
+                ]);
+            }
+
+            return response()->json(['message' => "Successfully imported {$importedCount} valid student records."]);
 
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {
             Log::error('StudentController import Error: '.$e->getMessage());
 
-            return response()->json(['message' => 'Backend Error: '.$e->getMessage()], 500);
+            return response()->json(['message' => $e->getMessage()], 422);
         }
     }
 }
