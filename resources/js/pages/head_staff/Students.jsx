@@ -188,6 +188,28 @@ export default function Students() {
         }
     };
 
+    const getStatusIconColorClass = (status) => {
+        const s = status.toLowerCase();
+        switch (s) {
+            case "enrolled":
+                return "text-success";
+            case "pending":
+                return "text-warning";
+            case "cleared":
+                return "text-primary";
+            case "on hold":
+                return "text-danger";
+            case "graduate":
+                return "text-info";
+            case "drop out":
+                return "text-dark";
+            case "released":
+                return "text-secondary";
+            default:
+                return "text-dark";
+        }
+    };
+
     const handleActionClick = (action, student = null) => {
         setOpenActionId(null);
         const fullName = student ? getFullName(student) : "";
@@ -224,15 +246,16 @@ export default function Students() {
             });
         } else {
             let icon = "bi-arrow-repeat";
-            let color = "#0984e3";
-            if (action === "released") {
-                icon = "bi-box-arrow-right";
-                color = "#636e72";
-            }
-            if (action === "cleared") {
-                icon = "bi-check-all";
-                color = "#00b894";
-            }
+            if (action === "released") icon = "bi-box-arrow-right";
+            if (action === "cleared") icon = "bi-check-all";
+            if (action === "enrolled") icon = "bi-person-check";
+            if (action === "pending") icon = "bi-hourglass-split";
+            if (action === "on hold") icon = "bi-pause-circle";
+            if (action === "graduate") icon = "bi-mortarboard";
+            if (action === "drop out") icon = "bi-x-circle";
+
+            const iconColorClass = getStatusIconColorClass(action);
+
             setConfirmConfig({
                 show: true,
                 type: "status_change",
@@ -242,12 +265,17 @@ export default function Students() {
                     <>
                         Are you sure you want to change the status of <br />{" "}
                         <strong>{fullName}</strong> to{" "}
-                        <strong>{action.toUpperCase()}</strong>?
+                        <strong
+                            className={`text-uppercase border-bottom border-dark pb-1 ${iconColorClass}`}
+                        >
+                            {action}
+                        </strong>
+                        ?
                     </>
                 ),
                 confirmText: "YES, PROCEED",
-                confirmColor: color,
-                iconClass: icon,
+                confirmColor: "#79C9C5",
+                iconClass: `${icon} ${iconColorClass}`,
             });
         }
     };
@@ -283,15 +311,27 @@ export default function Students() {
                 setSelectedIds([]);
                 Toast.fire({ icon: "success", title: res.data.message });
             } else if (type === "status_change") {
-                await axios.put(
+                const response = await axios.put(
                     `/api/students/${payload.id}/status`,
                     { status: payload.status },
                     { headers },
                 );
+
+                const finalStatus = response.data.new_status || payload.status;
+
                 Toast.fire({
                     icon: "success",
-                    title: `Status changed to ${payload.status.toUpperCase()}`,
+                    title: `Status changed to ${finalStatus.toUpperCase()}`,
                 });
+
+                if (finalStatus.toLowerCase() === "enrolled") {
+                    const studentToOpen = students.find(
+                        (s) => s.id === payload.id,
+                    );
+                    if (studentToOpen) {
+                        setCorState({ show: true, data: studentToOpen });
+                    }
+                }
             }
             await fetchData();
         } catch (error) {
@@ -781,7 +821,7 @@ export default function Students() {
                                 </li>
                                 <li>
                                     <button
-                                        className="dropdown-item fw-bold text-warning text-dark py-2"
+                                        className="dropdown-item fw-bold text-warning py-2"
                                         onClick={() =>
                                             handleActionClick("pending", s)
                                         }
@@ -803,10 +843,26 @@ export default function Students() {
                                 </li>
                                 <li>
                                     <button
-                                        className="dropdown-item fw-bold text-primary py-2"
+                                        className={`dropdown-item fw-bold py-2 ${
+                                            s.status.toLowerCase() ===
+                                            "enrolled"
+                                                ? "text-primary"
+                                                : "text-muted"
+                                        }`}
                                         onClick={() =>
                                             handleActionClick("cleared", s)
                                         }
+                                        disabled={
+                                            s.status.toLowerCase() !==
+                                            "enrolled"
+                                        }
+                                        style={{
+                                            cursor:
+                                                s.status.toLowerCase() ===
+                                                "enrolled"
+                                                    ? "pointer"
+                                                    : "not-allowed",
+                                        }}
                                     >
                                         <i className="bi bi-check-all me-2"></i>{" "}
                                         Cleared
@@ -825,7 +881,7 @@ export default function Students() {
                                 </li>
                                 <li>
                                     <button
-                                        className="dropdown-item fw-bold text-info text-dark py-2"
+                                        className="dropdown-item fw-bold text-info py-2"
                                         onClick={() =>
                                             handleActionClick("graduate", s)
                                         }
@@ -836,12 +892,12 @@ export default function Students() {
                                 </li>
                                 <li>
                                     <button
-                                        className="dropdown-item fw-bold text-dark bg-danger bg-opacity-10 py-2 border-bottom border-dark"
+                                        className="dropdown-item fw-bold text-dark py-2"
                                         onClick={() =>
                                             handleActionClick("drop out", s)
                                         }
                                     >
-                                        <i className="bi bi-x-circle me-2 text-danger"></i>{" "}
+                                        <i className="bi bi-x-circle me-2"></i>{" "}
                                         Drop Out
                                     </button>
                                 </li>
@@ -923,7 +979,8 @@ export default function Students() {
             />
 
             <CORModal
-                {...corState}
+                show={corState.show}
+                student={corState.data}
                 onClose={() => setCorState({ show: false, data: null })}
                 onSuccess={fetchData}
             />

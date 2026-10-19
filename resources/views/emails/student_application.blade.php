@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Application Status | SmartEnroll</title>
+    <title>Student Application | SmartEnroll</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Courier New', Courier, monospace; background-color: #eeeeee;">
 
@@ -27,7 +27,7 @@
         $statusMsg = "";
         switch($currentStatus) {
             case 'enrolled': 
-                $statusMsg = "Congratulations! We are pleased to inform you that your enrollment has been successfully processed. You are now officially enrolled in our institution for the current academic term."; 
+                $statusMsg = "Congratulations! We are pleased to inform you that your enrollment has been successfully processed. You are now officially enrolled in our institution for the current academic term. To complete your enrollment process, please proceed to the Registrar's Office to claim your Certificate of Registration (COR)."; 
                 break;
             case 'onhold': 
                 $statusMsg = "Please be advised that your enrollment status is currently marked as ON HOLD. This may be due to pending requirements or unsettled clearances. Kindly visit the Registrar's Office as soon as possible for clarification."; 
@@ -122,15 +122,18 @@
                             $priorityDocs = [
                                 'PSA Birth Certificate'   => 'psa',
                                 'Report Card (Form 138)'  => 'card',
-                                '2x2 Picture (2pcs)'      => 'picture'
+                                '2x2 Picture (2pcs)'      => 'picture',
+                                'SAF Annex E (Grade 11)'  => 'saf_annex_e_g11'
                             ];
+
+                            if (($student->academic->grade_level ?? '11') == '12') {
+                                $priorityDocs['SAF Annex E (Grade 12)'] = 'saf_annex_e_g12';
+                            }
 
                             $supportingDocs = [
                                 'Form 137 / SF10'         => 'form137',
                                 'Good Moral Certificate'  => 'good_moral',
-                                'Diploma / Certificate'   => 'diploma',
-                                'SAF Annex E (Grade 11)'  => 'saf_annex_e_g11',
-                                'SAF Annex E (Grade 12)'  => 'saf_annex_e_g12'
+                                'Diploma / Certificate'   => 'diploma'
                             ];
                         @endphp
 

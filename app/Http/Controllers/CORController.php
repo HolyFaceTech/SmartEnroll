@@ -3,32 +3,34 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
-use App\Models\Section;
 use App\Models\Student;
 use App\Models\Subject;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class CORController extends Controller
 {
+    // Security
+    private function checkAccess($authUser)
+    {
+        if (! in_array($authUser->role, ['head', 'staff'])) {
+            abort(403, 'Unauthorized Access. You do not have permission to manage CORs.');
+        }
+    }
+
+    // Fetching Student Data
     public function getCORData($studentId)
     {
         try {
-            $student = Student::with(['strand', 'section', 'academic'])->findOrFail($studentId);
+            $this->checkAccess(Auth::user());
 
-            $sections = Section::where('strand_id', $student->academic?->strand_id)
-                ->where('grade_level', $student->academic?->grade_level)
-                ->withCount(['students as enrolled_count' => function ($query) {
-                    $query->where('status', 'enrolled');
-                }])
-                ->get();
+            $student = Student::with(['academic.strand', 'academic.section', 'requirement', 'family'])->findOrFail($studentId);
 
             $semKey = explode(' ', trim($student->academic?->term))[0];
 
@@ -37,73 +39,69 @@ class CORController extends Controller
                     ->orWhereNull('strand_id');
             })
                 ->where('grade_level', $student->academic?->grade_level)
-                ->where('semester', 'LIKE', "%{$semKey}%")
+                ->where('term', 'LIKE', "%{$semKey}%")
                 ->get();
+
+            $photoUrl = null;
+            if ($student->requirement && ! empty($student->requirement->photo_2x2)) {
+                $photoUrl = asset('storage/'.$student->requirement->photo_2x2);
+            }
+
+            $yy = now()->format('y');
+            $g = preg_replace('/\D/', '', (string) ($student->academic?->grade_level ?? '0')) ?: '0';
+            $t = preg_replace('/\D/', '', (string) ($student->academic?->term ?? '1')) ?: '1';
+            $stDigits = preg_replace('/\D/', '', (string) ($student->student_number ?? ''));
+            $nnnnn = $stDigits ? str_pad(substr($stDigits, -5), 5, '0', STR_PAD_LEFT) : (string) random_int(10000, 99999);
+            $defaultAssessmentNo = "HF-{$yy}{$g}{$t}{$nnnnn}";
 
             return response()->json([
                 'student' => $student,
-                'available_sections' => $sections,
                 'suggested_subjects' => $subjects,
-                'default_or' => 'OR-'.strtoupper(Str::random(6)), // Automatic OR Generator
+                'default_or' => $defaultAssessmentNo,
+                'photo_url' => $photoUrl,
             ]);
-        } catch (Exception $e) {
+
+        } catch (\Exception $e) {
             Log::error('CORController getCORData Error: '.$e->getMessage());
 
-            return response()->json(['message' => 'Failed to load COR data.'], 500);
+            return response()->json(['message' => 'Backend Error: '.$e->getMessage()], 500);
         }
     }
 
+    // URL for Print
     public function generateUrl(Request $request)
     {
         try {
-            return DB::transaction(function () use ($request) {
+            $this->checkAccess(Auth::user());
 
-                $lrn = $request->input('info.lrn');
-                $sectionId = $request->input('info.section_id');
-                $student = Student::with('academic')->where('lrn', $lrn)->first();
+            $tempId = Str::random(40);
+            Cache::put('cor_data_'.$tempId, $request->all(), now()->addMinutes(5));
 
-                // SAFETY CHECK FOR SECTION
-                if ($student && $sectionId && $student->academic?->section_id != $sectionId) {
-                    $section = Section::where('id', $sectionId)->lockForUpdate()->first();
+            $url = URL::temporarySignedRoute(
+                'cor.print',
+                now()->addMinutes(5),
+                ['id' => $tempId]
+            );
 
-                    if ($section) {
-                        $currentEnrolled = $section->students()->where('status', 'enrolled')->count();
+            ActivityLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'read',
+                'description' => "Generated COR preview for LRN: {$request->input('info.lrn')}",
+                'ip_address' => $request->ip(),
+            ]);
 
-                        if ($currentEnrolled >= $section->capacity) {
-                            return response()->json([
-                                'message' => "FAILED: Section is FULL ({$currentEnrolled}/{$section->capacity}).",
-                            ], 422);
-                        }
+            return response()->json(['url' => $url]);
 
-                        $student->academic()->update(['section_id' => $sectionId]);
-
-                        ActivityLog::create([
-                            'user_id' => Auth::id(),
-                            'action' => 'update',
-                            'description' => "Assigned section via COR for: {$student->last_name}",
-                            'ip_address' => $request->ip(),
-                        ]);
-                    }
-                }
-
-                $tempId = Str::random(40);
-                Cache::put('cor_data_'.$tempId, $request->all(), now()->addMinutes(5));
-
-                $url = URL::temporarySignedRoute(
-                    'cor.print',
-                    now()->addMinutes(5),
-                    ['id' => $tempId]
-                );
-
-                return response()->json(['url' => $url]);
-            });
-        } catch (Exception $e) {
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
             Log::error('CORController generateUrl Error: '.$e->getMessage());
 
-            return response()->json(['message' => 'Failed to generate document link.'], 500);
+            return response()->json(['message' => 'Backend Error: '.$e->getMessage()], 500);
         }
     }
 
+    // Print COR
     public function printCOR($tempId)
     {
         $data = Cache::get('cor_data_'.$tempId);
@@ -112,17 +110,15 @@ class CORController extends Controller
             abort(404, 'Link expired or invalid.');
         }
 
-        // Logo Logic
         $data['logo'] = null;
         try {
             $path = public_path('images/logo.png');
             if (file_exists($path)) {
                 $data['logo'] = 'data:image/png;base64,'.base64_encode(file_get_contents($path));
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
         }
 
-        // Fetch Student for the 2x2 Picture logic
         $student = Student::with('requirement')->where('lrn', $data['info']['lrn'])->first();
         $data['photo_2x2'] = null;
 
@@ -133,7 +129,7 @@ class CORController extends Controller
                     $ext = pathinfo($photoPath, PATHINFO_EXTENSION);
                     $data['photo_2x2'] = 'data:image/'.$ext.';base64,'.base64_encode(file_get_contents($photoPath));
                 }
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
             }
         }
 
@@ -144,8 +140,15 @@ class CORController extends Controller
         $data['info']['grade_section'] = "$grade / $section";
 
         $pdf = Pdf::loadView('pdf.cor', $data);
-        $pdf->setPaper('a4', 'portrait');
 
-        return $pdf->stream('COR-'.($data['info']['lrn'] ?? 'Student').'.pdf');
+        $pdf->setPaper('legal', 'portrait');
+
+        $studentName = $data['info']['name'] ?? 'Student';
+        $studentGrade = $data['info']['grade_level'] ?? '';
+        $studentTerm = $data['info']['term'] ?? '';
+
+        $fileName = "COR - {$studentName} - {$studentGrade}{$studentTerm}.pdf";
+
+        return $pdf->stream($fileName);
     }
 }

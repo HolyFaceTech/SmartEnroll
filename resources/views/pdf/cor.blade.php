@@ -2,197 +2,420 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>COR - {{ $info['name'] }}</title>
+    <title>COR-{{ $info['name'] }}-{{ $info['grade_level'] }}{{ $info['term'] ?? '' }}</title>
     <style>
-        /* A4 Page Settings */
-        @page { margin: 25px 30px; }
+        @page { 
+            size: legal portrait; 
+            margin: 20px 30px; 
+        }
         
         body {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 12pt;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 8.5pt;
             color: #000;
-            line-height: 1.1;
-        }
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .font-bold { font-weight: bold; }
-        .uppercase { text-transform: uppercase; }
-        
-        /* HEADER */
-        .logo { width: 70px; height: auto; margin-bottom: 5px; }
-        .school-name { font-size: 16pt; font-weight: bold; }
-        .school-addr { font-size: 10pt; }
-        
-        .doc-title { text-align: center; font-weight: bold; text-decoration: underline; margin: 15px 0; font-size: 14pt; }
-
-        /* TABLES */
-        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-        .info-table td { padding: 3px 0; vertical-align: top; }
-        
-        /* STUDENT INFO: REMOVED UNDERLINES */
-        .label { font-weight: bold; width: 15%; }
-        .value { width: 35%; /* border-bottom: 1px solid #000;  <-- TINANGGAL NA */ }
-
-        .data-table { border: 1px solid #000; font-size: 11pt; }
-        .data-table th { border: 1px solid #000; background: #eee; padding: 5px; text-align: center; font-size: 11pt; }
-        .data-table td { border: 1px solid #000; padding: 4px; }
-
-        /* SIGNATORIES & OR LAYOUT */
-        .or-box {
-            border: 2px solid #000; 
-            padding: 10px; 
-            margin-top: 20px; 
-            margin-bottom: 50px; /* PINALAKI: Lumayo sa Class Adviser */
+            line-height: 1.2;
         }
         
-        /* SPACING NG SIGNATORIES: PINALAKI PARA HINDI DIKIT-DIKIT */
-        .sig-block { margin-top: 60px; text-align: center; } 
-        
-        .sig-line { border-top: 1px solid #000; width: 90%; margin: 0 auto; }
-        .sig-label { font-size: 10pt; font-weight: bold; margin-top: 2px; }
-
-        /* FOOTER */
-        .footer { 
-            position: fixed; 
-            bottom: 0; 
-            left: 0; 
-            right: 0; 
+        .text-center { 
             text-align: center; 
-            font-size: 9pt; 
-            font-style: italic; 
+        }
+
+        .text-right { 
+            text-align: right; 
+        }
+
+        .font-bold { 
+            font-weight: bold; 
+        }
+
+        .uppercase { 
+            text-transform: uppercase; 
+        }
+
+        .text-danger { 
+            color: #dc3545; 
+        }
+
+        .text-muted { 
+            color: #6c757d; 
+        }
+
+        .font-monospace { 
+            font-family: 'Courier New', Courier, monospace; 
+        }
+
+        .card-wrap {
+            border: 2px solid #000;
+            margin-bottom: 10px;
+            background: #fff;
+        }
+
+        .card-header {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            border-bottom: 2px solid #000;
+            padding: 4px 8px;
+            background-color: #fff;
+            font-size: 9pt;
+            text-transform: uppercase;
+        }
+
+        .card-body {
+            padding: 8px;
+        }
+
+        .form-label {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 7.5pt;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .form-control {
+            border: 1px solid #000;
+            background-color: #f8f9fa;
+            padding: 3px 5px;
+            font-weight: bold;
+            color: #000;
+            font-size: 8.5pt;
+        }
+
+        .form-control.read-only { 
+            color: #6c757d; 
+        }
+
+        .chk-box {
+            display: inline-block;
+            width: 11px;
+            height: 11px;
+            border: 1px solid #000;
+            margin-right: 5px;
+            text-align: center;
+            line-height: 11px;
+            font-size: 8pt;
+            font-weight: bold;
+            background-color: #f8f9fa;
+            vertical-align: middle;
+        }
+
+        .logo { 
+            width: 1.1in; 
+            height: auto; 
+        }
+
+        .photo-box { 
+            width: 1.1in; 
+            height: 1.1in; 
+            border: 2px solid #000; 
+            text-align: center; 
+            line-height: 1.1in; 
+            font-size: 8pt; 
+            color: #666; 
+            background-color: #f8f9fa; 
+        }
+        
+        .photo-img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+        }
+
+        .school-name { 
+            font-family: 'Times New Roman', Times, serif; 
+            font-size: 13pt; 
+            font-weight: bold; 
+        }
+
+        .doc-title { 
+            text-align: center; 
+            font-weight: bold; 
+            text-decoration: underline; 
+            margin-top: 5px; 
+            font-size: 11pt; 
+            letter-spacing: 1px; 
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+        }
+        
+        .table-bordered {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid #000;
+        }
+
+        .table-bordered th, .table-bordered td {
+            border: 1px solid #000;
+            padding: 4px;
+        }
+
+        .table-bordered th {
+            background-color: #e9ecef;
+            text-align: center;
+            font-size: 8pt;
+        }
+
+        .footer { 
+            text-align: center; 
+            line-height: 1.3; 
+            padding-top: 6px;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
-    {{-- HEADER --}}
-    <div class="text-center">
-        @if($logo) <img src="{{ $logo }}" class="logo"><br> @endif
-        <div class="school-name uppercase">HOLY FACE OF JESUS LYCEUM OF SAN JOSE INC.</div>
-        <div class="school-addr uppercase">BLOCK 5 LOT 28-34 VALENTINO VILLAGE, SAN JOSE, RODRIGUEZ, RIZAL</div>
-        <div class="school-addr">Contact No.: 0924-274-0388</div>
+
+    <div class="card-wrap">
+        <div class="card-body">
+            <table width="100%" cellpadding="0">
+                <tr>
+                    <td width="18%" class="text-center" style="vertical-align: middle;">
+                        @if($logo) <img src="{{ $logo }}" class="logo"> @endif
+                    </td>
+                    <td width="64%" class="text-center" style="vertical-align: middle;">
+                        <div class="school-name uppercase">HOLY FACE OF JESUS LYCEUM OF SAN JOSE INC.</div>
+                        <div style="font-size: 8pt; margin-top: 2px; font-style: italic;">BLOCK 5 LOT 28-34 VALENTINO VILLAGE, SAN JOSE, RODRIGUEZ, RIZAL</div>
+                        <div style="font-size: 8pt; margin-top: 1px; font-style: italic;">Contact No.: 0924-274-0388</div>
+                        <div class="doc-title">CERTIFICATE OF REGISTRATION</div>
+                    </td>
+                    <td width="18%" align="right" style="vertical-align: middle;">
+                        <div class="photo-box">
+                            @if($photo_2x2) 
+                                <img src="{{ $photo_2x2 }}" class="photo-img"> 
+                            @else 
+                                <table width="100%" cellpadding="0" cellspacing="0" style="height: 1.1in; border: none;">
+                                    <tr>
+                                        <td align="center" valign="middle" style="text-align: center; vertical-align: middle; border: none; padding: 0; font-size: 8pt; font-weight: bold; color: #666;">
+                                            2x2 PHOTO
+                                        </td>
+                                    </tr>
+                                </table>
+                            @endif
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
     </div>
 
-    <div class="doc-title">CERTIFICATE OF REGISTRATION</div>
-
-    {{-- STUDENT INFO (CLEAN LOOK - NO LINES) --}}
-    <table class="info-table">
-        <tr>
-            <td class="label">NAME:</td>
-            <td class="value uppercase">{{ $info['name'] }}</td>
-            <td class="label" style="padding-left: 15px;">LRN:</td>
-            <td class="value">{{ $info['lrn'] }}</td>
-        </tr>
-        <tr>
-            <td class="label">STRAND:</td>
-            <td class="value uppercase">{{ $info['strand'] }}</td>
-            <td class="label" style="padding-left: 15px;">GRADE/SEC:</td>
-            <td class="value uppercase">{{ $info['grade_section'] ?? 'N/A' }}</td>
-        </tr>
-        <tr>
-            <td class="label">SY:</td>
-            <td class="value">{{ $info['school_year'] }}</td>
-            <td class="label" style="padding-left: 15px;">SEMESTER:</td>
-            <td class="value uppercase">{{ $info['semester'] }}</td>
-        </tr>
-    </table>
-
-    {{-- SUBJECTS --}}
-    <div class="font-bold" style="margin-top: 10px; margin-bottom: 5px;">SUBJECT LOAD</div>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th width="15%">CODE</th>
-                <th width="45%">DESCRIPTION</th>
-                <th width="20%">SCHEDULE</th>
-                <th width="20%">INSTRUCTOR</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($subjects as $sub)
+    <div class="card-wrap">
+        <div class="card-header"><span style="font-family: Arial, Helvetica, sans-serif;">STUDENT INFORMATION</span></div>
+        <div class="card-body">
+            <table width="100%" cellpadding="3">
                 <tr>
-                    <td class="text-center font-bold">{{ $sub['code'] }}</td>
-                    <td>{{ $sub['desc'] }}</td>
-                    <td class="text-center">{{ $sub['sched'] }}</td>
-                    <td class="text-center">{{ $sub['teacher'] }}</td>
+                    <td width="33%">
+                        <div class="form-label">STUDENT NAME:</div>
+                        <div class="form-control read-only uppercase font-monospace">{{ $info['name'] }}</div>
+                    </td>
+                    <td width="33%">
+                        <div class="form-label">STRAND:</div>
+                        <div class="form-control read-only uppercase font-monospace">{{ $info['strand'] }}</div>
+                    </td>
+                    <td width="33%">
+                        <div class="form-label">LRN:</div>
+                        <div class="form-control read-only uppercase font-monospace">{{ $info['lrn'] }}</div>
+                    </td>
                 </tr>
-            @endforeach
-            @if(count($subjects) == 0)
-                <tr><td colspan="4" class="text-center">No subjects enlisted.</td></tr>
-            @endif
-        </tbody>
-    </table>
+                <tr>
+                    <td>
+                        <div class="form-label">SCHOOL YEAR & TERM:</div>
+                        <div class="form-control read-only uppercase font-monospace">{{ $info['school_year'] }} | {{ $info['term'] ?? $info['term'] }}</div>
+                    </td>
+                    <td>
+                        <div class="form-label">STUDENT NO.:</div>
+                        <div class="form-control read-only uppercase font-monospace">{{ $info['student_number'] }}</div>
+                    </td>
+                    <td>
+                        <div class="form-label">GRADE & SECTION:</div>
+                        <div class="form-control read-only uppercase font-monospace">{{ $info['grade_level'] }} - {{ $info['section_name'] }}</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
 
-    {{-- LAYOUT FOR FEES (Left) AND OR/SIGNATORIES (Right) --}}
-    <table style="margin-top: 10px;">
+    <div class="card-wrap">
+        <div class="card-header"><span style="font-family: Arial, Helvetica, sans-serif;">SUBJECT LOAD</span></div>
+        <div class="card-body" style="padding: 0;">
+            <table class="table-bordered">
+                <thead>
+                    <tr>
+                        <th width="20%">CODE</th>
+                        <th width="40%">DESCRIPTION</th>
+                        <th width="20%">SCHEDULE</th>
+                        <th width="20%">INSTRUCTOR</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($subjects as $sub)
+                    <tr>
+                        <td class="text-center font-bold font-monospace">{{ $sub['code'] }}</td>
+                        <td class="font-monospace">{{ $sub['desc'] }}</td>
+                        <td class="text-center font-monospace">{{ $sub['sched'] }}</td>
+                        <td class="text-center font-monospace">{{ $sub['teacher'] }}</td>
+                    </tr>
+                    @endforeach
+                    @if(count($subjects) == 0)
+                    <tr><td colspan="4" class="text-center text-muted font-monospace">No subjects enlisted.</td></tr>
+                    @endif
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 10px; border-collapse: collapse;">
         <tr>
-            {{-- LEFT COLUMN: FEES --}}
-            <td width="55%" style="vertical-align: top;">
-                <div class="font-bold" style="margin-bottom: 5px;">ASSESSMENT OF FEES</div>
-                <table class="data-table">
+            <td width="48.5%" class="card-header" style="border: 2px solid #000; border-bottom: 2px solid #000; text-align: left;">
+                <span style="font-family: Arial, Helvetica, sans-serif;">ASSESSMENT OF FEES</span>
+            </td>
+            <td width="3%" style="border: none;"></td>
+            <td width="48.5%" class="card-header" style="border: 2px solid #000; border-bottom: 2px solid #000; text-align: left;">
+                <span style="font-family: Arial, Helvetica, sans-serif;">ACADEMIC SIGNATORIES</span>
+            </td>
+        </tr>
+        
+        <tr>
+            <td width="48.5%" valign="top" style="border-left: 2px solid #000; border-right: 2px solid #000; padding: 8px 8px 0 8px; background: #fff;">
+                <table width="100%" cellpadding="2" style="margin-bottom: 5px;">
+                    @foreach($fees as $fee)
                     <tr>
-                        <td>Tuition Fee</td>
-                        <td class="text-right">{{ number_format((float)$fees['tuition'], 2) }}</td>
+                        <td width="65%">
+                            <div class="form-control uppercase font-monospace">{{ $fee['description'] }}</div>
+                        </td>
+                        <td width="35%">
+                            <div class="form-control text-right font-monospace">{{ number_format((float)$fee['amount'], 2) }}</div>
+                        </td>
                     </tr>
+                    @endforeach
                     <tr>
-                        <td>Miscellaneous Fee</td>
-                        <td class="text-right">{{ number_format((float)$fees['miscellaneous'], 2) }}</td>
-                    </tr>
-                    <tr>
-                        <td>Modules / Books</td>
-                        <td class="text-right">{{ number_format((float)$fees['books'], 2) }}</td>
-                    </tr>
-                    <tr style="background: #ddd; font-weight: bold;">
-                        <td>TOTAL ASSESSMENT</td>
-                        <td class="text-right">PHP {{ number_format((float)$fees['total'], 2) }}</td>
+                        <td class="font-bold font-monospace text-right" style="padding-top: 10px; padding-right: 5px;">TOTAL ASSESSMENT:</td>
+                        <td style="padding-top: 10px;">
+                            <div class="form-control text-danger text-right font-monospace" style="border: 2px solid #000; background: #fff;">
+                                PHP {{ number_format((float)$total_fees, 2) }}
+                            </div>
+                        </td>
                     </tr>
                 </table>
             </td>
-
-            <td width="5%"></td> {{-- Spacer --}}
-
-            {{-- RIGHT COLUMN: OR & SIGNATORIES --}}
-            <td width="40%" style="vertical-align: top; text-align: center;">
-                
-                {{-- OFFICIAL RECEIPT --}}
-                <div class="or-box">
-                    <div style="font-size: 10pt; font-weight: bold;">OFFICIAL RECEIPT NO.</div>
-                    <div style="font-size: 14pt; font-weight: bold; color: red; margin-top: 5px;">{{ $or_number }}</div>
+            <td width="3%" style="border: none;"></td>
+            <td width="48.5%" valign="top" style="border-left: 2px solid #000; border-right: 2px solid #000; padding: 8px 8px 0 8px; background: #fff;">
+                <div class="text-center" style="padding: 0 10px; margin-top: 40px;">
+                    <div class="form-control text-center uppercase font-monospace" style="border-top: 0; border-left: 0; border-right: 0; border-bottom: 2px solid #000; background: transparent;">{{ $signatories['adviser'] }}</div>
+                    <div class="form-label" style="margin-top: 4px;">CLASS ADVISER</div>
                 </div>
+            </td>
+        </tr>
 
-                {{-- SIGNATORIES (SPACED OUT) --}}
-                
-                {{-- 1. ADVISER --}}
-                <div class="sig-block">
-                    <div class="uppercase font-bold">{{ $signatories['adviser'] }}</div>
-                    <div class="sig-line"></div>
-                    <div class="sig-label">CLASS ADVISER</div>
+        <tr>
+            <td width="48.5%" valign="top" align="center" style="border-left: 2px solid #000; border-right: 2px solid #000; padding: 0 8px; background: #fff;">
+                <div class="text-center" style="margin-top: 2px; margin-bottom: 15px;">
+                    <div class="form-label text-danger">ASSESSMENT NO.</div>
+                    <div class="form-control text-danger text-center font-monospace" style="font-size: 12pt; padding: 6px;">{{ $or_number }}</div>
+                    <div class="text-muted font-monospace" style="font-size: 6.5pt; font-style: italic; margin-top: 3px;">
+                        This is a registration and assessment form only, not an official receipt.
+                    </div>
                 </div>
-
-                {{-- 2. REGISTRAR --}}
-                <div class="sig-block">
-                    <div class="uppercase font-bold">{{ $signatories['registrar'] }}</div>
-                    <div class="sig-line"></div>
-                    <div class="sig-label">SCHOOL REGISTRAR</div>
+            </td>
+            <td width="3%" style="border: none;"></td>
+            <td width="48.5%" valign="middle" align="center" style="border-left: 2px solid #000; border-right: 2px solid #000; padding: 4px 8px; background: #fff;">
+                <div class="text-center" style="margin: 5px auto 15px auto;">
+                    <span style="font-family: 'Times New Roman', serif; font-size: 16pt; font-weight: bold; opacity: 0.15; text-transform: uppercase; color: #000;">HOLY FACE SEALED</span>
                 </div>
+            </td>
+        </tr>
 
-                {{-- 3. FINANCE --}}
-                <div class="sig-block">
-                    <div class="uppercase font-bold">{{ $signatories['finance'] }}</div>
-                    <div class="sig-line"></div>
-                    <div class="sig-label">FINANCE OFFICER</div>
+        <tr>
+            <td width="48.5%" valign="bottom" style="border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 2px solid #000; padding: 0 8px 15px 8px; background: #fff;">
+                <div class="text-center" style="margin-top: 50px; padding: 0 10px;">
+                    <div class="form-control text-center uppercase font-monospace" style="border-top: 0; border-left: 0; border-right: 0; border-bottom: 2px solid #000; background: transparent;">{{ $signatories['finance'] }}</div>
+                    <div class="form-label" style="margin-top: 4px;">FINANCE OFFICER</div>
+                </div>
+            </td>
+            <td width="3%" style="border: none;"></td>
+            <td width="48.5%" valign="bottom" style="border-left: 2px solid #000; border-right: 2px solid #000; border-bottom: 2px solid #000; padding: 0 8px 15px 8px; background: #fff;">
+                <div class="text-center" style="margin-top: 50px; padding: 0 10px;">
+                    <div class="form-control text-center uppercase font-monospace" style="border-top: 0; border-left: 0; border-right: 0; border-bottom: 2px solid #000; background: transparent;">{{ $signatories['registrar'] }}</div>
+                    <div class="form-label" style="margin-top: 4px;">SCHOOL REGISTRAR</div>
                 </div>
             </td>
         </tr>
     </table>
 
-    {{-- FOOTER WITH REPUBLIC ACT & ADVISORY --}}
-    <div class="footer">
-        This document is a system-generated report and serves as an official proof of enrollment.<br>
-        Any alteration, erasure, or tampering of this document is punishable under <br>
-        <strong>Republic Act No. 10175 (Cybercrime Prevention Act of 2012)</strong> and <strong>Article 172 of the Revised Penal Code</strong>.<br>
-        <br>
-        <strong>VALID ONLY WITH SIGNATURES AND SCHOOL DRY SEAL</strong><br>
-        Printed by: {{ $printed_by }} | Date: {{ $printed_at }}
+    @php
+        $selectedCat = $category ?? '';
+        $isGrade12ThirdTerm = str_contains((string)($info['grade_level'] ?? ''), '12') && str_contains(strtolower((string)($info['term'] ?? $info['term'] ?? '')), '3');
+    @endphp
+    @if($isGrade12ThirdTerm)
+    <div class="card-wrap">
+        <div class="card-header"><span style="font-family: Arial, Helvetica, sans-serif;">CATEGORY / FUTURE TRACK</span></div>
+        <div class="card-body">
+            <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td width="25%" class="font-monospace" style="font-size: 7.5pt; vertical-align: middle; padding: 4px;">
+                        <span class="chk-box">{{ $selectedCat == 'Pursuing Higher Education' ? 'X' : '' }}</span><span style="vertical-align: middle;">Pursuing Higher Education</span>
+                    </td>
+                    <td width="25%" class="font-monospace" style="font-size: 7.5pt; vertical-align: middle; padding: 4px;">
+                        <span class="chk-box">{{ $selectedCat == 'Pursuing Advance TVL' ? 'X' : '' }}</span><span style="vertical-align: middle;">Pursuing Advance TVL</span>
+                    </td>
+                    <td width="25%" class="font-monospace" style="font-size: 7.5pt; vertical-align: middle; padding: 4px;">
+                        <span class="chk-box">{{ $selectedCat == 'Work or Employment' ? 'X' : '' }}</span><span style="vertical-align: middle;">Work or Employment</span>
+                    </td>
+                    <td width="25%" class="font-monospace" style="font-size: 7.5pt; vertical-align: middle; padding: 4px;">
+                        <span class="chk-box">{{ $selectedCat == 'Start a Business' ? 'X' : '' }}</span><span style="vertical-align: middle;">Start a Business</span>
+                    </td>
+                </tr>
+                @if($selectedCat == 'Pursuing Higher Education')
+                <tr>
+                    <td colspan="4" style="padding: 8px 4px 4px 4px;">
+                        <div class="form-label">COURSE TO BE TAKEN:</div>
+                        <div class="form-control read-only uppercase font-monospace">{{ $course ?? '' }}</div>
+                    </td>
+                </tr>
+                @endif
+            </table>
+        </div>
     </div>
+    @endif
+
+    <div class="footer font-monospace" style="margin-bottom: 10px;">
+        <div style="font-weight: bold; font-size: 7.5pt; font-style: italic;">VALID ONLY WITH SIGNATURES AND SCHOOL DRY SEAL.</div>
+        <div class="text-muted" style="font-size: 6.5pt; margin-top: 2px; font-style: italic;">
+            Any alteration or forgery of this document is strictly prohibited and punishable by law under Article 172 of the Revised Penal Code (Falsification of Public/Official Documents) and Republic Act No. 10175.
+        </div>
+    </div>
+
+    <div style="text-align: center; margin: 15px 0;">
+        <div style="border-top: 1px dashed #000; position: relative; top: 8px;"></div>
+        <span style="background: #fff; padding: 0 10px; font-size: 8pt; font-weight: bold; font-family: 'Courier New', Courier, monospace; color: #6c757d; position: relative; z-index: 2;">&#9988; CUT HERE</span>
+    </div>
+
+    <div class="card-wrap" style="margin-bottom: 5px;">
+        <div class="card-header bg-dark text-white" style="background-color: #343a40; color: #fff;"><span style="font-family: Arial, Helvetica, sans-serif;">PULL-OUT AGREEMENT</span></div>
+        <div class="card-body" style="padding: 8px 10px;">
+            <p style="text-align: justify; font-size: 8pt; line-height: 1.3; margin-top: 0; margin-bottom: 6px; font-family: 'Courier New', Courier, monospace; color: #6c757d;">
+                I understand that upon signing this Certificate of Registration, the student is officially enrolled. Should I decide to pull out or cancel the enrollment at any given time, I agree to pay the penalty fee of <strong class="text-danger" style="color: #dc3545;">PHP 500.00</strong> and abide by the school's strict policies regarding tuition refunds and the release of transfer credentials.
+            </p>
+            <table width="100%" cellpadding="5" style="margin-top: 40px;">
+                <tr>
+                    <td width="50%" align="center">
+                        <div class="form-control text-center uppercase read-only font-monospace" style="border-top: 0; border-left: 0; border-right: 0; border-bottom: 2px solid #000; background: transparent;">{{ $terms['parent_name'] ?? '' }}</div>
+                        <div class="form-label text-center" style="margin-top: 4px;">PARENT / GUARDIAN SIGNATURE</div>
+                    </td>
+                    <td width="50%" align="center">
+                        <div class="form-control text-center uppercase read-only font-monospace" style="border-top: 0; border-left: 0; border-right: 0; border-bottom: 2px solid #000; background: transparent;">{{ $terms['student_name'] ?? '' }}</div>
+                        <div class="form-label text-center" style="margin-top: 4px;">STUDENT SIGNATURE</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <div class="font-monospace text-muted text-center" style="font-size: 7.5pt; font-style: italic; margin-top: 5px;">
+        School Year: {{ $info['school_year'] ?? 'N/A' }} | Term: {{ $info['term'] ?? $info['term'] ?? 'N/A' }} | Date &amp; Time: {{ $printed_at ?? now()->format('F d, Y h:i A') }}
+    </div>
+
 </body>
 </html>

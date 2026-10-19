@@ -270,12 +270,52 @@ export default function StudentModal({
                 date_of_birth: value,
                 age: calculateAge(value),
             });
+        } else if (name === "grade_level" && value === "11") {
+            setFormData((prev) => ({
+                ...prev,
+                [name]: value,
+                requirements: {
+                    ...prev.requirements,
+                    saf_annex_e_g12: false,
+                },
+            }));
         } else {
             setFormData({ ...formData, [name]: value });
         }
     };
 
     const handleFileChange = (reqId, file) => {
+        if (!file) return;
+
+        const allowedTypes = [
+            "application/pdf",
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+        ];
+        if (!allowedTypes.includes(file.type)) {
+            Toast.fire({
+                icon: "warning",
+                title: "Invalid file type! Please upload PDF, JPG, JPEG, or PNG only.",
+            });
+            const fileInput = document.getElementById(`file_${reqId}`);
+            if (fileInput) fileInput.value = "";
+            return;
+        }
+
+        const MAX_FILE_SIZE_MB = 2; // 2MB
+        const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            Toast.fire({
+                icon: "warning",
+                title: `File is too large! Maximum allowed size is ${MAX_FILE_SIZE_MB}MB.`,
+            });
+            const fileInput = document.getElementById(`file_${reqId}`);
+            if (fileInput) fileInput.value = "";
+            return;
+        }
+
         setFormData((prev) => ({
             ...prev,
             files: { ...prev.files, [reqId]: file },
@@ -481,7 +521,7 @@ export default function StudentModal({
     };
 
     const Label = ({ icon, text, required = false }) => (
-        <label className="form-label fw-bold small mb-1 font-monospace text-uppercase text-muted text-nowrap d-flex justify-content-between w-100">
+        <label className="form-label fw-bold small mb-1 font-monospace text-uppercase text-nowrap d-flex justify-content-between w-100">
             <span>
                 <i className={`bi ${icon} me-1`}></i> {text}{" "}
                 {required && <span className="text-danger ms-1">*</span>}
@@ -626,6 +666,20 @@ export default function StudentModal({
                                         status is marked as Enrolled. You may
                                         also assign it manually.
                                     </li>
+                                    <li>
+                                        <strong>File Uploads:</strong> Accepted
+                                        file types are PDF, JPG, JPEG, and PNG.
+                                        The maximum file size allowed is{" "}
+                                        <strong>2MB per document</strong>.
+                                    </li>
+                                    <li>
+                                        <strong>Removing Files:</strong>{" "}
+                                        Clicking the{" "}
+                                        <i className="bi bi-trash text-danger mx-1"></i>{" "}
+                                        (trash icon) on an existing document
+                                        will permanently delete the file upon
+                                        saving the form.
+                                    </li>
                                 </ul>
                             </div>
 
@@ -648,7 +702,7 @@ export default function StudentModal({
                                             <div className="row g-2">
                                                 <div className="col-md-4 col-lg">
                                                     <Label
-                                                        icon="bi-person"
+                                                        icon="bi-person-bounding-box"
                                                         text="FIRST NAME"
                                                         required
                                                     />
@@ -667,7 +721,7 @@ export default function StudentModal({
                                                 </div>
                                                 <div className="col-md-4 col-lg">
                                                     <Label
-                                                        icon="bi-person"
+                                                        icon="bi-person-bounding-box"
                                                         text="MIDDLE NAME"
                                                     />
                                                     <input
@@ -684,7 +738,7 @@ export default function StudentModal({
                                                 </div>
                                                 <div className="col-md-4 col-lg">
                                                     <Label
-                                                        icon="bi-person"
+                                                        icon="bi-person-bounding-box"
                                                         text="LAST NAME"
                                                         required
                                                     />
@@ -703,7 +757,7 @@ export default function StudentModal({
                                                 </div>
                                                 <div className="col-md-3 col-lg-2">
                                                     <Label
-                                                        icon="bi-hash"
+                                                        icon="bi-person-badge"
                                                         text="SUFFIX"
                                                     />
                                                     <input
@@ -721,7 +775,7 @@ export default function StudentModal({
 
                                         <div className="col-md-3">
                                             <Label
-                                                icon="bi-calendar-event"
+                                                icon="bi-calendar-event-fill"
                                                 text="BIRTH DATE"
                                                 required
                                             />
@@ -773,7 +827,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-4">
                                             <Label
-                                                icon="bi-heart"
+                                                icon="bi-heart-fill"
                                                 text="CIVIL STATUS"
                                                 required
                                             />
@@ -819,7 +873,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-4">
                                             <Label
-                                                icon="bi-bookmark-heart"
+                                                icon="bi-bookmark-heart-fill"
                                                 text="RELIGION"
                                                 required
                                             />
@@ -836,7 +890,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-4">
                                             <Label
-                                                icon="bi-hospital"
+                                                icon="bi-hospital-fill"
                                                 text="PLACE OF BIRTH"
                                                 required
                                             />
@@ -854,7 +908,7 @@ export default function StudentModal({
 
                                         <div className="col-md-12">
                                             <Label
-                                                icon="bi-house"
+                                                icon="bi-house-fill"
                                                 text="HOME ADDRESS"
                                                 required
                                             />
@@ -871,7 +925,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-12">
                                             <Label
-                                                icon="bi-map"
+                                                icon="bi-map-fill"
                                                 text="PROVINCIAL ADDRESS"
                                             />
                                             <input
@@ -901,7 +955,7 @@ export default function StudentModal({
 
                                         <div className="col-md-6">
                                             <Label
-                                                icon="bi-envelope"
+                                                icon="bi-envelope-at-fill"
                                                 text="EMAIL ADDRESS"
                                                 required
                                             />
@@ -918,7 +972,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-6">
                                             <Label
-                                                icon="bi-phone"
+                                                icon="bi-telephone-fill"
                                                 text="CONTACT NO."
                                                 required
                                             />
@@ -955,7 +1009,7 @@ export default function StudentModal({
 
                                         <div className="col-md-6">
                                             <Label
-                                                icon="bi-building"
+                                                icon="bi-building-fill"
                                                 text="EMPLOYER NAME"
                                             />
                                             <input
@@ -970,7 +1024,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-6">
                                             <Label
-                                                icon="bi-telephone"
+                                                icon="bi-telephone-fill"
                                                 text="EMPLOYER CONTACT"
                                             />
                                             <input
@@ -1007,7 +1061,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-6">
                                             <Label
-                                                icon="bi-person"
+                                                icon="bi-person-badge"
                                                 text="FULL NAME"
                                             />
                                             <input
@@ -1022,7 +1076,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-3">
                                             <Label
-                                                icon="bi-briefcase"
+                                                icon="bi-briefcase-fill"
                                                 text="OCCUPATION"
                                             />
                                             <input
@@ -1039,7 +1093,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-3">
                                             <Label
-                                                icon="bi-telephone"
+                                                icon="bi-telephone-fill"
                                                 text="CONTACT NO."
                                             />
                                             <input
@@ -1062,7 +1116,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-6">
                                             <Label
-                                                icon="bi-person"
+                                                icon="bi-person-badge"
                                                 text="FULL NAME"
                                             />
                                             <input
@@ -1077,7 +1131,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-3">
                                             <Label
-                                                icon="bi-briefcase"
+                                                icon="bi-briefcase-fill"
                                                 text="OCCUPATION"
                                             />
                                             <input
@@ -1094,7 +1148,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-3">
                                             <Label
-                                                icon="bi-telephone"
+                                                icon="bi-telephone-fill"
                                                 text="CONTACT NO."
                                             />
                                             <input
@@ -1120,7 +1174,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-6">
                                             <Label
-                                                icon="bi-person-check"
+                                                icon="bi-person-check-fill"
                                                 text="FULL NAME"
                                                 required
                                             />
@@ -1137,7 +1191,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-3">
                                             <Label
-                                                icon="bi-briefcase"
+                                                icon="bi-briefcase-fill"
                                                 text="OCCUPATION"
                                                 required
                                             />
@@ -1156,7 +1210,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-3">
                                             <Label
-                                                icon="bi-telephone"
+                                                icon="bi-telephone-fill"
                                                 text="CONTACT NO."
                                                 required
                                             />
@@ -1190,7 +1244,7 @@ export default function StudentModal({
 
                                         <div className="col-md-9">
                                             <Label
-                                                icon="bi-building"
+                                                icon="bi-building-fill"
                                                 text="PREVIOUS SCHOOL"
                                                 required
                                             />
@@ -1209,7 +1263,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-3">
                                             <Label
-                                                icon="bi-bar-chart"
+                                                icon="bi-bar-chart-fill"
                                                 text="GEN. AVERAGE"
                                             />
                                             <input
@@ -1228,7 +1282,7 @@ export default function StudentModal({
 
                                         <div className="col-md-4">
                                             <Label
-                                                icon="bi-calendar-date"
+                                                icon="bi-calendar-date-fill"
                                                 text="SCHOOL YEAR"
                                                 required
                                             />
@@ -1245,7 +1299,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-4">
                                             <Label
-                                                icon="bi-clock"
+                                                icon="bi-clock-fill"
                                                 text="TERM"
                                                 required
                                             />
@@ -1270,7 +1324,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-4">
                                             <Label
-                                                icon="bi-laptop"
+                                                icon="bi-laptop-fill"
                                                 text="LEARNING MODALITY"
                                                 required
                                             />
@@ -1344,7 +1398,7 @@ export default function StudentModal({
                                         </div>
                                         <div className="col-md-4">
                                             <Label
-                                                icon="bi-diagram-3"
+                                                icon="bi-diagram-3-fill"
                                                 text="SECTION"
                                             />
                                             <select
@@ -1520,7 +1574,9 @@ export default function StudentModal({
                                                         className="col-md-4"
                                                         key={req.id}
                                                     >
-                                                        <div className="form-check p-2 border border-dark bg-white d-inline-block w-100 shadow-sm">
+                                                        <div
+                                                            className={`form-check p-2 border border-dark d-inline-block w-100 shadow-sm ${req.id === "saf_annex_e_g12" && formData.grade_level === "11" ? "bg-light opacity-50" : "bg-white"}`}
+                                                        >
                                                             <input
                                                                 className="form-check-input ms-2 border-dark cursor-pointer"
                                                                 type="checkbox"
@@ -1540,7 +1596,11 @@ export default function StudentModal({
                                                                         "scale(1.2)",
                                                                 }}
                                                                 disabled={
-                                                                    isLoading
+                                                                    isLoading ||
+                                                                    (req.id ===
+                                                                        "saf_annex_e_g12" &&
+                                                                        formData.grade_level ===
+                                                                            "11")
                                                                 }
                                                             />
                                                             <label

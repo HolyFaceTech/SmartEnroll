@@ -25,7 +25,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import Settings from "./pages/head/Setting";
 
 // Admin & Head Shared
-import Users from "./pages/admin_head/Users";
+import AdminHeadUsers from "./pages/admin_head/Users";
 
 // Head & Staff Shared
 import HeadStaffStrands from "./pages/head_staff/Strands";
@@ -103,7 +103,7 @@ function App() {
                     />
                     <Route
                         path="users"
-                        element={<Users title="User Records" />}
+                        element={<AdminHeadUsers title="User Records" />}
                     />
                     <Route
                         path="keeps"
@@ -151,7 +151,7 @@ function App() {
                     />
                     <Route
                         path="users"
-                        element={<Users title="User Records" />}
+                        element={<AdminHeadUsers title="User Records" />}
                     />
                     <Route
                         path="students"

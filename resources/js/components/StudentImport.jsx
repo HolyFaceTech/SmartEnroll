@@ -33,13 +33,13 @@ export default function StudentImport({ show, onClose, onSuccess }) {
         if (fileInputRef.current) fileInputRef.current.value = null;
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!file)
+    const handleConfirmImportClick = () => {
+        if (!file) {
             return Toast.fire({
                 icon: "warning",
                 title: "Please select a CSV file first.",
             });
+        }
 
         setConfirmConfig({
             show: true,
@@ -115,6 +115,7 @@ export default function StudentImport({ show, onClose, onSuccess }) {
                                 disabled={isLoading}
                             ></button>
                         </div>
+
                         <div className="modal-body bg-light p-4">
                             <div className="alert bg-white border border-dark border-2 text-start p-3 mb-4 rounded-0 shadow-sm">
                                 <h6 className="fw-bold font-monospace mb-2 text-danger">
@@ -168,10 +169,7 @@ export default function StudentImport({ show, onClose, onSuccess }) {
                                 </div>
                             </div>
 
-                            <form
-                                onSubmit={handleSubmit}
-                                className="mt-2 text-center"
-                            >
+                            <div className="mt-2 text-center">
                                 {!file && (
                                     <div
                                         className="p-4 mb-3 position-relative rounded-0"
@@ -244,27 +242,27 @@ export default function StudentImport({ show, onClose, onSuccess }) {
                                         )}
                                     </div>
                                 )}
+                            </div>
+                        </div>
 
-                                <div className="d-flex justify-content-center gap-2 pt-3 border-top border-dark">
-                                    <button
-                                        type="button"
-                                        className="btn btn-dark fw-bold px-4 btn-press-retro"
-                                        onClick={onClose}
-                                        disabled={isLoading}
-                                    >
-                                        CANCEL
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="btn border-dark border-2 fw-bold px-4 btn-press-retro text-dark d-flex align-items-center"
-                                        style={{ backgroundColor: "#55efc4" }}
-                                        disabled={isLoading || !file}
-                                    >
-                                        <i className="bi bi-upload me-2"></i>{" "}
-                                        UPLOAD & IMPORT
-                                    </button>
-                                </div>
-                            </form>
+                        <div className="modal-footer bg-light border-top border-dark p-3 d-flex justify-content-end">
+                            <button
+                                type="button"
+                                className="btn btn-dark fw-bold px-4 btn-press-retro"
+                                onClick={onClose}
+                                disabled={isLoading}
+                            >
+                                CANCEL
+                            </button>
+                            <button
+                                type="button"
+                                className="btn border-2 border-dark fw-bold px-4 btn-press-retro d-flex align-items-center"
+                                style={{ backgroundColor: "#55efc4" }}
+                                onClick={handleConfirmImportClick}
+                                disabled={isLoading || !file}
+                            >
+                                UPLOAD & IMPORT
+                            </button>
                         </div>
                     </div>
                 </div>

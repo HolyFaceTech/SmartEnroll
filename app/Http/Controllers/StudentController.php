@@ -116,7 +116,7 @@ class StudentController extends Controller
                 'guardian_contact' => 'required|digits:11',
                 'grade_level' => 'required|in:11,12',
                 'term' => 'required|in:1st,2nd,3rd',
-                'school_year' => 'required|string',
+                'school_year' => ['required', 'string', 'regex:/^\d{4}-\d{4}$/'],
                 'learning_modality' => 'required|in:Face-to-Face,Modular',
                 'general_average' => 'nullable|numeric|min:75|max:100',
 
@@ -135,6 +135,14 @@ class StudentController extends Controller
                     return response()->json([
                         'errors' => [
                             'status' => ['A student can only be marked as GRADUATE if their Grade Level is 12 and Term is 3rd.'],
+                        ],
+                    ], 422);
+                }
+
+                if ($finalStatus === 'enrolled' && empty($request->section_id)) {
+                    return response()->json([
+                        'errors' => [
+                            'status' => ['Cannot set status to ENROLLED. Please assign a section first.'],
                         ],
                     ], 422);
                 }
@@ -267,7 +275,7 @@ class StudentController extends Controller
                 'guardian_contact' => 'required|digits:11',
                 'grade_level' => 'required|in:11,12',
                 'term' => 'required|in:1st,2nd,3rd',
-                'school_year' => 'required|string',
+                'school_year' => ['required', 'string', 'regex:/^\d{4}-\d{4}$/'],
                 'learning_modality' => 'required|in:Face-to-Face,Modular',
                 'general_average' => 'nullable|numeric|min:75|max:100',
 
@@ -290,6 +298,14 @@ class StudentController extends Controller
                     return response()->json([
                         'errors' => [
                             'status' => ['A student can only be marked as GRADUATE if their Grade Level is 12 and Term is 3rd.'],
+                        ],
+                    ], 422);
+                }
+
+                if ($finalStatus === 'enrolled' && empty($request->section_id)) {
+                    return response()->json([
+                        'errors' => [
+                            'status' => ['Cannot set status to ENROLLED. Please assign a section first.'],
                         ],
                     ], 422);
                 }
@@ -340,7 +356,7 @@ class StudentController extends Controller
                 $student->fill(array_merge($request->only(['lrn', 'first_name', 'last_name', 'middle_name', 'suffix', 'email', 'contact_number']), $studentUpdateData));
 
                 foreach ($student->getDirty() as $key => $newValue) {
-                    if (! in_array($key, ['updated_at', 'released_by', 'released_at', 'previous_status'])) { // Added previous_status here to prevent showing in email
+                    if (! in_array($key, ['updated_at', 'released_by', 'released_at', 'previous_status'])) {
                         $changesArray[$key] = [
                             'old' => $student->getOriginal($key) ?? 'None',
                             'new' => $newValue ?? 'None',
@@ -588,6 +604,12 @@ class StudentController extends Controller
                     ], 422);
                 }
 
+                if ($newStatus === 'enrolled' && empty($student->academic->section_id)) {
+                    return response()->json([
+                        'message' => 'Cannot set status to ENROLLED. Please assign a section to this student first by editing their record.',
+                    ], 422);
+                }
+
                 if ($newStatus === 'enrolled' && $student->academic->section_id) {
                     $section = Section::where('id', $student->academic->section_id)->lockForUpdate()->first();
                     if ($section && $section->students()->where('status', 'enrolled')->count() >= $section->capacity) {
@@ -695,7 +717,10 @@ class StudentController extends Controller
                     }
                 }
 
-                return response()->json(['message' => 'Status updated successfully.']);
+                return response()->json([
+                    'message' => 'Status updated successfully.',
+                    'new_status' => $newStatus,
+                ]);
             });
 
         } catch (\Throwable $e) {
@@ -772,7 +797,7 @@ class StudentController extends Controller
             $this->checkAccess(Auth::user());
 
             $request->validate([
-                'file' => 'required|file|mimes:csv,txt|max:2048',
+                'file' => 'required|file|mimes:csv|max:2048',
             ]);
 
             $file = $request->file('file');
@@ -834,6 +859,7 @@ class StudentController extends Controller
                         'date_of_birth' => 'required|date',
                         'gender' => 'required|in:Male,Female',
                         'grade_level' => 'required|in:11,12',
+                        'school_year' => ['required', 'string', 'regex:/^\d{4}-\d{4}$/'],
                         'term' => 'required|in:1st,2nd,3rd',
                         'learning_modality' => 'required|in:Face-to-Face,Modular',
                         'general_average' => 'nullable|numeric|min:75|max:100',
@@ -846,6 +872,10 @@ class StudentController extends Controller
 
                     if ($validator->fails()) {
                         throw new \Exception("Row {$rowNumber}: ".implode(', ', $validator->errors()->all()));
+                    }
+
+                    if ($data['status'] === 'enrolled' && empty($data['section_name'])) {
+                        throw new \Exception("Row {$rowNumber}: Cannot set status to ENROLLED because the 'section_name' column is empty.");
                     }
 
                     // Map Strand Code and Section Name
