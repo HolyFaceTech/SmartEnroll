@@ -38,7 +38,7 @@ Route::group(['prefix' => 'public'], function () {
     Route::post('/enroll-old/{id}', [PublicEnrollmentController::class, 'enrollOld']);
 });
 
-// Authentication
+/** Authentication */
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/email/resend', [AuthController::class, 'resendVerification']);
 Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail']);
@@ -175,6 +175,6 @@ Route::get('/download/section-masterlist/{section}', [SectionController::class, 
     ->name('section.masterlist.download')
     ->middleware('signed');
 
-// emails
+/** Email Verification */
 Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
     ->name('verification.verify.api');

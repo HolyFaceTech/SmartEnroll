@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 
 class VerificationController extends Controller
 {
+    /** Verify Account */
     public function verify(Request $request, $id, $hash)
     {
         try {

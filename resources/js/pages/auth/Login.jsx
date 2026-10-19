@@ -172,8 +172,8 @@ export default function Login() {
                 <form onSubmit={handleLogin}>
                     <div className="mb-3">
                         <label className="fw-bold small mb-1 font-monospace">
-                            <i className="bi bi-envelope-fill me-1"></i> EMAIL
-                            ADDRESS <span className="text-danger">*</span>
+                            <i className="bi bi-envelope-at-fill me-1"></i>{" "}
+                            EMAIL ADDRESS <span className="text-danger">*</span>
                         </label>
                         <input
                             type="email"
@@ -188,7 +188,7 @@ export default function Login() {
 
                     <div className="mb-3">
                         <label className="fw-bold small mb-1 font-monospace">
-                            <i className="bi bi-lock-fill me-1"></i> PASSWORD{" "}
+                            <i className="bi bi-key-fill me-1"></i> PASSWORD{" "}
                             <span className="text-danger">*</span>
                         </label>
                         <div className="position-relative">
@@ -255,7 +255,7 @@ export default function Login() {
 
                     <button
                         type="submit"
-                        className="btn btn-retro w-100 py-3 mb-3 font-monospace fw-bold"
+                        className="btn btn-retro btn-press-retro border-2 border-dark fw-bold w-100 py-3 mb-3 font-monospace"
                         disabled={isLoading}
                     >
                         ACCESS PORTAL
@@ -272,13 +272,12 @@ export default function Login() {
                             <i className="bi bi-file-earmark-text-fill"></i>{" "}
                             Terms & Policy
                         </button>
-                        <span className="text-muted small">|</span>
                         <button
                             className="btn btn-link text-primary text-decoration-none small fw-black p-0 d-flex align-items-center gap-1"
                             onClick={() => setShowHelp(true)}
                             disabled={isLoading}
                         >
-                            <i className="bi bi-question-circle-fill"></i> Help
+                            <i className="bi bi-question-circle-fill"></i>
                         </button>
                     </div>
                     <p className="small text-muted mt-1 mb-0">

@@ -62,7 +62,7 @@ export default function Verify() {
 
                     <button
                         onClick={handleResend}
-                        className="btn btn-retro w-100 py-3 mb-3 font-monospace fw-bold"
+                        className="btn btn-retro btn-press-retro border-2 border-dark fw-bold w-100 py-3 mb-3 font-monospace"
                         disabled={isResending}
                     >
                         RESEND VERIFICATION LINK

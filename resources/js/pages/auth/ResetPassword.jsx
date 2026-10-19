@@ -147,8 +147,8 @@ export default function ResetPassword() {
                 <form onSubmit={handleReset}>
                     <div className="mb-3">
                         <label className="fw-bold small mb-1 font-monospace">
-                            <i className="bi bi-envelope-fill me-1"></i> EMAIL
-                            ADDRESS
+                            <i className="bi bi-envelope-at-fill me-1"></i>{" "}
+                            EMAIL ADDRESS
                         </label>
                         <input
                             type="email"
@@ -162,7 +162,7 @@ export default function ResetPassword() {
                     <div className="mb-2">
                         <label className="fw-bold small mb-1 font-monospace d-flex justify-content-between">
                             <span>
-                                <i className="bi bi-lock-fill me-1"></i> NEW
+                                <i className="bi bi-key-fill me-1"></i> NEW
                                 PASSWORD <span className="text-danger">*</span>
                             </span>
                             {password && (
@@ -214,7 +214,7 @@ export default function ResetPassword() {
 
                     <div className="mb-4">
                         <label className="fw-bold small mb-1 font-monospace">
-                            <i className="bi bi-lock-fill me-1"></i> CONFIRM
+                            <i className="bi bi-key-fill me-1"></i> CONFIRM
                             PASSWORD <span className="text-danger">*</span>
                         </label>
                         <div className="position-relative">
@@ -251,7 +251,7 @@ export default function ResetPassword() {
 
                     <button
                         type="submit"
-                        className="btn btn-retro w-100 py-3 mt-2 font-monospace fw-bold"
+                        className="btn btn-retro btn-press-retro border-2 border-dark fw-bold w-100 py-3 font-monospace"
                         disabled={isLoading}
                     >
                         UPDATE PASSWORD

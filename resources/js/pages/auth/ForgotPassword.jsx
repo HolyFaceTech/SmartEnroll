@@ -89,7 +89,7 @@ export default function ForgotPassword() {
                 <form onSubmit={handleSubmit}>
                     <div className="mb-3">
                         <label className="fw-bold small mb-1 font-monospace">
-                            <i className="bi bi-envelope-fill me-1"></i>{" "}
+                            <i className="bi bi-envelope-at-fill me-1"></i>{" "}
                             REGISTERED EMAIL{" "}
                             <span className="text-danger">*</span>
                         </label>
@@ -113,7 +113,7 @@ export default function ForgotPassword() {
 
                     <button
                         type="submit"
-                        className="btn btn-retro w-100 py-3 font-monospace fw-bold"
+                        className="btn btn-retro btn-press-retro border-2 border-dark fw-bold w-100 py-3 font-monospace"
                         disabled={isLoading}
                     >
                         SEND RESET LINK

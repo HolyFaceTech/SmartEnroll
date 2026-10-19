@@ -16,7 +16,7 @@ use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
 {
-    // login
+    /** Log-in */
     public function login(Request $request)
     {
         $request->validate([
@@ -94,7 +94,7 @@ class AuthController extends Controller
         }
     }
 
-    // logout
+    /** Log-out */
     public function logout(Request $request)
     {
         try {
@@ -118,7 +118,7 @@ class AuthController extends Controller
         }
     }
 
-    // forgot password
+    /** Forgot Password */
     public function sendResetLinkEmail(Request $request)
     {
         $request->validate([
@@ -177,7 +177,7 @@ class AuthController extends Controller
         }
     }
 
-    // reset password
+    /** Reset Password */
     public function resetPassword(Request $request)
     {
         $request->validate([
@@ -233,7 +233,7 @@ class AuthController extends Controller
         }
     }
 
-    // resend verification
+    /** Verification */
     public function resendVerification(Request $request)
     {
         $request->validate(['email' => 'required|email']);
