@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 class StrandController extends Controller
 {
-    // security
+    /** Security Role */
     private function checkAccess($authUser)
     {
         if (! in_array($authUser->role, ['head', 'staff'])) {
@@ -22,7 +22,7 @@ class StrandController extends Controller
         }
     }
 
-    // read
+    /** Data Cards */
     public function index(Request $request)
     {
         try {
@@ -55,7 +55,7 @@ class StrandController extends Controller
         }
     }
 
-    // create
+    /** Create */
     public function store(Request $request)
     {
         try {
@@ -90,7 +90,7 @@ class StrandController extends Controller
         }
     }
 
-    // update
+    /** Update */
     public function update(Request $request, $id)
     {
         try {
@@ -131,7 +131,7 @@ class StrandController extends Controller
         }
     }
 
-    // single delete
+    /** Single Delete */
     public function destroy($id)
     {
         try {
@@ -163,7 +163,7 @@ class StrandController extends Controller
         }
     }
 
-    // Bulk Delete
+    /** Bulk Delete */
     public function bulkDelete(Request $request)
     {
         try {
@@ -201,7 +201,7 @@ class StrandController extends Controller
         }
     }
 
-    // export CSV
+    /** Export CSV Master List */
     public function exportCsv(Request $request)
     {
         try {
@@ -239,7 +239,7 @@ class StrandController extends Controller
         }
     }
 
-    // export PDF
+    /** Export PDF Master List View */
     public function exportPdf(Request $request)
     {
         try {
@@ -300,7 +300,7 @@ class StrandController extends Controller
         }
     }
 
-    // download PDF
+    /** Download PDF Master List */
     public function downloadStrandMasterlist(Request $request, $id)
     {
         if (! $request->hasValidSignature()) {

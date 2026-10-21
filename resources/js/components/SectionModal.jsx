@@ -177,7 +177,7 @@ export default function SectionModal({
                                                 type="text"
                                                 name="name"
                                                 className="form-control border-dark fw-bold text-uppercase"
-                                                placeholder="e.g. EINSTEIN"
+                                                placeholder="e.g., EINSTEIN"
                                                 value={formData.name}
                                                 onChange={handleChange}
                                                 required
@@ -202,7 +202,7 @@ export default function SectionModal({
                                                 disabled={isLoading}
                                             >
                                                 <option value="">
-                                                    Select Strand
+                                                    -- Select Strand --
                                                 </option>
                                                 {strands.map((strand) => (
                                                     <option
@@ -281,7 +281,7 @@ export default function SectionModal({
                                         disabled={isLoading}
                                     >
                                         {type === "create"
-                                            ? "CREATE SECTION"
+                                            ? "SUBMIT"
                                             : "SAVE CHANGES"}
                                     </button>
                                 </div>

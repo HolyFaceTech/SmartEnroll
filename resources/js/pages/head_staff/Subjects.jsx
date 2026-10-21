@@ -265,7 +265,7 @@ export default function Subjects({ apiPrefix = "/api" }) {
                         title="Import CSV"
                     >
                         <i className="bi bi-file-earmark-spreadsheet-fill text-dark"></i>{" "}
-                        IMPORT SUBJECT
+                        IMPORT SUBJECTS
                     </button>
 
                     <button

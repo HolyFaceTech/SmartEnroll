@@ -249,7 +249,7 @@ export default function Users() {
                                 title="Import CSV"
                             >
                                 <i className="bi bi-file-earmark-spreadsheet-fill text-dark"></i>{" "}
-                                IMPORT CSV
+                                IMPORT USERS
                             </button>
                         )}
                         <button

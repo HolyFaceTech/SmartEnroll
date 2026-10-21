@@ -52,10 +52,10 @@ export default function SettingModal({
 
         const messageContent =
             type === "create" ? (
-                "Are you sure you want to save this new schedule?"
+                "Are you sure you want to create this new schedule?"
             ) : (
                 <>
-                    Are you sure you want to update the <br />
+                    Are you sure you want to save changes for <br />
                     <strong>Enrollment Schedule</strong>?
                 </>
             );
@@ -167,7 +167,7 @@ export default function SettingModal({
                                         <div className="row g-3">
                                             <div className="col-md-6">
                                                 <label className="form-label small fw-bold font-monospace">
-                                                    <i className="bi bi-calendar-check me-1"></i>{" "}
+                                                    <i className="bi bi-calendar-check-fill me-1"></i>{" "}
                                                     START DATE{" "}
                                                     <span className="text-danger ms-1">
                                                         *
@@ -176,7 +176,7 @@ export default function SettingModal({
                                                 <input
                                                     type="date"
                                                     name="start_date"
-                                                    className="form-control border-dark font-monospace fw-bold"
+                                                    className="form-control border-dark font-monospace"
                                                     value={formData.start_date}
                                                     onChange={handleChange}
                                                     required
@@ -186,7 +186,7 @@ export default function SettingModal({
 
                                             <div className="col-md-6">
                                                 <label className="form-label small fw-bold font-monospace">
-                                                    <i className="bi bi-calendar-x me-1"></i>{" "}
+                                                    <i className="bi bi-calendar-x-fill me-1"></i>{" "}
                                                     END DATE{" "}
                                                     <span className="text-danger ms-1">
                                                         *
@@ -195,7 +195,7 @@ export default function SettingModal({
                                                 <input
                                                     type="date"
                                                     name="end_date"
-                                                    className="form-control border-dark font-monospace fw-bold"
+                                                    className="form-control border-dark font-monospace"
                                                     value={formData.end_date}
                                                     onChange={handleChange}
                                                     required
@@ -205,7 +205,7 @@ export default function SettingModal({
 
                                             <div className="col-md-6">
                                                 <label className="form-label small fw-bold font-monospace">
-                                                    <i className="bi bi-calendar3 me-1"></i>{" "}
+                                                    <i className="bi bi-calendar3-fill me-1"></i>{" "}
                                                     SCHOOL YEAR{" "}
                                                     <span className="text-danger ms-1">
                                                         *
@@ -215,7 +215,7 @@ export default function SettingModal({
                                                     type="text"
                                                     name="school_year"
                                                     className="form-control border-dark font-monospace fw-bold"
-                                                    placeholder="e.g. 2026-2027"
+                                                    placeholder="e.g., YYYY-YYYY"
                                                     value={formData.school_year}
                                                     onChange={handleChange}
                                                     required
@@ -233,7 +233,7 @@ export default function SettingModal({
                                                 </label>
                                                 <select
                                                     name="term"
-                                                    className="form-select border-dark font-monospace fw-bold"
+                                                    className="form-select border-dark font-monospace"
                                                     value={formData.term}
                                                     onChange={handleChange}
                                                     required
@@ -272,7 +272,7 @@ export default function SettingModal({
                                         disabled={isLoading}
                                     >
                                         {type === "create"
-                                            ? "CREATE SCHEDULE"
+                                            ? "SUBMIT"
                                             : "SAVE CHANGES"}
                                     </button>
                                 </div>

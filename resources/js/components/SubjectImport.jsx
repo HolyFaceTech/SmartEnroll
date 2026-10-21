@@ -38,13 +38,13 @@ export default function SubjectImport({
         if (fileInputRef.current) fileInputRef.current.value = null;
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!file)
+    const handleConfirmImportClick = () => {
+        if (!file) {
             return Toast.fire({
                 icon: "warning",
                 title: "Please select a CSV file first.",
             });
+        }
 
         setConfirmConfig({
             show: true,
@@ -89,8 +89,7 @@ export default function SubjectImport({
             Toast.fire({
                 icon: "error",
                 title:
-                    error.response?.data?.message ||
-                    "Check your CSV format and try again.",
+                    error.response?.data?.message || "Check your CSV format.",
             });
         } finally {
             setIsLoading(false);
@@ -108,7 +107,7 @@ export default function SubjectImport({
                 tabIndex="-1"
                 style={{ zIndex: 1050 }}
             >
-                <div className="modal-dialog modal-dialog-centered">
+                <div className="modal-dialog modal-dialog-centered modal-lg">
                     <div className="modal-content card-retro border-2 border-dark shadow">
                         <div
                             className="modal-header border-bottom border-dark text-dark"
@@ -116,7 +115,7 @@ export default function SubjectImport({
                         >
                             <h5 className="modal-title fw-bold font-monospace">
                                 <i className="bi bi-file-earmark-spreadsheet-fill me-2"></i>
-                                IMPORT SUBJECTS
+                                IMPORT SUBJECTS CSV
                             </h5>
                             <button
                                 type="button"
@@ -125,36 +124,50 @@ export default function SubjectImport({
                                 disabled={isLoading}
                             ></button>
                         </div>
+
                         <div className="modal-body bg-light p-4">
                             <div className="alert bg-white border border-dark border-2 text-start p-3 mb-4 rounded-0 shadow-sm">
                                 <h6 className="fw-bold font-monospace mb-2 text-danger">
                                     <i className="bi bi-info-circle-fill me-2"></i>
-                                    IMPORT ADVISORY
+                                    IMPORT ADVISORY & FORMAT
                                 </h6>
-                                <ul className="small font-monospace mb-0 ps-3 text-muted">
+                                <ul className="small font-monospace mb-2 ps-3 text-muted">
                                     <li className="mb-1">
                                         <strong>Max Size:</strong> 2MB per file.
                                     </li>
                                     <li className="mb-1">
-                                        <strong>File Type:</strong> Accepted
-                                        format is strictly{" "}
+                                        <strong>File Type:</strong> Strictly{" "}
                                         <span className="badge bg-dark text-white">
                                             .csv
                                         </span>{" "}
                                         only.
                                     </li>
-                                    <li>
-                                        <strong>Required CSV Columns:</strong>{" "}
-                                        code, description, grade_level, term
-                                        (1st, 2nd, 3rd), strand_code
+                                    <li className="mb-1">
+                                        <strong>Transaction Logic:</strong>
+                                        If any row contains a duplicate code or
+                                        unregistered strand, the entire file
+                                        will be rejected to prevent partial
+                                        uploads.
                                     </li>
                                 </ul>
+
+                                <p className="small fw-bold font-monospace mb-1 mt-3">
+                                    EXACT CSV HEADER COLUMNS REQUIRED:
+                                </p>
+                                <div
+                                    className="border border-dark p-3 bg-light font-monospace small text-muted"
+                                    style={{
+                                        fontSize: "0.75rem",
+                                        wordWrap: "break-word",
+                                        lineHeight: "1.8",
+                                    }}
+                                >
+                                    code, description, grade_level, term,
+                                    strand_code
+                                </div>
                             </div>
 
-                            <form
-                                onSubmit={handleSubmit}
-                                className="mt-2 text-center"
-                            >
+                            <div className="mt-2 text-center">
                                 {!file && (
                                     <div
                                         className="p-4 mb-3 position-relative rounded-0"
@@ -173,7 +186,6 @@ export default function SubjectImport({
                                             required
                                             disabled={isLoading}
                                             style={{ cursor: "pointer" }}
-                                            title="Click to upload CSV file"
                                         />
                                         <div className="d-flex flex-column align-items-center pointer-events-none">
                                             <i
@@ -216,36 +228,39 @@ export default function SubjectImport({
                                         {!isLoading && (
                                             <button
                                                 type="button"
-                                                className="btn btn-sm btn-danger border border-dark border-2 fw-bold btn-press-retro px-3"
+                                                className="btn btn-sm border border-dark border-2 fw-bold btn-press-retro px-3 ms-2"
+                                                style={{
+                                                    backgroundColor: "#F96E5B",
+                                                }}
                                                 onClick={handleClearFile}
                                                 title="Remove File"
                                             >
-                                                <i className="bi bi-trash-fill"></i>
+                                                <i className="bi bi-trash-fill text-white"></i>
                                             </button>
                                         )}
                                     </div>
                                 )}
+                            </div>
+                        </div>
 
-                                <div className="d-flex justify-content-center gap-2 pt-3 border-top border-dark">
-                                    <button
-                                        type="button"
-                                        className="btn btn-dark fw-bold px-4 btn-press-retro"
-                                        onClick={onClose}
-                                        disabled={isLoading}
-                                    >
-                                        CANCEL
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="btn border-dark border-2 fw-bold px-4 btn-press-retro text-dark d-flex align-items-center"
-                                        style={{ backgroundColor: "#55efc4" }}
-                                        disabled={isLoading || !file}
-                                    >
-                                        <i className="bi bi-upload me-2"></i>{" "}
-                                        UPLOAD & IMPORT
-                                    </button>
-                                </div>
-                            </form>
+                        <div className="modal-footer bg-light border-top border-dark p-3 d-flex justify-content-end">
+                            <button
+                                type="button"
+                                className="btn btn-dark fw-bold px-4 btn-press-retro"
+                                onClick={onClose}
+                                disabled={isLoading}
+                            >
+                                CANCEL
+                            </button>
+                            <button
+                                type="button"
+                                className="btn border-2 border-dark fw-bold px-4 btn-press-retro d-flex align-items-center"
+                                style={{ backgroundColor: "#55efc4" }}
+                                onClick={handleConfirmImportClick}
+                                disabled={isLoading || !file}
+                            >
+                                UPLOAD & IMPORT
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -256,7 +271,6 @@ export default function SubjectImport({
                 onCancel={() => setConfirmConfig({ show: false })}
                 onConfirm={executeImport}
             />
-
             <Loading show={isLoading} message="IMPORTING CSV DATA..." />
         </>
     );

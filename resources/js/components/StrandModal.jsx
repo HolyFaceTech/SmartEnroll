@@ -154,7 +154,7 @@ export default function StrandModal({
                                         <div className="col-12">
                                             <label className="form-label small fw-bold font-monospace">
                                                 <i className="bi bi-hash me-1"></i>{" "}
-                                                STRAND CODE
+                                                STRAND CODE{" "}
                                                 <span className="text-danger ms-1">
                                                     *
                                                 </span>
@@ -163,7 +163,7 @@ export default function StrandModal({
                                                 type="text"
                                                 name="code"
                                                 className="form-control border-dark text-uppercase fw-bold"
-                                                placeholder="e.g. STEM"
+                                                placeholder="e.g., STEM"
                                                 value={formData.code}
                                                 onChange={handleChange}
                                                 required
@@ -179,7 +179,7 @@ export default function StrandModal({
                                         <div className="col-12">
                                             <label className="form-label small fw-bold font-monospace">
                                                 <i className="bi bi-card-text me-1"></i>{" "}
-                                                DESCRIPTION
+                                                DESCRIPTION{" "}
                                                 <span className="text-danger ms-1">
                                                     *
                                                 </span>
@@ -188,7 +188,7 @@ export default function StrandModal({
                                                 name="description"
                                                 className="form-control border-dark"
                                                 rows="3"
-                                                placeholder="e.g. Science, Technology, Engineering, and Mathematics"
+                                                placeholder="e.g., Science, Technology, Engineering, and Mathematics"
                                                 value={formData.description}
                                                 onChange={handleChange}
                                                 required
@@ -216,7 +216,7 @@ export default function StrandModal({
                                         disabled={isLoading}
                                     >
                                         {type === "create"
-                                            ? "CREATE STRAND"
+                                            ? "SUBMIT"
                                             : "SAVE CHANGES"}
                                     </button>
                                 </div>

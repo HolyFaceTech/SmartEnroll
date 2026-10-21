@@ -8,13 +8,14 @@ use App\Models\Subject;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class SubjectController extends Controller
 {
-    // security
+    /** Security Role */
     private function checkAccess($authUser)
     {
         if (! in_array($authUser->role, ['head', 'staff'])) {
@@ -22,7 +23,7 @@ class SubjectController extends Controller
         }
     }
 
-    // read
+    /** DataTable */
     public function index(Request $request)
     {
         try {
@@ -63,7 +64,7 @@ class SubjectController extends Controller
         }
     }
 
-    // create
+    /** Create */
     public function store(Request $request)
     {
         try {
@@ -97,7 +98,7 @@ class SubjectController extends Controller
         }
     }
 
-    // update
+    /** Update */
     public function update(Request $request, $id)
     {
         try {
@@ -133,7 +134,7 @@ class SubjectController extends Controller
         }
     }
 
-    // single delete
+    /** Single Delete */
     public function destroy($id)
     {
         try {
@@ -160,7 +161,7 @@ class SubjectController extends Controller
         }
     }
 
-    // bulk delete
+    /** Bulk Delete */
     public function bulkDelete(Request $request)
     {
         try {
@@ -194,7 +195,7 @@ class SubjectController extends Controller
         }
     }
 
-    // import subject
+    /** Imports Subjects */
     public function import(Request $request)
     {
         try {
@@ -202,7 +203,7 @@ class SubjectController extends Controller
             $this->checkAccess($authUser);
 
             $request->validate([
-                'file' => 'required|file|mimes:csv,txt|max:2048',
+                'file' => 'required|file|mimes:csv|max:2048',
             ], [
                 'file.mimes' => 'Invalid file format. Please upload a strictly .csv file.',
                 'file.max' => 'The uploaded file exceeds the 2MB size limit.',
@@ -217,7 +218,6 @@ class SubjectController extends Controller
             }
 
             $header = array_map('trim', array_shift($rows));
-
             $requiredHeaders = ['code', 'description', 'grade_level', 'term', 'strand_code'];
 
             $missingHeaders = array_diff($requiredHeaders, $header);
@@ -228,81 +228,70 @@ class SubjectController extends Controller
             }
 
             $importedCount = 0;
-            $skippedCount = 0;
-            $errorMessages = [];
 
-            foreach ($rows as $index => $row) {
-                $rowNum = $index + 2;
+            DB::transaction(function () use ($rows, $header, &$importedCount, $authUser, $request) {
+                $rowNumber = 2;
 
-                if (count($header) !== count($row)) {
-                    $skippedCount++;
-                    $errorMessages[] = "Row {$rowNum}: Incomplete data or empty row.";
+                foreach ($rows as $row) {
+                    if (count($header) !== count($row)) {
+                        throw new \Exception("Row {$rowNumber}: Missing or extra columns in this row.");
+                    }
 
-                    continue;
+                    $data = array_combine($header, array_map('trim', $row));
+
+                    $data = array_map(function ($value) {
+                        return $value === '' ? null : $value;
+                    }, $data);
+
+                    $validator = Validator::make($data, [
+                        'code' => 'required|string|max:20|unique:subjects,code',
+                        'description' => 'required|string',
+                        'grade_level' => 'required|in:11,12',
+                        'term' => 'required|in:1st,2nd,3rd',
+                        'strand_code' => 'required|string',
+                    ], [
+                        'code.unique' => "The subject code '{$data['code']}' is already taken in the system.",
+                    ]);
+
+                    if ($validator->fails()) {
+                        throw new \Exception("Row {$rowNumber}: ".implode(', ', $validator->errors()->all()));
+                    }
+
+                    $strand = Strand::where('code', $data['strand_code'])->first();
+                    if (! $strand) {
+                        throw new \Exception("Row {$rowNumber}: Strand Code '{$data['strand_code']}' not found in the database.");
+                    }
+
+                    Subject::create([
+                        'code' => $data['code'],
+                        'description' => $data['description'],
+                        'grade_level' => $data['grade_level'],
+                        'term' => $data['term'],
+                        'strand_id' => $strand->id,
+                    ]);
+
+                    $importedCount++;
+                    $rowNumber++;
                 }
 
-                $data = array_combine($header, $row);
-
-                $validator = Validator::make($data, [
-                    'code' => 'required|string|max:20|unique:subjects,code',
-                    'description' => 'required|string',
-                    'grade_level' => 'required|in:11,12',
-                    'term' => 'required|in:1st,2nd,3rd',
-                    'strand_code' => 'required|exists:strands,code',
-                ], [
-                    'strand_code.exists' => "The strand code '{$data['strand_code']}' does not exist in the system.",
-                    'code.unique' => "The subject code '{$data['code']}' is already taken.",
-                ]);
-
-                if ($validator->fails()) {
-                    $skippedCount++;
-                    $errorMessages[] = "Row {$rowNum} ({$data['code']}): ".$validator->errors()->first();
-
-                    continue;
+                if ($importedCount > 0) {
+                    ActivityLog::create([
+                        'user_id' => $authUser->id,
+                        'action' => 'import',
+                        'description' => "Imported {$importedCount} subjects via CSV",
+                        'ip_address' => $request->ip(),
+                    ]);
                 }
+            });
 
-                $strand = Strand::where('code', $data['strand_code'])->first();
-
-                Subject::create([
-                    'code' => $data['code'],
-                    'description' => $data['description'],
-                    'grade_level' => $data['grade_level'],
-                    'term' => $data['term'],
-                    'strand_id' => $strand->id,
-                ]);
-
-                $importedCount++;
-            }
-
-            if ($importedCount > 0) {
-                ActivityLog::create([
-                    'user_id' => $authUser->id,
-                    'action' => 'import',
-                    'description' => "Imported {$importedCount} subjects via CSV",
-                    'ip_address' => $request->ip(),
-                ]);
-            }
-
-            if ($importedCount > 0 && $skippedCount == 0) {
-                return response()->json(['message' => "Success! {$importedCount} subject(s) imported without errors."]);
-            } elseif ($importedCount > 0 && $skippedCount > 0) {
-                $errStr = implode(' | ', array_slice($errorMessages, 0, 2));
-                $more = count($errorMessages) > 2 ? ' (and more...)' : '';
-
-                return response()->json(['message' => "Imported {$importedCount} subject(s), but skipped {$skippedCount} row(s). Details: {$errStr}{$more}"]);
-            } else {
-                $errStr = implode(' | ', array_slice($errorMessages, 0, 2));
-                $more = count($errorMessages) > 2 ? ' (and more...)' : '';
-
-                return response()->json(['message' => "Import Failed: All rows contained errors. Details: {$errStr}{$more}"], 422);
-            }
+            return response()->json(['message' => "Success! {$importedCount} subject(s) imported without errors."]);
 
         } catch (ValidationException $e) {
             throw $e;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('SubjectController import Error: '.$e->getMessage().' on line '.$e->getLine());
 
-            return response()->json(['message' => 'A server error interrupted the import process. Please try again.'], 500);
+            return response()->json(['message' => $e->getMessage()], 422);
         }
     }
 }

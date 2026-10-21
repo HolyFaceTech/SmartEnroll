@@ -168,7 +168,7 @@ export default function Strands() {
                     <strong>{strandCode}</strong>?
                 </>
             ),
-            confirmText: "YES, EXPORT",
+            confirmText: "YES, EXPORT IT",
             confirmColor: "#55efc4",
             iconClass: "bi-filetype-csv",
         });
@@ -213,7 +213,7 @@ export default function Strands() {
                     <strong>{listData.strandCode}</strong>?
                 </>
             ),
-            confirmText: "YES, EXPORT",
+            confirmText: "YES, EXPORT IT",
             confirmColor: "#ff7675",
             iconClass: "bi-filetype-pdf",
         });
@@ -587,8 +587,8 @@ export default function Strands() {
                             NO STRANDS FOUND
                         </h5>
                         <p className="text-muted small mb-4">
-                            No strands matching your search criteria in the
-                            database.
+                            We couldn't find any records matching your criteria
+                            in the database.
                         </p>
                         <button
                             className="btn btn-retro border-2 border-dark fw-bold btn-press-retro px-4 py-2"

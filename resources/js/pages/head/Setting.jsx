@@ -55,7 +55,7 @@ export default function Setting() {
             title: "RESET SCHEDULE?",
             message:
                 "This will remove the current enrollment dates and settings.",
-            confirmText: "YES, RESET",
+            confirmText: "YES, RESET IT",
             confirmColor: "#ff7675",
             iconClass: "bi-calendar-x",
         });

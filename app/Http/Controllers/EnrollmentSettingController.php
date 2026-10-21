@@ -12,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 
 class EnrollmentSettingController extends Controller
 {
-    // security
+    /** Security Role */
     private function checkAccess($authUser)
     {
         if ($authUser->role !== 'head') {
@@ -20,7 +20,7 @@ class EnrollmentSettingController extends Controller
         }
     }
 
-    // read
+    /** Calendar Data */
     public function index()
     {
         try {
@@ -35,7 +35,7 @@ class EnrollmentSettingController extends Controller
         }
     }
 
-    // create
+    /** Create */
     public function store(Request $request)
     {
         try {
@@ -49,7 +49,7 @@ class EnrollmentSettingController extends Controller
             $validated = $request->validate([
                 'start_date' => 'required|date',
                 'end_date' => 'required|date|after_or_equal:start_date',
-                'school_year' => 'required|string',
+                'school_year' => ['required', 'string', 'regex:/^\d{4}-\d{4}$/'],
                 'term' => 'required|string',
             ]);
 
@@ -73,7 +73,7 @@ class EnrollmentSettingController extends Controller
         }
     }
 
-    // update
+    /** Update */
     public function update(Request $request)
     {
         try {
@@ -89,7 +89,7 @@ class EnrollmentSettingController extends Controller
             $validated = $request->validate([
                 'start_date' => 'required|date',
                 'end_date' => 'required|date|after_or_equal:start_date',
-                'school_year' => 'required|string',
+                'school_year' => ['required', 'string', 'regex:/^\d{4}-\d{4}$/'],
                 'term' => 'required|string',
             ]);
 
@@ -113,7 +113,7 @@ class EnrollmentSettingController extends Controller
         }
     }
 
-    // delete
+    /** Delete */
     public function destroy($id = null)
     {
         try {

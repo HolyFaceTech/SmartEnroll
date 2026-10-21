@@ -176,7 +176,7 @@ export default function Sections() {
                     <strong>{sectionName}</strong>?
                 </>
             ),
-            confirmText: "YES, EXPORT",
+            confirmText: "YES, EXPORT IT",
             confirmColor: "#55efc4",
             iconClass: "bi-filetype-csv",
         });
@@ -221,7 +221,7 @@ export default function Sections() {
                     <strong>{listData.sectionName}</strong>?
                 </>
             ),
-            confirmText: "YES, EXPORT",
+            confirmText: "YES, EXPORT IT",
             confirmColor: "#ff7675",
             iconClass: "bi-filetype-pdf",
         });
@@ -560,15 +560,15 @@ export default function Sections() {
                 {sections.length === 0 && !loading ? (
                     <div className="col-12 text-center py-5 d-flex flex-column align-items-center justify-content-center">
                         <i
-                            className="bi bi-grid-3x3-gap text-muted"
+                            className="bi bi-folder-x text-muted"
                             style={{ fontSize: "4rem" }}
                         ></i>
                         <h5 className="fw-bold font-monospace mt-3 text-dark">
                             NO SECTIONS FOUND
                         </h5>
                         <p className="text-muted small mb-4">
-                            No sections matching your search criteria in the
-                            database.
+                            We couldn't find any records matching your criteria
+                            in the database.
                         </p>
                         <button
                             className="btn btn-retro border-2 border-dark fw-bold btn-press-retro px-4 py-2"

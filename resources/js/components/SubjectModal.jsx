@@ -50,10 +50,10 @@ export default function SubjectModal({
 
         const messageContent =
             type === "create" ? (
-                "Are you sure you want to save this new subject?"
+                "Are you sure you want to create this new subject?"
             ) : (
                 <>
-                    Are you sure you want to update <br />
+                    Are you sure you want to save changes for <br />
                     <strong>{formData.code}</strong>?
                 </>
             );
@@ -180,7 +180,7 @@ export default function SubjectModal({
                                                 type="text"
                                                 name="code"
                                                 className="form-control border-dark fw-bold text-uppercase"
-                                                placeholder="e.g. MATH01"
+                                                placeholder="e.g., MATH01"
                                                 value={formData.code}
                                                 onChange={handleChange}
                                                 required
@@ -200,7 +200,7 @@ export default function SubjectModal({
                                                 name="description"
                                                 className="form-control border-dark"
                                                 rows="2"
-                                                placeholder="e.g. General Mathematics"
+                                                placeholder="e.g., General Mathematics"
                                                 value={formData.description}
                                                 onChange={handleChange}
                                                 required
@@ -225,7 +225,7 @@ export default function SubjectModal({
                                                 disabled={isLoading}
                                             >
                                                 <option value="" disabled>
-                                                    Select Strand
+                                                    -- Select Strand --
                                                 </option>
                                                 {strands.map((strand) => (
                                                     <option
@@ -265,7 +265,7 @@ export default function SubjectModal({
                                         </div>
                                         <div className="col-6">
                                             <label className="form-label small fw-bold font-monospace">
-                                                <i className="bi bi-calendar-event me-1"></i>{" "}
+                                                <i className="bi bi-calendar-event-fill me-1"></i>{" "}
                                                 TERM{" "}
                                                 <span className="text-danger ms-1">
                                                     *
@@ -311,7 +311,7 @@ export default function SubjectModal({
                                         disabled={isLoading}
                                     >
                                         {type === "create"
-                                            ? "CREATE SUBJECT"
+                                            ? "SUBMIT"
                                             : "SAVE CHANGES"}
                                     </button>
                                 </div>
