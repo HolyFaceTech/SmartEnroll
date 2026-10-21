@@ -388,7 +388,7 @@ export default function Students() {
                         title="Import CSV"
                     >
                         <i className="bi bi-file-earmark-spreadsheet-fill text-dark"></i>{" "}
-                        IMPORT CSV
+                        IMPORT STUDENTS
                     </button>
                     <button
                         className="btn btn-retro btn-press-retro border-2 border-dark fw-bold px-4 py-2 d-flex align-items-center justify-content-center gap-2"

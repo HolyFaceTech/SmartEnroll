@@ -169,7 +169,7 @@ export default function StudentImport({ show, onClose, onSuccess }) {
                                 </div>
                             </div>
 
-                            <div className="mt-2 text-center">
+                            <form className="mt-2 text-center">
                                 {!file && (
                                     <div
                                         className="p-4 mb-3 position-relative rounded-0"
@@ -242,27 +242,26 @@ export default function StudentImport({ show, onClose, onSuccess }) {
                                         )}
                                     </div>
                                 )}
-                            </div>
-                        </div>
-
-                        <div className="modal-footer bg-light border-top border-dark p-3 d-flex justify-content-end">
-                            <button
-                                type="button"
-                                className="btn btn-dark fw-bold px-4 btn-press-retro"
-                                onClick={onClose}
-                                disabled={isLoading}
-                            >
-                                CANCEL
-                            </button>
-                            <button
-                                type="button"
-                                className="btn border-2 border-dark fw-bold px-4 btn-press-retro d-flex align-items-center"
-                                style={{ backgroundColor: "#55efc4" }}
-                                onClick={handleConfirmImportClick}
-                                disabled={isLoading || !file}
-                            >
-                                UPLOAD & IMPORT
-                            </button>
+                                <div className="d-flex justify-content-end gap-2 pt-3 border-top border-dark">
+                                    <button
+                                        type="button"
+                                        className="btn btn-dark fw-bold px-4 btn-press-retro"
+                                        onClick={onClose}
+                                        disabled={isLoading}
+                                    >
+                                        CANCEL
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn border-2 border-dark fw-bold px-4 btn-press-retro d-flex align-items-center"
+                                        style={{ backgroundColor: "#55efc4" }}
+                                        onClick={handleConfirmImportClick}
+                                        disabled={isLoading || !file}
+                                    >
+                                        UPLOAD & IMPORT
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>

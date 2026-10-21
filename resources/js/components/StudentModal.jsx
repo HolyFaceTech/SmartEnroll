@@ -367,7 +367,7 @@ export default function StudentModal({
 
         if (formRef.current && !formRef.current.reportValidity()) return;
 
-        const actionName = type === "create" ? "SUBMIT" : "UPDATE";
+        const actionName = type === "create" ? "CREATE" : "UPDATE";
         const btnColor = type === "create" ? "#3F9AAE" : "#F4D03F";
 
         const modalIconClass =
@@ -573,7 +573,7 @@ export default function StudentModal({
                             ></button>
                         </div>
 
-                        <div className="modal-body bg-light p-4 p-md-5 overflow-auto flex-grow-1 position-relative">
+                        <div className="modal-body bg-light p-4 p-md-5 pb-3 pb-md-3 overflow-auto flex-grow-1 position-relative">
                             {type === "edit" && (
                                 <div className="text-center mb-4">
                                     <div
@@ -710,7 +710,7 @@ export default function StudentModal({
                                                         type="text"
                                                         name="first_name"
                                                         className="form-control border-dark"
-                                                        placeholder="e.g. Juan"
+                                                        placeholder="e.g., Juan"
                                                         value={
                                                             formData.first_name
                                                         }
@@ -728,7 +728,7 @@ export default function StudentModal({
                                                         type="text"
                                                         name="middle_name"
                                                         className="form-control border-dark"
-                                                        placeholder="e.g. Santos"
+                                                        placeholder="e.g., Santos"
                                                         value={
                                                             formData.middle_name
                                                         }
@@ -746,7 +746,7 @@ export default function StudentModal({
                                                         type="text"
                                                         name="last_name"
                                                         className="form-control border-dark"
-                                                        placeholder="e.g. Dela Cruz"
+                                                        placeholder="e.g., Dela Cruz"
                                                         value={
                                                             formData.last_name
                                                         }
@@ -764,7 +764,7 @@ export default function StudentModal({
                                                         type="text"
                                                         name="suffix"
                                                         className="form-control border-dark text-center"
-                                                        placeholder="e.g. Jr."
+                                                        placeholder="e.g., Jr."
                                                         value={formData.suffix}
                                                         onChange={handleChange}
                                                         disabled={isLoading}
@@ -864,7 +864,7 @@ export default function StudentModal({
                                                 type="text"
                                                 name="citizenship"
                                                 className="form-control border-dark"
-                                                placeholder="e.g. Filipino"
+                                                placeholder="e.g., Filipino"
                                                 value={formData.citizenship}
                                                 onChange={handleChange}
                                                 disabled={isLoading}
@@ -881,7 +881,7 @@ export default function StudentModal({
                                                 type="text"
                                                 name="religion"
                                                 className="form-control border-dark"
-                                                placeholder="e.g. Roman Catholic"
+                                                placeholder="e.g., Roman Catholic"
                                                 value={formData.religion}
                                                 onChange={handleChange}
                                                 disabled={isLoading}
@@ -898,7 +898,7 @@ export default function StudentModal({
                                                 type="text"
                                                 name="place_of_birth"
                                                 className="form-control border-dark"
-                                                placeholder="e.g. Quezon City"
+                                                placeholder="e.g., Quezon City"
                                                 value={formData.place_of_birth}
                                                 onChange={handleChange}
                                                 disabled={isLoading}
@@ -963,7 +963,7 @@ export default function StudentModal({
                                                 type="email"
                                                 name="email"
                                                 className="form-control border-dark"
-                                                placeholder="example@gmail.com"
+                                                placeholder="e.g., example@gmail.com"
                                                 value={formData.email}
                                                 onChange={handleChange}
                                                 disabled={isLoading}
@@ -980,7 +980,7 @@ export default function StudentModal({
                                                 type="text"
                                                 name="contact_number"
                                                 className="form-control border-dark"
-                                                placeholder="09*********"
+                                                placeholder="e.g., 09*********"
                                                 minLength="11"
                                                 maxLength="11"
                                                 value={formData.contact_number}
@@ -1100,7 +1100,7 @@ export default function StudentModal({
                                                 type="text"
                                                 name="father_contact"
                                                 className="form-control border-dark"
-                                                placeholder="09*********"
+                                                placeholder="e.g., 09*********"
                                                 minLength="11"
                                                 maxLength="11"
                                                 value={formData.father_contact}
@@ -1155,7 +1155,7 @@ export default function StudentModal({
                                                 type="text"
                                                 name="mother_contact"
                                                 className="form-control border-dark"
-                                                placeholder="09*********"
+                                                placeholder="e.g., 09*********"
                                                 minLength="11"
                                                 maxLength="11"
                                                 value={formData.mother_contact}
@@ -1218,7 +1218,7 @@ export default function StudentModal({
                                                 type="text"
                                                 name="guardian_contact"
                                                 className="form-control border-dark"
-                                                placeholder="09*********"
+                                                placeholder="e.g., 09*********"
                                                 minLength="11"
                                                 maxLength="11"
                                                 value={
@@ -1290,7 +1290,7 @@ export default function StudentModal({
                                                 type="text"
                                                 name="school_year"
                                                 className="form-control border-dark"
-                                                placeholder="YYYY-YYYY"
+                                                placeholder="e.g., YYYY-YYYY"
                                                 value={formData.school_year}
                                                 onChange={handleChange}
                                                 disabled={isLoading}
@@ -1447,7 +1447,7 @@ export default function StudentModal({
                                                 type="text"
                                                 name="lrn"
                                                 className="form-control border-dark fw-bold bg-warning bg-opacity-10"
-                                                placeholder="e.g. 123456789012"
+                                                placeholder="e.g., 123456789012"
                                                 minLength="12"
                                                 maxLength="12"
                                                 value={formData.lrn}
@@ -1822,63 +1822,63 @@ export default function StudentModal({
                                         </div>
                                     </div>
                                 )}
-                            </form>
-                        </div>
-
-                        <div className="modal-footer border-top border-dark flex-shrink-0 d-flex justify-content-between bg-light p-3">
-                            <button
-                                type="button"
-                                className="btn btn-dark fw-bold px-4 btn-press-retro"
-                                onClick={onClose}
-                                disabled={isLoading}
-                            >
-                                CANCEL
-                            </button>
-                            <div>
-                                {step > 1 && (
+                                <div className="border-top border-dark flex-shrink-0 d-flex justify-content-between gap-2 mt-4 pt-3">
                                     <button
                                         type="button"
-                                        className="btn btn-outline-dark border-2 fw-bold px-4 me-2 btn-press-retro"
-                                        onClick={prevStep}
+                                        className="btn btn-dark fw-bold px-4 btn-press-retro"
+                                        onClick={onClose}
                                         disabled={isLoading}
                                     >
-                                        <i className="bi bi-arrow-left"></i>{" "}
-                                        BACK
+                                        CANCEL
                                     </button>
-                                )}
-                                {step < 6 && (
-                                    <button
-                                        type="button"
-                                        className="btn btn-dark border-2 fw-bold px-4 btn-press-retro"
-                                        onClick={handleNextStep}
-                                    >
-                                        NEXT{" "}
-                                        <i className="bi bi-arrow-right"></i>
-                                    </button>
-                                )}
-                                {step === 6 && (
-                                    <button
-                                        form="studentWizard"
-                                        type="submit"
-                                        className={`btn border-2 border-dark fw-bold px-4 btn-press-retro ${type === "create" ? "text-white" : "text-dark"}`}
-                                        style={{
-                                            backgroundColor: headerBgColor,
-                                        }}
-                                        disabled={isLoading}
-                                    >
-                                        {isLoading ? (
-                                            <span>
-                                                <i className="bi bi-mortarboard-fill spinner-toga me-2"></i>
-                                                PROCESSING...
-                                            </span>
-                                        ) : type === "edit" ? (
-                                            "SAVE CHANGES"
-                                        ) : (
-                                            "SUBMIT"
+                                    <div>
+                                        {step > 1 && (
+                                            <button
+                                                type="button"
+                                                className="btn btn-outline-dark border-2 fw-bold px-4 me-2 btn-press-retro"
+                                                onClick={prevStep}
+                                                disabled={isLoading}
+                                            >
+                                                <i className="bi bi-arrow-left"></i>{" "}
+                                                BACK
+                                            </button>
                                         )}
-                                    </button>
-                                )}
-                            </div>
+                                        {step < 6 && (
+                                            <button
+                                                type="button"
+                                                className="btn btn-dark border-2 fw-bold px-4 btn-press-retro"
+                                                onClick={handleNextStep}
+                                            >
+                                                NEXT{" "}
+                                                <i className="bi bi-arrow-right"></i>
+                                            </button>
+                                        )}
+                                        {step === 6 && (
+                                            <button
+                                                form="studentWizard"
+                                                type="submit"
+                                                className={`btn border-2 border-dark fw-bold px-4 btn-press-retro ${type === "create" ? "text-white" : "text-dark"}`}
+                                                style={{
+                                                    backgroundColor:
+                                                        headerBgColor,
+                                                }}
+                                                disabled={isLoading}
+                                            >
+                                                {isLoading ? (
+                                                    <span>
+                                                        <i className="bi bi-mortarboard-fill spinner-toga me-2"></i>
+                                                        PROCESSING...
+                                                    </span>
+                                                ) : type === "edit" ? (
+                                                    "SAVE CHANGES"
+                                                ) : (
+                                                    "SUBMIT"
+                                                )}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>

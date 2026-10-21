@@ -512,7 +512,7 @@ export default function CORModal({
                                                                         <input
                                                                             type="text"
                                                                             className="form-control border-0 rounded-0 font-monospace text-center fw-bold bg-transparent"
-                                                                            placeholder="e.g. ENG101"
+                                                                            placeholder="e.g., ENG101"
                                                                             value={
                                                                                 sub.code
                                                                             }
@@ -554,7 +554,7 @@ export default function CORModal({
                                                                         <input
                                                                             type="text"
                                                                             className="form-control border-0 rounded-0 font-monospace text-center fw-bold bg-transparent"
-                                                                            placeholder="e.g. M-W 8AM"
+                                                                            placeholder="e.g., MWF 8AM"
                                                                             value={
                                                                                 sub.sched
                                                                             }

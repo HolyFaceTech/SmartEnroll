@@ -20,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 
 class StudentController extends Controller
 {
-    // security
+    /** Security Role */
     private function checkAccess($authUser)
     {
         if (! in_array($authUser->role, ['head', 'staff'])) {
@@ -28,13 +28,13 @@ class StudentController extends Controller
         }
     }
 
-    // folder name
+    /** Folder Name */
     private function getFolderName($student)
     {
         return trim($student->lrn);
     }
 
-    // student number sequence
+    /** Student Number */
     private function generateUniqueStudentNumber()
     {
         $currentYear = date('y');
@@ -62,7 +62,7 @@ class StudentController extends Controller
         return $currentYear.'-'.str_pad($lastNumber, 5, '0', STR_PAD_LEFT);
     }
 
-    // view
+    /** DataTable */
     public function index(Request $request)
     {
         try {
@@ -90,7 +90,7 @@ class StudentController extends Controller
         }
     }
 
-    // create
+    /** Create */
     public function store(Request $request)
     {
         try {
@@ -249,7 +249,7 @@ class StudentController extends Controller
         }
     }
 
-    // update
+    /** Update */
     public function update(Request $request, $id)
     {
         try {
@@ -586,7 +586,7 @@ class StudentController extends Controller
         }
     }
 
-    // change status
+    /** Change Status */
     public function changeStatus(Request $request, $id)
     {
         try {
@@ -730,7 +730,7 @@ class StudentController extends Controller
         }
     }
 
-    // single delete
+    /** Single Delete */
     public function destroy($id)
     {
         try {
@@ -758,7 +758,7 @@ class StudentController extends Controller
         }
     }
 
-    // bulk delete
+    /** Bulk Delete */
     public function bulkDelete(Request $request)
     {
         try {
@@ -790,7 +790,7 @@ class StudentController extends Controller
         }
     }
 
-    // import
+    /** Import Students */
     public function importStudents(Request $request)
     {
         try {
@@ -878,7 +878,7 @@ class StudentController extends Controller
                         throw new \Exception("Row {$rowNumber}: Cannot set status to ENROLLED because the 'section_name' column is empty.");
                     }
 
-                    // Map Strand Code and Section Name
+                    // Map Strand Code
                     $strand = Strand::where('code', $data['strand_code'])->first();
                     if (! $strand) {
                         throw new \Exception("Row {$rowNumber}: Strand Code '{$data['strand_code']}' not found in the database.");
@@ -887,7 +887,22 @@ class StudentController extends Controller
                     $sectionId = null;
                     if ($data['section_name'] !== null) {
                         $section = Section::where('name', $data['section_name'])->first();
-                        $sectionId = $section ? $section->id : null;
+
+                        if (! $section) {
+                            throw new \Exception("Row {$rowNumber}: Section Name '{$data['section_name']}' not found in the database. Please verify the section names.");
+                        }
+
+                        // Check Grade Level Mismatch
+                        if ($section->grade_level != $data['grade_level']) {
+                            throw new \Exception("Row {$rowNumber}: Grade Level mismatch! '{$data['section_name']}' is meant for Grade {$section->grade_level}, but you entered Grade {$data['grade_level']} for this student.");
+                        }
+
+                        // Check Strand Mismatch
+                        if ($section->strand_id != $strand->id) {
+                            throw new \Exception("Row {$rowNumber}: Strand mismatch! '{$data['section_name']}' does not belong to the '{$data['strand_code']}' strand.");
+                        }
+
+                        $sectionId = $section->id;
                     }
 
                     // Core Students

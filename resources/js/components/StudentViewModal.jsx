@@ -189,7 +189,7 @@ export default function StudentViewModal({ show, selectedStudent, onClose }) {
                             ></button>
                         </div>
 
-                        <div className="modal-body p-4 p-md-5">
+                        <div className="modal-body bg-light p-4 p-md-5 pb-3 pb-md-3 overflow-auto flex-grow-1 position-relative">
                             <div className="row mb-4 align-items-center">
                                 <div className="col-md-9 order-2 order-md-1">
                                     <h1
@@ -736,16 +736,15 @@ export default function StudentViewModal({ show, selectedStudent, onClose }) {
                                     </div>
                                 </div>
                             )}
-                        </div>
-
-                        <div className="modal-footer border-top border-dark bg-light p-3 d-print-none">
-                            <button
-                                type="button"
-                                className="btn btn-dark fw-bold px-4 btn-press-retro"
-                                onClick={onClose}
-                            >
-                                CLOSE
-                            </button>
+                            <div className="d-flex justify-content-end gap-2 pt-3 border-top border-dark">
+                                <button
+                                    type="button"
+                                    className="btn btn-dark fw-bold px-4 btn-press-retro"
+                                    onClick={onClose}
+                                >
+                                    CLOSE
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

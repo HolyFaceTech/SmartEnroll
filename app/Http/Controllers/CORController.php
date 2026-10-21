@@ -16,7 +16,7 @@ use Illuminate\Validation\ValidationException;
 
 class CORController extends Controller
 {
-    // Security
+    /** Security Role */
     private function checkAccess($authUser)
     {
         if (! in_array($authUser->role, ['head', 'staff'])) {
@@ -24,7 +24,7 @@ class CORController extends Controller
         }
     }
 
-    // Fetching Student Data
+    /** Student Data */
     public function getCORData($studentId)
     {
         try {
@@ -68,7 +68,7 @@ class CORController extends Controller
         }
     }
 
-    // URL for Print
+    /** URL for Print COR */
     public function generateUrl(Request $request)
     {
         try {
@@ -101,7 +101,7 @@ class CORController extends Controller
         }
     }
 
-    // Print COR
+    /** Print COR */
     public function printCOR($tempId)
     {
         $data = Cache::get('cor_data_'.$tempId);
