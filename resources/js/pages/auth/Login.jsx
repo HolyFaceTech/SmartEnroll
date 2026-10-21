@@ -180,7 +180,7 @@ export default function Login() {
                             className="form-control"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="ex. juansantos@gmail.com"
+                            placeholder="e.g., example@gmail.com"
                             required
                             disabled={isLoading}
                         />

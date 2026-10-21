@@ -205,11 +205,13 @@ export default function ResetPassword() {
                         </div>
                     </div>
                     <small
-                        className="d-block text-muted mb-3 font-monospace"
+                        className="d-block text-muted mb-3 font-monospace fst-italic"
                         style={{ fontSize: "0.75rem" }}
                     >
-                        Must contain at least 8 chars, 1 uppercase, 1 lowercase,
-                        1 number, and 1 special character.
+                        <i className="bi bi-info-circle-fill"></i> Password must
+                        be at least 8 characters long, containing 1 Uppercase
+                        letter, 1 lowercase letter, 1 number, and 1 special
+                        character.
                     </small>
 
                     <div className="mb-4">

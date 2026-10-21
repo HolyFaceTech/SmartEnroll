@@ -10,6 +10,7 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -21,7 +22,7 @@ use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
-    // security
+    /** Security Role */
     private function checkAccess($authUser)
     {
         if (! in_array($authUser->role, ['admin', 'head'])) {
@@ -29,7 +30,7 @@ class UserController extends Controller
         }
     }
 
-    // read
+    /** DataTable */
     public function index(Request $request)
     {
         try {
@@ -67,7 +68,7 @@ class UserController extends Controller
         }
     }
 
-    // create
+    /** Create */
     public function store(Request $request)
     {
         try {
@@ -137,7 +138,7 @@ class UserController extends Controller
         }
     }
 
-    // update
+    /** Update */
     public function update(Request $request, $id)
     {
         try {
@@ -250,7 +251,7 @@ class UserController extends Controller
         }
     }
 
-    // single delete
+    /** Single Delete */
     public function destroy($id)
     {
         try {
@@ -290,7 +291,7 @@ class UserController extends Controller
         }
     }
 
-    // bulk delete
+    /** Bulk Delete */
     public function bulkDelete(Request $request)
     {
         try {
@@ -342,7 +343,7 @@ class UserController extends Controller
         }
     }
 
-    // import
+    /** Import User Account */
     public function importUsers(Request $request)
     {
         try {
@@ -353,10 +354,7 @@ class UserController extends Controller
             }
 
             $request->validate([
-                'file' => 'required|file|mimes:csv,txt|max:2048',
-            ], [
-                'file.mimes' => 'Invalid file format. Please upload a strictly .csv file.',
-                'file.max' => 'The uploaded file exceeds the 2MB size limit.',
+                'file' => 'required|file|mimes:csv|max:2048',
             ]);
 
             $file = $request->file('file');
@@ -364,123 +362,124 @@ class UserController extends Controller
             $rows = array_map('str_getcsv', explode("\n", trim($csvData)));
 
             if (count($rows) < 2) {
-                return response()->json(['message' => 'Import Failed: The CSV file appears to be empty or lacks data rows.'], 422);
+                return response()->json(['message' => 'CSV is empty or missing headers.'], 422);
             }
 
             $header = array_map('trim', array_shift($rows));
-            $requiredHeaders = ['first_name', 'last_name', 'email', 'role', 'status', 'contact_number', 'birthday', 'gender'];
+            $requiredHeaders = ['first_name', 'last_name', 'middle_name', 'suffix', 'email', 'role', 'status', 'contact_number', 'birthday', 'gender'];
 
             $missingHeaders = array_diff($requiredHeaders, $header);
             if (! empty($missingHeaders)) {
-                $missingStr = implode(', ', $missingHeaders);
-
-                return response()->json(['message' => "Import Failed: Your CSV is missing required columns ({$missingStr})."], 422);
+                return response()->json([
+                    'message' => 'CSV Format is incorrect. Missing required columns.',
+                    'missing_columns' => array_values($missingHeaders),
+                ], 422);
             }
 
             $importedCount = 0;
-            $skippedCount = 0;
-            $errorMessages = [];
             $safeSymbols = '!@#$%^&*()_+';
+            $pendingEmails = [];
 
-            foreach ($rows as $index => $row) {
-                $rowNum = $index + 2;
+            DB::transaction(function () use ($rows, $header, &$importedCount, $safeSymbols) {
+                $rowNumber = 2;
 
-                if (count($header) !== count($row)) {
-                    $skippedCount++;
-                    $errorMessages[] = "Row {$rowNum}: Incomplete data or empty row.";
+                foreach ($rows as $row) {
+                    if (count($header) !== count($row)) {
+                        throw new \Exception("Row {$rowNumber}: Missing or extra columns in this row.");
+                    }
 
-                    continue;
-                }
-                $data = array_combine($header, $row);
+                    $data = array_combine($header, array_map('trim', $row));
 
-                $validator = Validator::make($data, [
-                    'first_name' => 'required|string',
-                    'last_name' => 'required|string',
-                    'email' => 'required|email',
-                    'role' => 'required|in:admin,head,staff',
-                    'status' => 'required|in:active,inactive',
-                    'contact_number' => 'required',
-                    'birthday' => 'required|date',
-                    'gender' => 'required|in:Male,Female',
-                ]);
+                    $data = array_map(function ($value) {
+                        return $value === '' ? null : $value;
+                    }, $data);
 
-                if ($validator->fails()) {
-                    $skippedCount++;
-                    $errorMessages[] = "Row {$rowNum} ({$data['first_name']}): ".$validator->errors()->first();
+                    if (isset($data['status'])) {
+                        $data['status'] = strtolower($data['status']);
+                    }
+                    if (isset($data['role'])) {
+                        $data['role'] = strtolower($data['role']);
+                    }
 
-                    continue;
-                }
+                    $validator = Validator::make($data, [
+                        'first_name' => 'required|string',
+                        'last_name' => 'required|string',
+                        'email' => 'required|email|unique:users,email',
+                        'role' => 'required|in:admin,head,staff',
+                        'status' => 'required|in:active,inactive',
+                        'contact_number' => 'required|digits:11',
+                        'birthday' => 'required|date',
+                        'gender' => 'required|in:Male,Female',
+                    ]);
 
-                if (User::where('email', $data['email'])->exists()) {
-                    $skippedCount++;
-                    $errorMessages[] = "Row {$rowNum}: Email ({$data['email']}) is already in use.";
+                    if ($validator->fails()) {
+                        throw new \Exception("Row {$rowNumber}: ".implode(', ', $validator->errors()->all()));
+                    }
 
-                    continue;
-                }
+                    $plainPassword = str_shuffle(
+                        Str::random(8).
+                        $safeSymbols[rand(0, strlen($safeSymbols) - 1)].
+                        rand(0, 9).
+                        strtoupper(Str::random(1)).
+                        strtolower(Str::random(1))
+                    );
 
-                $plainPassword = str_shuffle(
-                    Str::random(8).
-                    $safeSymbols[rand(0, strlen($safeSymbols) - 1)].
-                    rand(0, 9).
-                    strtoupper(Str::random(1)).
-                    strtolower(Str::random(1))
-                );
+                    $user = User::create([
+                        'first_name' => $data['first_name'],
+                        'last_name' => $data['last_name'],
+                        'middle_name' => $data['middle_name'] ?? null,
+                        'suffix' => $data['suffix'] ?? null,
+                        'email' => $data['email'],
+                        'password' => Hash::make($plainPassword),
+                        'role' => $data['role'],
+                        'status' => $data['status'],
+                        'contact_number' => $data['contact_number'],
+                        'birthday' => $data['birthday'],
+                        'gender' => $data['gender'],
+                    ]);
 
-                $user = User::create([
-                    'first_name' => $data['first_name'],
-                    'last_name' => $data['last_name'],
-                    'middle_name' => $data['middle_name'] ?? null,
-                    'suffix' => $data['suffix'] ?? null,
-                    'email' => $data['email'],
-                    'password' => Hash::make($plainPassword),
-                    'role' => strtolower($data['role']),
-                    'status' => strtolower($data['status']),
-                    'contact_number' => $data['contact_number'],
-                    'birthday' => $data['birthday'],
-                    'gender' => $data['gender'],
-                ]);
-
-                $fullName = trim("{$user->first_name} {$user->last_name}");
-
-                ActivityLog::create([
-                    'user_id' => $authUser->id,
-                    'action' => 'create',
-                    'description' => "Imported user account: {$fullName} ({$user->role})",
-                    'ip_address' => $request->ip(),
-                ]);
-
-                try {
                     $verificationUrl = URL::temporarySignedRoute(
                         'verification.verify.api',
                         Carbon::now()->addHours(24),
                         ['id' => $user->id, 'hash' => sha1($user->email)]
                     );
-                    Mail::to($user->email)->send(new UserCredentialsMail($user, $plainPassword, $verificationUrl));
-                } catch (Exception $mailError) {
-                    Log::warning('UserController importUsers Mail Error for '.$data['email'].': '.$mailError->getMessage());
+
+                    $pendingEmails[] = [
+                        'user' => $user,
+                        'password' => $plainPassword,
+                        'url' => $verificationUrl,
+                    ];
+
+                    $importedCount++;
+                    $rowNumber++;
                 }
+            });
 
-                $importedCount++;
+            foreach ($pendingEmails as $mailData) {
+                try {
+                    Mail::to($mailData['user']->email)->send(new UserCredentialsMail($mailData['user'], $mailData['password'], $mailData['url']));
+                } catch (Exception $mailError) {
+                    Log::warning('UserController importUsers Mail Error for '.$mailData['user']->email.': '.$mailError->getMessage());
+                }
             }
 
-            if ($importedCount > 0 && $skippedCount == 0) {
-                return response()->json(['message' => "Success! {$importedCount} user(s) imported without errors."]);
-            } elseif ($importedCount > 0 && $skippedCount > 0) {
-                $errStr = implode(' | ', array_slice($errorMessages, 0, 2));
-                $more = count($errorMessages) > 2 ? ' (and more...)' : '';
-
-                return response()->json(['message' => "Imported {$importedCount} user(s), but skipped {$skippedCount} row(s). Details: {$errStr}{$more}"]);
-            } else {
-                $errStr = implode(' | ', array_slice($errorMessages, 0, 2));
-                $more = count($errorMessages) > 2 ? ' (and more...)' : '';
-
-                return response()->json(['message' => "Import Failed: All rows contained errors. Details: {$errStr}{$more}"], 422);
+            if ($importedCount > 0) {
+                ActivityLog::create([
+                    'user_id' => $authUser->id,
+                    'action' => 'import',
+                    'description' => "Imported {$importedCount} user account(s) via CSV file.",
+                    'ip_address' => $request->ip(),
+                ]);
             }
 
-        } catch (Exception $e) {
-            Log::error('UserController importUsers Error: '.$e->getMessage().' on line '.$e->getLine());
+            return response()->json(['message' => "Successfully imported {$importedCount} valid user records."]);
 
-            return response()->json(['message' => 'A server error interrupted the import process. Please try again.'], 500);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::error('UserController import Error: '.$e->getMessage());
+
+            return response()->json(['message' => $e->getMessage()], 422);
         }
     }
 }

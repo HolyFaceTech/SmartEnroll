@@ -356,15 +356,15 @@ export default function Users() {
                                             <i className="bi bi-shield-lock-fill me-1"></i>{" "}
                                             Role
                                         </th>
-                                        <th className="py-3 font-monospace text-dark">
+                                        <th className="py-3 font-monospace text-dark text-center">
                                             <i className="bi bi-gender-ambiguous me-1"></i>{" "}
                                             Gender
                                         </th>
-                                        <th className="py-3 font-monospace text-dark text-end">
+                                        <th className="py-3 font-monospace text-dark text-center">
                                             <i className="bi bi-telephone-fill me-1"></i>{" "}
                                             Contact #
                                         </th>
-                                        <th className="py-3 font-monospace text-dark">
+                                        <th className="py-3 font-monospace text-dark text-center">
                                             <i className="bi bi-clock-history me-1"></i>{" "}
                                             Login At
                                         </th>
@@ -516,7 +516,7 @@ export default function Users() {
                                                             {user.role.toUpperCase()}
                                                         </span>
                                                     </td>
-                                                    <td className="py-3 font-monospace fw-bold">
+                                                    <td className="py-3 font-monospace fw-bold text-center">
                                                         {user.gender ===
                                                             "Male" && (
                                                             <span
@@ -541,11 +541,11 @@ export default function Users() {
                                                         )}
                                                         {!user.gender && "-"}
                                                     </td>
-                                                    <td className="py-3 font-monospace fw-bold text-dark text-end">
+                                                    <td className="py-3 font-monospace fw-bold text-dark text-center">
                                                         {user.contact_number ||
                                                             "-"}
                                                     </td>
-                                                    <td className="py-3 font-monospace small text-muted fw-bold">
+                                                    <td className="py-3 font-monospace small text-muted fw-bold text-center">
                                                         {user.login_at
                                                             ? new Date(
                                                                   user.login_at,

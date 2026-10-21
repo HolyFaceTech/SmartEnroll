@@ -51,7 +51,7 @@ export default function UserImport({ show, onClose, onSuccess }) {
                 </>
             ),
             confirmText: "YES, IMPORT IT",
-            confirmColor: "#55efc4", // Light green
+            confirmColor: "#55efc4",
             iconClass: "bi-file-earmark-spreadsheet-fill",
         });
     };
@@ -99,7 +99,7 @@ export default function UserImport({ show, onClose, onSuccess }) {
                 tabIndex="-1"
                 style={{ zIndex: 1050 }}
             >
-                <div className="modal-dialog modal-dialog-centered">
+                <div className="modal-dialog modal-dialog-centered modal-lg">
                     <div className="modal-content card-retro border-2 border-dark shadow">
                         <div
                             className="modal-header border-bottom border-dark text-dark"
@@ -107,7 +107,7 @@ export default function UserImport({ show, onClose, onSuccess }) {
                         >
                             <h5 className="modal-title fw-bold font-monospace">
                                 <i className="bi bi-file-earmark-spreadsheet-fill me-2"></i>
-                                IMPORT USERS
+                                IMPORT USERS CSV
                             </h5>
                             <button
                                 type="button"
@@ -120,27 +120,42 @@ export default function UserImport({ show, onClose, onSuccess }) {
                             <div className="alert bg-white border border-dark border-2 text-start p-3 mb-4 rounded-0 shadow-sm">
                                 <h6 className="fw-bold font-monospace mb-2 text-danger">
                                     <i className="bi bi-info-circle-fill me-2"></i>
-                                    IMPORT ADVISORY
+                                    IMPORT ADVISORY & FORMAT
                                 </h6>
-                                <ul className="small font-monospace mb-0 ps-3 text-muted">
+                                <ul className="small font-monospace mb-2 ps-3 text-muted">
                                     <li className="mb-1">
                                         <strong>Max Size:</strong> 2MB per file.
                                     </li>
                                     <li className="mb-1">
-                                        <strong>File Type:</strong> Accepted
-                                        format is strictly{" "}
+                                        <strong>File Type:</strong> Strictly{" "}
                                         <span className="badge bg-dark text-white">
                                             .csv
                                         </span>{" "}
                                         only.
                                     </li>
-                                    <li>
-                                        <strong>Required CSV Columns:</strong>{" "}
-                                        first_name, last_name, middle_name,
-                                        suffix, email, role, status,
-                                        contact_number, birthday, gender.
+                                    <li className="mb-1">
+                                        <strong>Validation Note:</strong> Import
+                                        will automatically rollback if a row
+                                        contains an error (e.g., Duplicate
+                                        email).
                                     </li>
                                 </ul>
+
+                                <p className="small fw-bold font-monospace mb-1 mt-3">
+                                    EXACT CSV HEADER COLUMNS REQUIRED:
+                                </p>
+                                <div
+                                    className="border border-dark p-3 bg-light font-monospace small text-muted"
+                                    style={{
+                                        fontSize: "0.75rem",
+                                        wordWrap: "break-word",
+                                        lineHeight: "1.8",
+                                    }}
+                                >
+                                    first_name, last_name, middle_name, suffix,
+                                    email, role, status, contact_number,
+                                    birthday, gender
+                                </div>
                             </div>
 
                             <form
@@ -208,17 +223,20 @@ export default function UserImport({ show, onClose, onSuccess }) {
                                         {!isLoading && (
                                             <button
                                                 type="button"
-                                                className="btn btn-sm btn-danger border border-dark border-2 fw-bold btn-press-retro px-3"
+                                                className="btn btn-sm border border-dark border-2 fw-bold btn-press-retro px-3 ms-2"
+                                                style={{
+                                                    backgroundColor: "#F96E5B",
+                                                }}
                                                 onClick={handleClearFile}
                                                 title="Remove File"
                                             >
-                                                <i className="bi bi-trash-fill"></i>
+                                                <i className="bi bi-trash-fill text-white"></i>
                                             </button>
                                         )}
                                     </div>
                                 )}
 
-                                <div className="d-flex justify-content-center gap-2 pt-3 border-top border-dark">
+                                <div className="d-flex justify-content-end gap-2 pt-3 border-top border-dark">
                                     <button
                                         type="button"
                                         className="btn btn-dark fw-bold px-4 btn-press-retro"
@@ -233,7 +251,6 @@ export default function UserImport({ show, onClose, onSuccess }) {
                                         style={{ backgroundColor: "#55efc4" }}
                                         disabled={isLoading || !file}
                                     >
-                                        <i className="bi bi-upload me-2"></i>{" "}
                                         UPLOAD & IMPORT
                                     </button>
                                 </div>

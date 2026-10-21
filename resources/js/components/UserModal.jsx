@@ -95,7 +95,7 @@ export default function UserModal({
         if (/[^A-Za-z0-9]/.test(pwd)) score++;
 
         if (score <= 2) setPwdStrength("Weak");
-        else if (score <= 4) setPwdStrength("Good");
+        else if (score <= 4) setPwdStrength("Fair");
         else setPwdStrength("Strong");
     };
 
@@ -430,7 +430,7 @@ export default function UserModal({
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold font-monospace">
                                                 <i className="bi bi-person-bounding-box me-1"></i>{" "}
-                                                FIRST NAME
+                                                FIRST NAME{" "}
                                                 <span className="text-danger ms-1">
                                                     *
                                                 </span>
@@ -439,7 +439,7 @@ export default function UserModal({
                                                 type="text"
                                                 name="first_name"
                                                 className="form-control border-dark"
-                                                placeholder="Enter first name"
+                                                placeholder="e.g., Juan"
                                                 value={formData.first_name}
                                                 onChange={handleChange}
                                                 required
@@ -448,7 +448,21 @@ export default function UserModal({
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold font-monospace">
                                                 <i className="bi bi-person-bounding-box me-1"></i>{" "}
-                                                LAST NAME
+                                                MIDDLE NAME
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="middle_name"
+                                                className="form-control border-dark"
+                                                placeholder="e.g., Santos"
+                                                value={formData.middle_name}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+                                        <div className="col-md-6">
+                                            <label className="form-label small fw-bold font-monospace">
+                                                <i className="bi bi-person-bounding-box me-1"></i>{" "}
+                                                LAST NAME{" "}
                                                 <span className="text-danger ms-1">
                                                     *
                                                 </span>
@@ -457,7 +471,7 @@ export default function UserModal({
                                                 type="text"
                                                 name="last_name"
                                                 className="form-control border-dark"
-                                                placeholder="Enter last name"
+                                                placeholder="e.g., Dela Cruz"
                                                 value={formData.last_name}
                                                 onChange={handleChange}
                                                 required
@@ -465,28 +479,14 @@ export default function UserModal({
                                         </div>
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold font-monospace">
-                                                <i className="bi bi-person-bounding-box me-1"></i>{" "}
-                                                MIDDLE NAME (Optional)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                name="middle_name"
-                                                className="form-control border-dark"
-                                                placeholder="Enter middle name"
-                                                value={formData.middle_name}
-                                                onChange={handleChange}
-                                            />
-                                        </div>
-                                        <div className="col-md-6">
-                                            <label className="form-label small fw-bold font-monospace">
                                                 <i className="bi bi-person-badge me-1"></i>{" "}
-                                                SUFFIX (Optional)
+                                                SUFFIX
                                             </label>
                                             <input
                                                 type="text"
                                                 name="suffix"
                                                 className="form-control border-dark"
-                                                placeholder="e.g., Jr, Sr, III"
+                                                placeholder="e.g., Jr."
                                                 value={formData.suffix}
                                                 onChange={handleChange}
                                             />
@@ -494,7 +494,7 @@ export default function UserModal({
                                         <div className="col-md-4">
                                             <label className="form-label small fw-bold font-monospace">
                                                 <i className="bi bi-calendar-event-fill me-1"></i>{" "}
-                                                BIRTHDAY
+                                                BIRTHDAY{" "}
                                                 <span className="text-danger ms-1">
                                                     *
                                                 </span>
@@ -510,14 +510,17 @@ export default function UserModal({
                                             />
                                         </div>
                                         <div className="col-md-4">
-                                            <label className="form-label small fw-bold font-monospace text-muted">
+                                            <label className="form-label small fw-bold font-monospace">
                                                 <i className="bi bi-hourglass-split me-1"></i>{" "}
-                                                AGE (Auto-computed)
+                                                AGE{" "}
+                                                <span className="text-danger">
+                                                    *
+                                                </span>
                                             </label>
                                             <input
                                                 type="text"
                                                 name="age"
-                                                className="form-control border-dark bg-secondary bg-opacity-10"
+                                                className="form-control border-dark bg-secondary bg-opacity-10 text-center"
                                                 placeholder="0"
                                                 value={formData.age}
                                                 readOnly
@@ -526,7 +529,7 @@ export default function UserModal({
                                         <div className="col-md-4">
                                             <label className="form-label small fw-bold font-monospace">
                                                 <i className="bi bi-gender-ambiguous me-1"></i>{" "}
-                                                GENDER
+                                                GENDER{" "}
                                                 <span className="text-danger ms-1">
                                                     *
                                                 </span>
@@ -538,9 +541,6 @@ export default function UserModal({
                                                 onChange={handleChange}
                                                 required
                                             >
-                                                <option value="">
-                                                    Select Gender
-                                                </option>
                                                 <option value="Male">
                                                     Male
                                                 </option>
@@ -561,7 +561,7 @@ export default function UserModal({
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold font-monospace">
                                                 <i className="bi bi-envelope-at-fill me-1"></i>{" "}
-                                                EMAIL ADDRESS
+                                                EMAIL ADDRESS{" "}
                                                 <span className="text-danger ms-1">
                                                     *
                                                 </span>
@@ -570,7 +570,7 @@ export default function UserModal({
                                                 type="email"
                                                 name="email"
                                                 className="form-control border-dark"
-                                                placeholder="name@example.com"
+                                                placeholder="e.g., example@gmail.com"
                                                 value={formData.email}
                                                 onChange={handleChange}
                                                 required
@@ -579,7 +579,7 @@ export default function UserModal({
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold font-monospace">
                                                 <i className="bi bi-telephone-fill me-1"></i>{" "}
-                                                CONTACT NUMBER
+                                                CONTACT NUMBER{" "}
                                                 <span className="text-danger ms-1">
                                                     *
                                                 </span>
@@ -588,7 +588,7 @@ export default function UserModal({
                                                 type="text"
                                                 name="contact_number"
                                                 className="form-control border-dark"
-                                                placeholder="e.g., 09123456789"
+                                                placeholder="e.g., 09*********"
                                                 value={formData.contact_number}
                                                 onChange={handleChange}
                                                 required
@@ -597,7 +597,7 @@ export default function UserModal({
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold font-monospace">
                                                 <i className="bi bi-shield-lock-fill me-1"></i>{" "}
-                                                ROLE
+                                                ROLE{" "}
                                                 <span className="text-danger ms-1">
                                                     *
                                                 </span>
@@ -627,7 +627,7 @@ export default function UserModal({
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold font-monospace">
                                                 <i className="bi bi-activity me-1"></i>{" "}
-                                                STATUS
+                                                STATUS{" "}
                                                 <span className="text-danger ms-1">
                                                     *
                                                 </span>
@@ -648,12 +648,12 @@ export default function UserModal({
                                             </select>
                                         </div>
                                         <div className="col-12 mt-3">
-                                            <div className="d-flex justify-content-between align-items-end mb-1">
+                                            <div className="d-flex justify-content-between align-items-end mb-2">
                                                 <label className="form-label small fw-bold font-monospace mb-0">
                                                     <i className="bi bi-key-fill me-1"></i>{" "}
                                                     {type === "edit"
-                                                        ? "NEW PASSWORD (Optional)"
-                                                        : "PASSWORD"}
+                                                        ? "NEW PASSWORD"
+                                                        : "PASSWORD "}
                                                     {type === "create" && (
                                                         <span className="text-danger ms-1">
                                                             *
@@ -662,7 +662,7 @@ export default function UserModal({
                                                 </label>
                                                 <button
                                                     type="button"
-                                                    className="btn btn-sm btn-dark font-monospace"
+                                                    className="btn btn-sm btn-dark fw-bold font-monospace btn-press-retro border-2 border-dark rounded-0"
                                                     onClick={handleAutoGenerate}
                                                 >
                                                     <i className="bi bi-magic me-1"></i>{" "}
@@ -711,17 +711,16 @@ export default function UserModal({
                                             </div>
 
                                             {formData.password && (
-                                                <div className="mt-2 small fw-bold d-flex align-items-center gap-2">
-                                                    Strength:{" "}
+                                                <div className="mt-2 medium fw-bold d-flex align-items-center">
                                                     <span
-                                                        className={`badge ${pwdStrength === "Weak" ? "bg-danger" : pwdStrength === "Good" ? "bg-warning text-dark" : "bg-success"}`}
+                                                        className={`badge ${pwdStrength === "Weak" ? "bg-danger" : pwdStrength === "Fair" ? "bg-warning text-dark" : "bg-success"}`}
                                                     >
                                                         {pwdStrength}
                                                     </span>
                                                 </div>
                                             )}
-                                            <div className="form-text mt-2 small text-muted font-monospace">
-                                                <i className="bi bi-info-circle-fill me-1"></i>
+                                            <div className="form-text mt-2 small text-muted font-monospace fst-italic">
+                                                <i className="bi bi-info-circle-fill"></i>{" "}
                                                 Password must be at least 8
                                                 characters long, containing 1
                                                 Uppercase letter, 1 lowercase
@@ -749,7 +748,7 @@ export default function UserModal({
                                         disabled={isLoading}
                                     >
                                         {type === "create"
-                                            ? "CREATE ACCOUNT"
+                                            ? "SUBMIT"
                                             : "SAVE CHANGES"}
                                     </button>
                                 </div>
