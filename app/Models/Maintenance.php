@@ -10,11 +10,13 @@ class Maintenance extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /** Fillable */
     protected $fillable = [
         'is_enabled',
         'message',
     ];
 
+    /** Convert to True or False */
     protected $casts = [
         'is_enabled' => 'boolean',
     ];

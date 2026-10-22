@@ -11,21 +11,25 @@ class Strand extends Model
 {
     use HasFactory, HasUuids, SoftDeletes;
 
+    /** Fillable */
     protected $fillable = [
         'code',
         'description',
     ];
 
+    /** Relationship for Section */
     public function sections()
     {
         return $this->hasMany(Section::class);
     }
 
+    /** Relationship for Subjects */
     public function subjects()
     {
         return $this->hasMany(Subject::class);
     }
 
+    /** Relationship for Student */
     public function students()
     {
         return $this->hasManyThrough(

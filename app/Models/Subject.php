@@ -11,6 +11,7 @@ class Subject extends Model
 {
     use HasFactory, HasUuids, SoftDeletes;
 
+    /** Fillable */
     protected $fillable = [
         'code',
         'description',
@@ -19,6 +20,7 @@ class Subject extends Model
         'term',
     ];
 
+    /** Relationship for Strand */
     public function strand()
     {
         return $this->belongsTo(Strand::class);

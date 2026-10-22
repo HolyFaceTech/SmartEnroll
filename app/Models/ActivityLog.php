@@ -9,6 +9,7 @@ class ActivityLog extends Model
 {
     use HasFactory;
 
+    /** Fillable */
     protected $fillable = [
         'user_id',
         'action',
@@ -16,6 +17,7 @@ class ActivityLog extends Model
         'ip_address',
     ];
 
+    /** Relationship for User */
     public function user()
     {
         return $this->belongsTo(User::class);

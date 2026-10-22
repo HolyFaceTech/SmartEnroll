@@ -11,6 +11,7 @@ class Section extends Model
 {
     use HasFactory, HasUuids, SoftDeletes;
 
+    /** Fillable */
     protected $fillable = [
         'name',
         'strand_id',
@@ -18,11 +19,13 @@ class Section extends Model
         'capacity',
     ];
 
+    /** Relationship for Strand */
     public function strand()
     {
         return $this->belongsTo(Strand::class);
     }
 
+    /** Relationship for Student */
     public function students()
     {
         return $this->hasManyThrough(

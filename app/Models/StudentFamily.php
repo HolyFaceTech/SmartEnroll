@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class StudentFamily extends Model
 {
     use HasFactory, HasUuids;
 
+    /** Fillable */
     protected $fillable = [
         'student_id',
         'employer_name',
@@ -25,6 +26,7 @@ class StudentFamily extends Model
         'guardian_contact',
     ];
 
+    /** Relationship for Student */
     public function student()
     {
         return $this->belongsTo(Student::class);

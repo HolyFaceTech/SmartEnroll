@@ -10,6 +10,7 @@ class StudentAcademic extends Model
 {
     use HasFactory, HasUuids;
 
+    /** Fillable */
     protected $fillable = [
         'student_id',
         'current_school_attended',
@@ -22,20 +23,24 @@ class StudentAcademic extends Model
         'general_average',
     ];
 
+    /** Convert to Decimal Number */
     protected $casts = [
         'general_average' => 'decimal:2',
     ];
 
+    /** Relationship for Student */
     public function student()
     {
         return $this->belongsTo(Student::class);
     }
 
+    /** Relationship for Strand */
     public function strand()
     {
         return $this->belongsTo(Strand::class);
     }
 
+    /** Relationship for Section */
     public function section()
     {
         return $this->belongsTo(Section::class);

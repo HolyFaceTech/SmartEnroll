@@ -9,6 +9,7 @@ class EnrollmentSetting extends Model
 {
     use HasFactory;
 
+    /** Fillable */
     protected $fillable = [
         'start_date',
         'end_date',
@@ -16,6 +17,7 @@ class EnrollmentSetting extends Model
         'term',
     ];
 
+    /** Convert to Date */
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',

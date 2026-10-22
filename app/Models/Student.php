@@ -14,7 +14,7 @@ class Student extends Model
     /** Fillable */
     protected $guarded = [];
 
-    /** Accurate Date Format */
+    /** Convert to Date and Time */
     protected $casts = [
         'released_at' => 'datetime',
     ];

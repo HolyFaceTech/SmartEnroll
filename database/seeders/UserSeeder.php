@@ -8,9 +8,11 @@ use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     */
     public function run(): void
     {
-        /** Admin Account */
         User::create([
             'first_name' => 'Super',
             'last_name' => 'Admin',
@@ -26,7 +28,6 @@ class UserSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
 
-        /** Head Account */
         User::create([
             'first_name' => 'Department',
             'last_name' => 'Head',
@@ -42,7 +43,6 @@ class UserSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
 
-        /** Staff Account */
         User::create([
             'first_name' => 'Registrar',
             'last_name' => 'Staff',

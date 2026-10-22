@@ -510,7 +510,7 @@ export default function Sections() {
                         ></div>
                         <div className="d-flex align-items-center gap-2">
                             <span className="small fw-bold font-monospace">
-                                SHOW:
+                                Show:
                             </span>
                             <select
                                 className="form-control form-control-sm font-monospace fw-bold text-center hide-arrow cursor-pointer"
@@ -531,7 +531,7 @@ export default function Sections() {
                                 <option value="100">100</option>
                             </select>
                             <span className="small fw-bold font-monospace">
-                                entries
+                                Entries
                             </span>
                         </div>
                     </div>

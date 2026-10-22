@@ -10,6 +10,7 @@ class Status extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /** Fillable */
     protected $fillable = [
         'name',
         'status',

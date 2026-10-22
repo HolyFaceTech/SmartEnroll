@@ -11,7 +11,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Sequence Table for Auto-Generating Student Numbers
         Schema::create('student_number_sequences', function (Blueprint $table) {
             $table->id();
             $table->string('year_prefix', 2)->unique();
@@ -19,7 +18,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Core Students Table
         Schema::create('students', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('student_number')->unique()->nullable();
@@ -38,7 +36,6 @@ return new class extends Migration
             $table->softDeletes();
         });
 
-        // Personal Info (Student Profiles)
         Schema::create('student_profiles', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('student_id')->constrained('students')->onDelete('cascade');
@@ -53,7 +50,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Academic Info (Student Academics)
         Schema::create('student_academics', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('student_id')->constrained('students')->onDelete('cascade');
@@ -68,7 +64,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Family and Guardian Info (Student Families)
         Schema::create('student_families', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('student_id')->constrained('students')->onDelete('cascade');
@@ -86,7 +81,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Requirements and Uploaded Files Info (Student Requirements)
         Schema::create('student_requirements', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('student_id')->constrained('students')->onDelete('cascade');

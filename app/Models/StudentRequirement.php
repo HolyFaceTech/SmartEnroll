@@ -10,6 +10,7 @@ class StudentRequirement extends Model
 {
     use HasFactory, HasUuids;
 
+    /** Fillable */
     protected $fillable = [
         'student_id',
         'hard_copies',
@@ -21,10 +22,12 @@ class StudentRequirement extends Model
         'photo_2x2',
     ];
 
+    /** Convert to Array Format */
     protected $casts = [
         'hard_copies' => 'array',
     ];
 
+    /** Relationship for Student */
     public function student()
     {
         return $this->belongsTo(Student::class);
