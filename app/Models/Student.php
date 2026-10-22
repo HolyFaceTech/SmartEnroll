@@ -11,32 +11,39 @@ class Student extends Model
 {
     use HasFactory, HasUuids, SoftDeletes;
 
+    /** Fillable */
     protected $guarded = [];
 
+    /** Accurate Date Format */
     protected $casts = [
         'released_at' => 'datetime',
     ];
 
+    /** Relationship for Student Profile */
     public function profile()
     {
         return $this->hasOne(StudentProfile::class);
     }
 
+    /** Relationship for Student Academic */
     public function academic()
     {
         return $this->hasOne(StudentAcademic::class);
     }
 
+    /** Relationship for Student Family */
     public function family()
     {
         return $this->hasOne(StudentFamily::class);
     }
 
+    /** Relationship for Student Requirement */
     public function requirement()
     {
         return $this->hasOne(StudentRequirement::class);
     }
 
+    /** Relationship for Strand */
     public function strand()
     {
         return $this->hasOneThrough(
@@ -49,6 +56,7 @@ class Student extends Model
         );
     }
 
+    /** Relationship for Section */
     public function section()
     {
         return $this->hasOneThrough(
@@ -61,36 +69,37 @@ class Student extends Model
         );
     }
 
-    public function files()
-    {
-        return $this->hasMany(File::class);
-    }
-
+    /** Relationship for Fetching Hard Copies Requirements */
     public function getRequirementsAttribute()
     {
         return $this->requirement ? $this->requirement->hard_copies : [];
     }
 
+    /** Relationship for Fetching Grade Level */
     public function getGradeLevelAttribute()
     {
         return $this->academic?->grade_level;
     }
 
+    /** Relationship for Fetching Term */
     public function getSemesterAttribute()
     {
         return $this->academic?->term;
     }
 
+    /** Relationship for Fetching School Year */
     public function getSchoolYearAttribute()
     {
         return $this->academic?->school_year;
     }
 
+    /** Relationship for Fetching Strand */
     public function getStrandIdAttribute()
     {
         return $this->academic?->strand_id;
     }
 
+    /** Relationship for Fetching Section */
     public function getSectionIdAttribute()
     {
         return $this->academic?->section_id;

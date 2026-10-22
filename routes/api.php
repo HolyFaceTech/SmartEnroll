@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\PublicEnrollmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CORController;
 use App\Http\Controllers\EnrollmentSettingController;
+use App\Http\Controllers\KeepsController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\RecycleBinController;
 use App\Http\Controllers\ReportController;
@@ -58,14 +59,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- ADMIN DASHBOARD ---
     Route::get('/admin/analytics', [AdminController::class, 'getAnalytics']);
 
-    // user
+    /** User */
     Route::middleware('throttle:15,1')->group(function () {
         Route::post('users/import', [UserController::class, 'importUsers']);
         Route::post('users/bulk-delete', [UserController::class, 'bulkDelete']);
         Route::resource('users', UserController::class);
     });
 
-    // strand
+    /** Strand */
     Route::middleware('throttle:60,1')->group(function () {
         Route::post('strands/bulk-delete', [StrandController::class, 'bulkDelete']);
         Route::get('strands/export-csv', [StrandController::class, 'exportCsv']);
@@ -73,14 +74,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('strands', StrandController::class);
     });
 
-    // Subjects
+    /** Subject */
     Route::middleware('throttle:60,1')->group(function () {
         Route::post('subjects/bulk-delete', [SubjectController::class, 'bulkDelete']);
         Route::post('subjects/import', [SubjectController::class, 'import']);
         Route::apiResource('subjects', SubjectController::class);
     });
 
-    // Sections
+    /** Section */
     Route::middleware('throttle:60,1')->group(function () {
         Route::post('sections/bulk-delete', [SectionController::class, 'bulkDelete']);
         Route::get('sections/export-csv', [SectionController::class, 'exportCsv']);
@@ -88,16 +89,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('sections', SectionController::class);
     });
 
-    // Student
+    /** Student */
     Route::middleware(['throttle:60,1'])->group(function () {
         Route::post('students/bulk-delete', [StudentController::class, 'bulkDelete']);
         Route::post('students/import', [StudentController::class, 'importStudents']);
         Route::apiResource('students', StudentController::class);
         Route::put('students/{id}/status', [StudentController::class, 'changeStatus']);
 
-        // COR (Certificate of Registration)
+        /** COR */
         Route::get('students/{id}/cor-data', [CORController::class, 'getCORData']);
         Route::post('cor/generate-url', [CORController::class, 'generateUrl']);
+    });
+
+    /** Keeps */
+    Route::middleware(['throttle:60,1'])->group(function () {
+        Route::get('keeps', [KeepsController::class, 'index']);
+        Route::get('keeps/{id}', [KeepsController::class, 'show']);
+        Route::post('keeps/{id}/download-zip', [KeepsController::class, 'downloadZip']);
+        Route::post('keeps/{id}/delete-files', [KeepsController::class, 'deleteFiles']);
     });
 
     // --- Reports ---

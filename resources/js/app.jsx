@@ -33,6 +33,9 @@ import HeadStaffSections from "./pages/head_staff/Sections";
 import HeadStaffSubjects from "./pages/head_staff/Subjects";
 import HeadStaffStudents from "./pages/head_staff/Students";
 
+// Admin, Head & Staff Shared
+import AdminHeadStaffKeeps from "./pages/AdminHeadStaff/Keeps";
+
 // --- ADMIN PAGES ---
 import AdminDashboard from "./pages/admin/Dashboard";
 import Reports from "./pages/admin/Reports";
@@ -107,7 +110,9 @@ function App() {
                     />
                     <Route
                         path="keeps"
-                        element={<Placeholder title="Keeps Management" />}
+                        element={
+                            <AdminHeadStaffKeeps title="Keeps Management" />
+                        }
                     />
                     <Route
                         path="reports"
@@ -159,7 +164,9 @@ function App() {
                     />
                     <Route
                         path="keeps"
-                        element={<Placeholder title="Keeps Management" />}
+                        element={
+                            <AdminHeadStaffKeeps title="Keeps Management" />
+                        }
                     />
                     <Route
                         path="requests"
@@ -208,6 +215,12 @@ function App() {
                     <Route
                         path="students"
                         element={<HeadStaffStudents title="Student Records" />}
+                    />
+                    <Route
+                        path="keeps"
+                        element={
+                            <AdminHeadStaffKeeps title="Keeps Management" />
+                        }
                     />
                     <Route
                         path="strands"

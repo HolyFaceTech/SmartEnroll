@@ -314,6 +314,11 @@ export default function StaffLayout() {
                                 label: "Student Records",
                             },
                             {
+                                path: "/staff/keeps",
+                                icon: "bi-archive-fill",
+                                label: "Keeps",
+                            },
+                            {
                                 path: "/staff/strands",
                                 icon: "bi-diagram-3-fill",
                                 label: "Strands",
