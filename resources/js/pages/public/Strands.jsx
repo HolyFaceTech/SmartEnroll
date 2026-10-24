@@ -83,45 +83,6 @@ export default function Strands() {
             className="py-5 font-monospace overflow-hidden"
             style={{ minHeight: "60vh" }}
         >
-            <style>
-                {`
-                @keyframes scrollX {
-                    0% { transform: translateX(0); }
-                    100% { transform: translateX(calc(-100% - 1.5rem)); }
-                }
-                .marquee-container {
-                    display: flex;
-                    width: 100vw;
-                    overflow: hidden;
-                    gap: 1.5rem;
-                    padding: 2rem 0;
-                }
-                .marquee-group {
-                    flex-shrink: 0;
-                    display: flex;
-                    align-items: center;
-                    gap: 1.5rem;
-                    min-width: 100%;
-                    animation: scrollX 20s linear infinite;
-                }
-                /* Humihinto ang scroll pag naka-hover */
-                .marquee-container:hover .marquee-group {
-                    animation-play-state: paused;
-                }
-                .strand-card {
-                    width: 380px;
-                    height: 120px;
-                    cursor: pointer;
-                    box-shadow: 6px 6px 0px #000;
-                    transition: transform 0.2s ease, box-shadow 0.2s ease;
-                }
-                .strand-card:hover {
-                    transform: translate(-4px, -4px);
-                    box-shadow: 10px 10px 0px #000 !important;
-                }
-                `}
-            </style>
-
             <div className="container text-center mb-5">
                 <h1
                     className="fw-black text-uppercase mb-2"

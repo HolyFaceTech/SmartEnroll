@@ -18,6 +18,18 @@ export default function PublicLayout() {
     const [activeSection, setActiveSection] = useState("home");
 
     useEffect(() => {
+        const hasSeenTerms = sessionStorage.getItem("hasSeenTerms");
+        if (!hasSeenTerms) {
+            setShowTerms(true);
+        }
+    }, []);
+
+    const handleCloseTerms = () => {
+        sessionStorage.setItem("hasSeenTerms", "true");
+        setShowTerms(false);
+    };
+
+    useEffect(() => {
         const fetchInitialData = async () => {
             try {
                 const [settingsRes, strandsRes] = await Promise.all([
@@ -77,7 +89,6 @@ export default function PublicLayout() {
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
-    // QUICK SEARCH LOGIC
     const handleQuickSearch = async (e) => {
         e.preventDefault();
         if (searchLrn.length !== 12) {
@@ -117,7 +128,6 @@ export default function PublicLayout() {
         setSearchLrn(e.target.value.replace(/\D/g, "").slice(0, 12));
     };
 
-    // COPY TO CLIPBOARD HELPER
     const handleCopy = (text, type) => {
         navigator.clipboard.writeText(text);
         Swal.fire({
@@ -258,7 +268,7 @@ export default function PublicLayout() {
                                         letterSpacing: "1px",
                                     }}
                                 >
-                                    CHECK ENROLLMENT STATUS
+                                    CHECK ENROLLMENT STATUS:
                                 </span>
                                 <form
                                     onSubmit={handleQuickSearch}
@@ -440,10 +450,7 @@ export default function PublicLayout() {
                 </div>
             </footer>
 
-            <TermsModal
-                show={showTerms}
-                handleClose={() => setShowTerms(false)}
-            />
+            <TermsModal show={showTerms} handleClose={handleCloseTerms} />
 
             <StatusCheckModal
                 show={showStatus}

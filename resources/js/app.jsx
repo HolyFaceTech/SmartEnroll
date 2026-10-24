@@ -14,9 +14,6 @@ const StaffLayout = lazy(() => import("./layouts/StaffLayout"));
 
 // Public Pages
 const Home = lazy(() => import("./pages/public/Home"));
-const Registrar = lazy(() => import("./pages/public/Registrar"));
-const Strands = lazy(() => import("./pages/public/Strands"));
-const FAQ = lazy(() => import("./pages/public/FAQ"));
 const Maintenance = lazy(() => import("./pages/Maintenance"));
 
 // Authentications
@@ -70,7 +67,9 @@ const Placeholder = ({ title }) => (
 );
 
 // Fallback Loader habang nagda-download ang mga Lazy Components
-const PageLoader = () => <Loading show={true} message="LOADING MODULE..." />;
+const PageLoader = () => (
+    <Loading show={true} message="LOADING SMARTENROLL PAGE..." />
+);
 
 function App() {
     return (

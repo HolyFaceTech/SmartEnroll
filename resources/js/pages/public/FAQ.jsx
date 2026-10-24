@@ -4,19 +4,6 @@ import { Accordion } from "react-bootstrap";
 export default function FAQ() {
     return (
         <div className="container py-5 font-monospace">
-            <style>
-                {`
-                @keyframes floatImage {
-                    0% { transform: translateY(0px); }
-                    50% { transform: translateY(-15px); }
-                    100% { transform: translateY(0px); }
-                }
-                .floating-img {
-                    animation: floatImage 4s ease-in-out infinite;
-                }
-                `}
-            </style>
-
             <div className="text-center mb-5">
                 <h1
                     className="fw-black text-uppercase mb-2"

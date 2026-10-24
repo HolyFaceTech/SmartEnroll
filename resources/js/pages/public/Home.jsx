@@ -96,7 +96,7 @@ export default function Home() {
                     }}
                 >
                     <i
-                        className="bi bi-book-fill position-absolute text-dark display-1"
+                        className="bi bi-book position-absolute text-dark display-1"
                         style={{
                             top: "10%",
                             left: "5%",
@@ -105,17 +105,31 @@ export default function Home() {
                         }}
                     ></i>
                     <i
-                        className="bi bi-mortarboard-fill position-absolute text-dark display-1"
+                        className="bi bi-mortarboard position-absolute text-dark display-1"
                         style={{
-                            top: "15%",
-                            right: "10%",
+                            top: "10%",
+                            right: "5%",
                             opacity: "0.05",
                             transform: "rotate(15deg)",
                         }}
                     ></i>
                     <i
-                        className="bi bi-laptop position-absolute text-dark display-4"
-                        style={{ top: "40%", left: "15%", opacity: "0.05" }}
+                        className="bi bi-laptop position-absolute text-dark display-1"
+                        style={{
+                            bottom: "10%",
+                            left: "5%",
+                            opacity: "0.05",
+                            transform: "rotate(-15deg)",
+                        }}
+                    ></i>
+                    <i
+                        className="bi bi-pencil position-absolute text-dark display-1"
+                        style={{
+                            bottom: "10%",
+                            right: "5%",
+                            opacity: "0.05",
+                            transform: "rotate(15deg)",
+                        }}
                     ></i>
                 </div>
 
@@ -159,11 +173,14 @@ export default function Home() {
 
                             <div className="d-flex flex-column flex-sm-row justify-content-center justify-content-lg-start gap-3">
                                 <button
-                                    className={`btn btn-lg px-4 py-3 fw-black border-2 border-dark d-inline-flex align-items-center justify-content-center gap-2 ${isOpen ? "btn-warning btn-retro-effect" : "btn-secondary opacity-75"}`}
+                                    className={`btn btn-lg px-4 py-3 fw-black border-2 border-dark d-inline-flex align-items-center justify-content-center gap-2 ${isOpen ? "btn-retro-effect text-white" : "btn-secondary opacity-75"}`}
                                     style={{
                                         boxShadow: isOpen
                                             ? "4px 4px 0px #000"
                                             : "none",
+                                        backgroundColor: isOpen
+                                            ? "#3F9AAE"
+                                            : "",
                                     }}
                                     onClick={() => setShowLRN(true)}
                                     disabled={!isOpen}
@@ -171,7 +188,7 @@ export default function Home() {
                                     {isOpen ? (
                                         <>
                                             <i className="bi bi-pencil-square"></i>{" "}
-                                            ENROLL NOW
+                                            ENROLL NOW!
                                         </>
                                     ) : (
                                         <>
@@ -182,11 +199,9 @@ export default function Home() {
                                 </button>
 
                                 <button
-                                    className="btn btn-lg px-4 py-3 fw-black border-2 border-dark d-inline-flex align-items-center justify-content-center gap-2 btn-info btn-retro-effect"
+                                    className="btn btn-warning btn-lg px-4 py-3 fw-black border-2 border-dark d-inline-flex align-items-center justify-content-center gap-2 btn-retro-effect text-dark"
                                     style={{
                                         boxShadow: "4px 4px 0px #000",
-                                        backgroundColor: "#3F9AAE",
-                                        color: "#fff",
                                     }}
                                     onClick={() => setShowRequest(true)}
                                 >
