@@ -2,12 +2,12 @@
 
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\Api\PublicEnrollmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CORController;
 use App\Http\Controllers\EnrollmentSettingController;
 use App\Http\Controllers\KeepsController;
 use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\PublicController;
 use App\Http\Controllers\RecycleBinController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SectionController;
@@ -20,23 +20,19 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-|  PUBLIC ROUTES (No Login Required)
-|--------------------------------------------------------------------------
-*/
+/** Public */
 Route::group(['prefix' => 'public'], function () {
-    // 1. Settings & Dropdowns
-    Route::get('/settings', [PublicEnrollmentController::class, 'getSettings']);
-    Route::get('/strands', [PublicEnrollmentController::class, 'getStrands']);
+    Route::get('/settings', [PublicController::class, 'getSettings']);
+    Route::get('/strands', [PublicController::class, 'getStrands']);
 
-    // 2. Checkers
-    Route::post('/check-lrn', [PublicEnrollmentController::class, 'checkLrn']);
-    Route::post('/check-status', [PublicEnrollmentController::class, 'checkStatus']);
+    /** About Enrollments */
+    Route::post('/check-lrn', [PublicController::class, 'checkLrn']);
+    Route::post('/check-status', [PublicController::class, 'checkStatus']);
+    Route::post('/enroll', [PublicController::class, 'enrollNew']);
 
-    // 3. Enrollment Submission
-    Route::post('/enroll-new', [PublicEnrollmentController::class, 'enrollNew']);
-    Route::post('/enroll-old/{id}', [PublicEnrollmentController::class, 'enrollOld']);
+    /**Request Form */
+    Route::post('/verify-request', [PublicController::class, 'verifyForRequest']);
+    Route::post('/submit-request', [PublicController::class, 'submitRequest']);
 });
 
 /** Authentication */

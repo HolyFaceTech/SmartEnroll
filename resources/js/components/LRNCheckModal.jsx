@@ -11,70 +11,38 @@ export default function LRNCheckModal({ show, onClose, onProceed }) {
         e.preventDefault();
         if (lrn.length !== 12)
             return Swal.fire("Invalid", "LRN must be 12 digits.", "warning");
+
         setLoading(true);
 
         try {
             const res = await axios.post("/api/public/check-lrn", { lrn });
-            const student = res.data;
 
-            // EXISTING STUDENT LOGIC
-            if (student) {
-                // If enrolled already, block
-                if (student.status === "enrolled") {
-                    Swal.fire({
-                        title: "ALREADY ENROLLED",
-                        text: "You are already officially enrolled for this term.",
-                        icon: "info",
-                        confirmButtonColor: "#2d3436",
-                        customClass: { popup: "card-retro" },
-                    });
-                }
-                // If Pending/Passed -> Proceed to update
-                else if (student.status === "passed") {
-                    onProceed({ type: "old", student });
-                }
-                // Any other status
-                else {
-                    Swal.fire({
-                        title: "Cannot Proceed",
-                        html: `Status is <b>${student.status.toUpperCase()}</b>. <br>Please visit the Registrar.`,
-                        icon: "info",
-                        confirmButtonColor: "#2d3436",
-                        customClass: { popup: "card-retro" },
-                    });
-                }
+            if (res.data.is_freshman) {
+                onProceed({ type: "new", lrn });
+                setLrn("");
             }
         } catch (error) {
-            // NEW STUDENT LOGIC (404)
-            if (error.response && error.response.status === 404) {
-                onProceed({ type: "new", lrn });
-            }
-            // GRADUATED LOGIC (403)
-            else if (
-                error.response &&
-                error.response.status === 403 &&
-                error.response.data.status === "graduated"
-            ) {
+            if (error.response && error.response.status === 403) {
                 Swal.fire({
-                    title: "CONGRATULATIONS!",
+                    title: "RECORD FOUND",
                     html: `
-                        <div class="text-center">
-                            <i class="bi bi-mortarboard-fill display-1 text-success mb-3"></i>
-                            <h4 class="fw-bold">YOU HAVE GRADUATED!</h4>
-                            <p class="small text-muted">Based on our records, you have completed Grade 12 (2nd Semester).</p>
+                        <div class="text-start">
+                            <p class="mb-2">Our system detected that this LRN already exists.</p>
                             <div class="alert alert-warning border-dark rounded-0 small fw-bold">
-                                You cannot enroll again. Good luck on your next journey! 🚀
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                Online web enrollment is exclusive for Freshmen/New Students.
                             </div>
+                            <p class="mb-0 fw-bold">Please proceed to the Registrar's Office for your enrollment updating.</p>
                         </div>
                     `,
-                    icon: null, // Custom HTML icon above
-                    confirmButtonText: "THANK YOU!",
+                    icon: "info",
+                    confirmButtonText: "I UNDERSTAND",
                     confirmButtonColor: "#2d3436",
-                    customClass: { popup: "card-retro" },
+                    customClass: { popup: "card-retro font-monospace" },
+                }).then(() => {
+                    onClose();
                 });
-            }
-            // GENERAL SERVER ERROR
-            else {
+            } else {
                 Swal.fire("Error", "Server Error. Please try again.", "error");
             }
         } finally {
@@ -91,20 +59,24 @@ export default function LRNCheckModal({ show, onClose, onProceed }) {
             keyboard={false}
         >
             <div className="modal-content modal-retro-content font-monospace">
-                {/* HEADER */}
-                <div className="modal-header-retro d-flex justify-content-between align-items-center">
-                    <div className="d-flex align-items-center gap-2">
-                        <i className="bi bi-shield-lock-fill fs-4"></i>
-                        <h5 className="fw-black m-0 ls-1">VERIFY LRN</h5>
+                <div className="modal-header-retro d-flex justify-content-between align-items-center bg-primary">
+                    <div className="d-flex align-items-center gap-2 text-white">
+                        <i className="bi bi-person-bounding-box fs-4"></i>
+                        <h5
+                            className="fw-black m-0 ls-1"
+                            style={{ textShadow: "1px 1px 0 #000" }}
+                        >
+                            NEW STUDENT CHECK
+                        </h5>
                     </div>
                     <button
                         type="button"
-                        className="btn-close"
+                        className="btn-close btn-close-white"
                         onClick={onClose}
+                        disabled={loading}
                     ></button>
                 </div>
 
-                {/* BODY */}
                 <div
                     className="modal-body p-4"
                     style={{ backgroundColor: "#fcfbf4" }}
@@ -112,11 +84,11 @@ export default function LRNCheckModal({ show, onClose, onProceed }) {
                     <form onSubmit={handleCheck}>
                         <div className="mb-4 text-center">
                             <label className="form-label fw-bold small text-muted">
-                                PLEASE ENTER YOUR LEARNER REFERENCE NO.
+                                ENTER LEARNER REFERENCE NO.
                             </label>
                             <input
                                 type="text"
-                                className="form-control border-2 border-dark rounded-0 fw-bold text-center fs-4"
+                                className="form-control border-2 border-dark rounded-0 fw-bold text-center fs-3"
                                 placeholder="123456789012"
                                 value={lrn}
                                 onChange={(e) =>
@@ -128,26 +100,26 @@ export default function LRNCheckModal({ show, onClose, onProceed }) {
                                 }
                                 maxLength={12}
                                 required
+                                disabled={loading}
                                 style={{ letterSpacing: "3px" }}
                             />
                         </div>
 
                         <button
                             type="submit"
-                            className="btn btn-dark w-100 rounded-0 fw-bold btn-retro-effect py-2"
+                            className="btn btn-dark w-100 rounded-0 fw-bold btn-retro-effect py-3"
                             disabled={loading}
                             style={{ letterSpacing: "1px" }}
                         >
                             {loading ? (
                                 <span>
-                                    {/* TOGA SPINNER */}
-                                    <i className="bi bi-mortarboard-fill spinner-toga me-2"></i>
-                                    CHECKING...
+                                    <i className="bi bi-gear-fill spin-anim me-2"></i>
+                                    CHECKING DATABASE...
                                 </span>
                             ) : (
                                 <span>
-                                    PROCEED{" "}
-                                    <i className="bi bi-arrow-right-short"></i>
+                                    PROCEED TO ENROLLMENT{" "}
+                                    <i className="bi bi-arrow-right-short fs-5 align-middle"></i>
                                 </span>
                             )}
                         </button>

@@ -4,70 +4,91 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import TermsModal from "../components/TermsModal";
 import StatusCheckModal from "../components/StatusCheckModal";
-import HelpModal from "../components/HelpModal";
 import Maintenance from "../pages/Maintenance";
-
-// FIX: ADDED LABEL "CHECK STATUS"
-const SearchInputField = ({ value, onChange }) => (
-    <div className="d-flex flex-column align-items-start w-100">
-        <label
-            className="fw-bold font-monospace small text-white mb-1"
-            style={{
-                textShadow: "1px 1px 0 #000",
-                letterSpacing: "1px",
-                fontSize: "0.7rem",
-            }}
-        >
-            CHECK YOUR STATUS:
-        </label>
-        <div className="input-group shadow-sm w-100">
-            <span className="input-group-text bg-white border-dark border-2 border-end-0 rounded-start">
-                <i className="bi bi-patch-check-fill"></i>
-            </span>
-            <input
-                type="text"
-                className="form-control border-dark border-2 border-start-0 ps-2 font-monospace rounded-end"
-                placeholder="Enter LRN..."
-                value={value}
-                onChange={onChange}
-                style={{ boxShadow: "none" }}
-            />
-        </div>
-    </div>
-);
 
 export default function PublicLayout() {
     const [showTerms, setShowTerms] = useState(false);
-    const [showHelp, setShowHelp] = useState(false);
     const [searchLrn, setSearchLrn] = useState("");
     const [showStatus, setShowStatus] = useState(false);
     const [statusResult, setStatusResult] = useState(null);
-
+    const [strands, setStrands] = useState([]);
     const [isMaintenance, setIsMaintenance] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    const [activeSection, setActiveSection] = useState("home");
+
     useEffect(() => {
-        axios
-            .get("/api/public/settings")
-            .then((res) => {
-                if (res.data && res.data.maintenance_mode == 1) {
+        const fetchInitialData = async () => {
+            try {
+                const [settingsRes, strandsRes] = await Promise.all([
+                    axios.get("/api/public/settings"),
+                    axios.get("/api/public/strands"),
+                ]);
+
+                if (
+                    settingsRes.data &&
+                    settingsRes.data.maintenance_mode == 1
+                ) {
                     setIsMaintenance(true);
                 }
+                setStrands(strandsRes.data || []);
+            } catch (error) {
+                console.error("Failed to load initial data", error);
+            } finally {
                 setLoading(false);
-            })
-            .catch(() => setLoading(false));
+            }
+        };
+
+        fetchInitialData();
     }, []);
 
+    useEffect(() => {
+        const handleScroll = () => {
+            const sections = [
+                "home",
+                "strands",
+                "registrar",
+                "faq",
+                "contacts",
+            ];
+            let current = "home";
+
+            for (let section of sections) {
+                const element = document.getElementById(section);
+                if (element) {
+                    const rect = element.getBoundingClientRect();
+                    if (rect.top <= 200) {
+                        current = section;
+                    }
+                }
+            }
+
+            if (
+                window.innerHeight + window.scrollY >=
+                document.body.offsetHeight - 50
+            ) {
+                current = "contacts";
+            }
+
+            setActiveSection(current);
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
+    // QUICK SEARCH LOGIC
     const handleQuickSearch = async (e) => {
         e.preventDefault();
-        if (!searchLrn)
+        if (searchLrn.length !== 12) {
             return Swal.fire({
-                title: "INPUT REQUIRED",
-                text: "Enter 12-digit LRN to check status.",
+                title: "INVALID LRN",
+                text: "Please enter a valid 12-digit LRN.",
                 icon: "warning",
                 confirmButtonColor: "#2d3436",
-                customClass: { popup: "card-retro" },
+                customClass: { popup: "card-retro font-monospace" },
             });
+        }
 
         try {
             const res = await axios.post("/api/public/check-status", {
@@ -81,7 +102,7 @@ export default function PublicLayout() {
                 text: "LRN not found in the system.",
                 icon: "error",
                 confirmButtonColor: "#F96E5B",
-                customClass: { popup: "card-retro" },
+                customClass: { popup: "card-retro font-monospace" },
             });
         }
     };
@@ -90,12 +111,29 @@ export default function PublicLayout() {
         setShowStatus(false);
         setStatusResult(null);
         setSearchLrn("");
-        window.location.reload();
     };
 
     const onSearchChange = (e) => {
         setSearchLrn(e.target.value.replace(/\D/g, "").slice(0, 12));
     };
+
+    // COPY TO CLIPBOARD HELPER
+    const handleCopy = (text, type) => {
+        navigator.clipboard.writeText(text);
+        Swal.fire({
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 1500,
+            icon: "success",
+            title: `${type} Copied!`,
+            customClass: { popup: "font-monospace" },
+        });
+    };
+
+    const mapAddress =
+        "Petron Gasoline Station, Block 04 Lot 18 Calavite St, Valentino Subdivision Near, Kasiglahan Village, Rodriguez, Rizal";
+    const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapAddress)}`;
 
     if (!loading && isMaintenance) {
         return <Maintenance />;
@@ -106,7 +144,6 @@ export default function PublicLayout() {
             className="d-flex flex-column min-vh-100 font-monospace"
             style={{
                 backgroundColor: "#fcfbf4",
-                overflowX: "hidden",
                 backgroundImage: `
                     linear-gradient(to right, rgba(0,0,0,0.08) 1px, transparent 1px),
                     linear-gradient(to bottom, rgba(0,0,0,0.08) 1px, transparent 1px)
@@ -115,126 +152,291 @@ export default function PublicLayout() {
             }}
         >
             <nav
-                className="border-bottom border-2 border-dark sticky-top"
-                style={{
-                    backgroundColor: "#3F9AAE",
-                    zIndex: 1000,
-                    paddingBottom: "0",
-                }}
+                className="navbar navbar-expand-lg border-bottom border-3 border-dark sticky-top shadow-sm"
+                style={{ backgroundColor: "#3F9AAE", zIndex: 1000 }}
             >
                 <div className="container py-2">
-                    <div className="d-flex flex-wrap justify-content-between align-items-center">
-                        {/* LEFT: BRANDING */}
-                        <Link
-                            to="/"
-                            className="d-flex align-items-center gap-3 text-decoration-none"
+                    <a
+                        href="#home"
+                        className="navbar-brand d-flex align-items-center gap-3 text-decoration-none"
+                    >
+                        <div
+                            className="bg-white p-1 border border-2 border-dark rounded-circle d-flex align-items-center justify-content-center shadow-sm"
+                            style={{ width: "50px", height: "50px" }}
                         >
-                            <div
-                                className="bg-white p-1 border border-2 border-dark rounded-circle d-flex align-items-center justify-content-center shadow-sm"
-                                style={{ width: "50px", height: "50px" }}
+                            <img
+                                src="/images/logo.png"
+                                alt="Logo"
+                                style={{ width: "100%", height: "auto" }}
+                            />
+                        </div>
+                        <div className="d-flex flex-column justify-content-center">
+                            <span
+                                className="fw-black text-uppercase lh-1 text-white"
+                                style={{
+                                    fontSize: "1.35rem",
+                                    letterSpacing: "1px",
+                                    textShadow: "1px 1px 3px rgba(0,0,0,0.3)",
+                                }}
                             >
-                                <img
-                                    src="/images/logo.png"
-                                    alt="Logo"
-                                    style={{ width: "100%", height: "auto" }}
-                                />
-                            </div>
-                            <div className="d-flex flex-column justify-content-center">
-                                <span
-                                    className="fw-black text-uppercase lh-1 text-white"
-                                    style={{
-                                        fontSize: "1.5rem",
-                                        letterSpacing: "1px",
-                                        textShadow: "3px 3px 0 #000",
-                                    }}
-                                >
-                                    SmartEnroll
-                                </span>
-                                <span
-                                    className="small fw-bold font-monospace text-uppercase"
-                                    style={{
-                                        letterSpacing: "2px",
-                                        color: "#F4D03F",
-                                        textShadow: "1px 1px 0 #000",
-                                    }}
-                                >
-                                    Enrollment Portal
-                                </span>
-                            </div>
-                        </Link>
+                                SmartEnroll
+                            </span>
+                            <span
+                                className="text-white opacity-75 fw-normal"
+                                style={{
+                                    fontSize: "0.7rem",
+                                    letterSpacing: "3px",
+                                }}
+                            >
+                                ENROLLMENT PORTAL
+                            </span>
+                        </div>
+                    </a>
 
-                        {/* RIGHT: DESKTOP SEARCH & LOGIN BUTTON */}
-                        {/* Change: align-items-end para pantay ang bottom ng Input at Button */}
-                        <div className="d-flex align-items-end gap-3 mt-2 mt-md-0">
-                            <form
-                                onSubmit={handleQuickSearch}
-                                className="d-none d-md-block"
-                                style={{ width: "300px" }}
-                            >
-                                <SearchInputField
-                                    value={searchLrn}
-                                    onChange={onSearchChange}
-                                />
-                            </form>
+                    <button
+                        className="navbar-toggler border-0 bg-transparent text-white"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#publicNavbar"
+                        aria-controls="publicNavbar"
+                        aria-expanded="false"
+                        aria-label="Toggle navigation"
+                    >
+                        <i className="bi bi-list fs-1"></i>
+                    </button>
+
+                    <div className="collapse navbar-collapse" id="publicNavbar">
+                        <ul className="navbar-nav me-auto mb-2 mb-lg-0 fw-bold ms-lg-4 gap-3 align-items-lg-end">
+                            <li className="nav-item">
+                                <a
+                                    href="#home"
+                                    className={`nav-link pb-1 ${activeSection === "home" ? "text-warning fw-black border-bottom border-2 border-warning opacity-100" : "text-white opacity-75 fw-bold"}`}
+                                >
+                                    HOME
+                                </a>
+                            </li>
+                            <li className="nav-item">
+                                <a
+                                    href="#strands"
+                                    className={`nav-link pb-1 ${activeSection === "strands" ? "text-warning fw-black border-bottom border-2 border-warning opacity-100" : "text-white opacity-75 fw-bold"}`}
+                                >
+                                    STRANDS
+                                </a>
+                            </li>
+                            <li className="nav-item">
+                                <a
+                                    href="#registrar"
+                                    className={`nav-link pb-1 ${activeSection === "registrar" ? "text-warning fw-black border-bottom border-2 border-warning opacity-100" : "text-white opacity-75 fw-bold"}`}
+                                >
+                                    REGISTRAR
+                                </a>
+                            </li>
+                            <li className="nav-item">
+                                <a
+                                    href="#faq"
+                                    className={`nav-link pb-1 ${activeSection === "faq" ? "text-warning fw-black border-bottom border-2 border-warning opacity-100" : "text-white opacity-75 fw-bold"}`}
+                                >
+                                    FAQ
+                                </a>
+                            </li>
+                            <li className="nav-item">
+                                <a
+                                    href="#contacts"
+                                    className={`nav-link pb-1 ${activeSection === "contacts" ? "text-warning fw-black border-bottom border-2 border-warning opacity-100" : "text-white opacity-75 fw-bold"}`}
+                                >
+                                    CONTACTS
+                                </a>
+                            </li>
+                        </ul>
+
+                        <div className="d-flex flex-column flex-lg-row align-items-lg-end gap-3 mt-3 mt-lg-0">
+                            <div className="d-flex flex-column">
+                                <span
+                                    className="text-white opacity-75 fw-bold mb-1"
+                                    style={{
+                                        fontSize: "0.65rem",
+                                        letterSpacing: "1px",
+                                    }}
+                                >
+                                    CHECK ENROLLMENT STATUS
+                                </span>
+                                <form
+                                    onSubmit={handleQuickSearch}
+                                    className="d-flex align-items-center"
+                                >
+                                    <div
+                                        className="input-group"
+                                        style={{
+                                            maxWidth: "300px",
+                                            width: "260px",
+                                        }}
+                                    >
+                                        <span className="input-group-text bg-white border-dark border-2 border-end-0">
+                                            <i className="bi bi-search text-dark"></i>
+                                        </span>
+                                        <input
+                                            type="text"
+                                            className="form-control border-dark border-2 border-start-0 ps-2 font-monospace fw-bold"
+                                            placeholder="Enter 12-Digit LRN..."
+                                            value={searchLrn}
+                                            onChange={(e) => {
+                                                onSearchChange(e);
+                                            }}
+                                        />
+                                    </div>
+                                </form>
+                            </div>
 
                             <Link
                                 to="/login"
-                                className="btn btn-retro btn-staff px-3 py-2 text-nowrap"
+                                className="btn btn-retro btn-press-retro bg-warning text-dark border-2 border-dark fw-bold px-4 py-2 d-flex align-items-center justify-content-center gap-2"
+                                style={{ height: "42px" }}
                             >
-                                <i className="bi bi-shield-lock-fill"></i>
-                                <span className="d-none d-sm-inline">
-                                    STAFF LOGIN
-                                </span>
-                                <span className="d-inline d-sm-none">
-                                    LOGIN
-                                </span>
+                                <i className="bi bi-shield-lock-fill"></i> LOGIN
                             </Link>
                         </div>
-                    </div>
-
-                    {/* MOBILE SEARCH (Row 2 - Inside Navbar) */}
-                    <div className="d-md-none w-100 mt-3 pb-2">
-                        <form onSubmit={handleQuickSearch}>
-                            <SearchInputField
-                                value={searchLrn}
-                                onChange={onSearchChange}
-                            />
-                        </form>
                     </div>
                 </div>
             </nav>
 
-            <main className="flex-grow-1 position-relative">
+            <main
+                className="flex-grow-1 position-relative"
+                style={{ overflowX: "hidden" }}
+            >
                 <Outlet />
             </main>
 
-            {/* --- UPDATED FOOTER --- */}
             <footer
-                className="py-3 bg-white text-center small mt-auto"
-                style={{ borderTop: "2px solid black" }}
+                id="contacts"
+                className="py-5 bg-white border-top border-dark border-3 mt-auto shadow-lg"
             >
-                <div className="container font-monospace d-flex justify-content-center align-items-center flex-wrap gap-2">
-                    <span>© {new Date().getFullYear()} SmartEnroll System</span>
-                    <span className="mx-2 d-none d-sm-inline">|</span>
+                <div className="container">
+                    <div className="row g-4">
+                        <div className="col-lg-4 col-md-6">
+                            <h6 className="fw-black text-uppercase mb-3 d-flex align-items-center gap-2">
+                                <i
+                                    className="bi bi-building-fill fs-5 text-warning"
+                                    style={{ textShadow: "1px 1px 0 #000" }}
+                                ></i>
+                                Holy Face of Jesus Lyceum
+                            </h6>
+                            <a
+                                href={mapLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-muted small text-decoration-none d-block mb-3 hover-text-primary"
+                            >
+                                <i className="bi bi-geo-alt-fill text-danger me-1"></i>{" "}
+                                {mapAddress}
+                            </a>
+                            <div className="d-flex gap-3 mt-3">
+                                <button
+                                    className="btn btn-sm btn-outline-dark rounded-circle"
+                                    onClick={() =>
+                                        handleCopy(
+                                            "mariaelenaschool@gmail.com",
+                                            "Email",
+                                        )
+                                    }
+                                    title="Copy Email"
+                                >
+                                    <i className="bi bi-envelope-fill"></i>
+                                </button>
+                                <button
+                                    className="btn btn-sm btn-outline-dark rounded-circle"
+                                    onClick={() =>
+                                        handleCopy("09242740388", "Number")
+                                    }
+                                    title="Copy Phone Number"
+                                >
+                                    <i className="bi bi-telephone-fill"></i>
+                                </button>
+                                <a
+                                    href="https://www.facebook.com/elena.salazar.459616/"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="btn btn-sm btn-outline-dark rounded-circle"
+                                    title="Visit Facebook Page"
+                                >
+                                    <i className="bi bi-facebook"></i>
+                                </a>
+                            </div>
+                        </div>
 
-                    {/* TERMS BUTTON */}
-                    <button
-                        className="btn btn-link text-dark text-decoration-none fw-bold p-0"
-                        onClick={() => setShowTerms(true)}
-                    >
-                        Terms & Policy
-                    </button>
+                        <div className="col-lg-5 col-md-6">
+                            <h6 className="fw-black text-uppercase mb-3 d-flex align-items-center gap-2">
+                                <i
+                                    className="bi bi-award-fill fs-5 text-danger"
+                                    style={{ textShadow: "1px 1px 0 #000" }}
+                                ></i>
+                                Academic Strands
+                            </h6>
+                            <div className="row g-2">
+                                {strands.length > 0 ? (
+                                    strands.map((strand) => (
+                                        <div
+                                            className="col-sm-6"
+                                            key={strand.id}
+                                        >
+                                            <a
+                                                href={`https://www.google.com/search?q=${encodeURIComponent(strand.description + " Senior High School")}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-muted small text-decoration-none hover-text-primary d-block"
+                                            >
+                                                <strong className="text-dark">
+                                                    {strand.code}
+                                                </strong>{" "}
+                                                -{" "}
+                                                <span className="fst-italic">
+                                                    {strand.description}
+                                                </span>
+                                            </a>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="col-12 small text-muted">
+                                        Loading strands...
+                                    </div>
+                                )}
+                            </div>
+                        </div>
 
-                    <span className="mx-2">|</span>
-
-                    {/* HELP BUTTON (WITH ICON) */}
-                    <button
-                        className="btn btn-link text-primary text-decoration-none fw-black p-0 d-flex align-items-center gap-1"
-                        onClick={() => setShowHelp(true)}
-                    >
-                        <i className="bi bi-question-circle-fill fs-6"></i>
-                        HELP & GUIDE
-                    </button>
+                        <div className="col-lg-3 col-md-12 text-lg-end">
+                            <h6 className="fw-black text-uppercase mb-3 d-flex align-items-center justify-content-lg-end gap-2">
+                                <i
+                                    className="bi bi-shield-lock-fill fs-5 text-info"
+                                    style={{ textShadow: "1px 1px 0 #000" }}
+                                ></i>
+                                Legal & Info
+                            </h6>
+                            <ul className="list-unstyled small text-muted">
+                                <li className="mb-2">
+                                    <button
+                                        className="btn btn-link text-muted text-decoration-none p-0 fw-bold"
+                                        onClick={() => setShowTerms(true)}
+                                    >
+                                        Privacy Statement
+                                    </button>
+                                </li>
+                                <li className="mb-2">
+                                    <button
+                                        className="btn btn-link text-muted text-decoration-none p-0 fw-bold"
+                                        onClick={() => setShowTerms(true)}
+                                    >
+                                        Terms & Conditions
+                                    </button>
+                                </li>
+                                <li
+                                    className="mt-4 fw-black text-dark"
+                                    style={{ letterSpacing: "1px" }}
+                                >
+                                    © {new Date().getFullYear()} SmartEnroll.v2
+                                    System
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </footer>
 
@@ -248,8 +450,6 @@ export default function PublicLayout() {
                 student={statusResult}
                 onClose={handleCloseStatus}
             />
-
-            <HelpModal show={showHelp} onClose={() => setShowHelp(false)} />
         </div>
     );
 }
