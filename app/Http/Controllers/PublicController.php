@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\StudentApplication;
+use App\Mail\StudentRequest;
 use App\Models\EnrollmentSetting;
 use App\Models\Request as DocumentRequest;
 use App\Models\Strand;
@@ -268,7 +269,7 @@ class PublicController extends Controller
     {
         $request->validate([
             'lrn' => 'required|digits:12',
-            'type' => 'required|string|max:255',
+            'type' => 'required|string|max:1000',
             'purpose' => 'nullable|string|max:1000',
         ]);
 
@@ -281,12 +282,20 @@ class PublicController extends Controller
         }
 
         try {
-            DocumentRequest::create([
+            $docRequest = DocumentRequest::create([
                 'student_id' => $student->id,
                 'type' => $request->type,
                 'purpose' => $request->purpose,
                 'status' => 'pending',
             ]);
+
+            try {
+                if (! empty($student->email)) {
+                    Mail::to($student->email)->queue(new StudentRequest($student, $docRequest));
+                }
+            } catch (\Throwable $mailError) {
+                Log::warning('Public Document Request Email Failed: '.$mailError->getMessage());
+            }
 
             return response()->json([
                 'message' => 'Request submitted successfully! We will process it shortly.',

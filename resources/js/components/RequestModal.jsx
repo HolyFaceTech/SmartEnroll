@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
-import Swal from "sweetalert2";
-import { Modal } from "react-bootstrap";
+import Toast from "../utils/toast";
 import PublicConfirmation from "./PublicConfirmation";
+import Loading from "../utils/Loading";
 
 export default function RequestModal({ show, onClose }) {
     const [step, setStep] = useState(1);
@@ -13,26 +13,36 @@ export default function RequestModal({ show, onClose }) {
 
     const [studentData, setStudentData] = useState(null);
 
-    const [documentType, setDocumentType] = useState("");
+    const [selectedDocuments, setSelectedDocuments] = useState([]);
     const [otherDocument, setOtherDocument] = useState("");
     const [purpose, setPurpose] = useState("");
 
     const [showConfirm, setShowConfirm] = useState(false);
 
+    const documentOptions = [
+        { label: "Certificate of Enrollment", group: "3 Days Processing" },
+        { label: "Certificate of Graduate", group: "3 Days Processing" },
+        { label: "Copy of Grades", group: "3 Days Processing" },
+        { label: "Certificate of Dismissal", group: "3 Days Processing" },
+        { label: "Form 137", group: "7 Days Processing" },
+        { label: "Good Moral Certificate", group: "7 Days Processing" },
+        { label: "Others", group: "Custom" },
+    ];
+
     const handleVerify = async (e) => {
         e.preventDefault();
-        if (lrn.length !== 12)
-            return Swal.fire(
-                "Invalid LRN",
-                "LRN must be exactly 12 digits.",
-                "warning",
-            );
-        if (!dob)
-            return Swal.fire(
-                "Required",
-                "Please enter your Date of Birth.",
-                "warning",
-            );
+        if (lrn.length !== 12) {
+            return Toast.fire({
+                icon: "warning",
+                title: "LRN must be exactly 12 digits.",
+            });
+        }
+        if (!dob) {
+            return Toast.fire({
+                icon: "warning",
+                title: "Please enter your Date of Birth.",
+            });
+        }
 
         setLoading(true);
         try {
@@ -43,38 +53,46 @@ export default function RequestModal({ show, onClose }) {
             setStudentData(res.data);
             setStep(2);
         } catch (error) {
-            Swal.fire({
-                title: "RECORD NOT FOUND",
-                html: "We couldn't find a match for the provided LRN and Date of Birth.<br><br><b>Please visit the Registrar's Office to manually request your documents.</b>",
+            Toast.fire({
                 icon: "error",
-                confirmButtonColor: "#2d3436",
-                customClass: { popup: "card-retro font-monospace" },
+                title: "Record not found. Please visit the Registrar's Office.",
             });
         } finally {
             setLoading(false);
         }
     };
 
+    const handleCheckboxChange = (docLabel) => {
+        if (selectedDocuments.includes(docLabel)) {
+            setSelectedDocuments(
+                selectedDocuments.filter((doc) => doc !== docLabel),
+            );
+            if (docLabel === "Others") setOtherDocument("");
+        } else {
+            setSelectedDocuments([...selectedDocuments, docLabel]);
+        }
+    };
+
     const handlePreSubmit = (e) => {
         e.preventDefault();
-        if (!documentType)
-            return Swal.fire(
-                "Required",
-                "Please select a document type.",
-                "warning",
-            );
-        if (documentType === "Others" && !otherDocument)
-            return Swal.fire(
-                "Required",
-                "Please specify the document.",
-                "warning",
-            );
-        if (!purpose)
-            return Swal.fire(
-                "Required",
-                "Please state your purpose.",
-                "warning",
-            );
+        if (selectedDocuments.length === 0) {
+            return Toast.fire({
+                icon: "warning",
+                title: "Please select at least one document type.",
+            });
+        }
+        if (selectedDocuments.includes("Others") && !otherDocument.trim()) {
+            return Toast.fire({
+                icon: "warning",
+                title: "Please specify the other document.",
+            });
+        }
+        if (!purpose) {
+            return Toast.fire({
+                icon: "warning",
+                title: "Please state your purpose.",
+            });
+        }
 
         setShowConfirm(true);
     };
@@ -83,8 +101,10 @@ export default function RequestModal({ show, onClose }) {
         setShowConfirm(false);
         setLoading(true);
 
-        const finalType =
-            documentType === "Others" ? otherDocument : documentType;
+        const finalDocsList = selectedDocuments.map((doc) =>
+            doc === "Others" ? otherDocument.trim() : doc,
+        );
+        const finalType = finalDocsList.join(", ");
 
         try {
             const res = await axios.post("/api/public/submit-request", {
@@ -93,22 +113,18 @@ export default function RequestModal({ show, onClose }) {
                 purpose: purpose,
             });
 
-            Swal.fire({
-                title: "REQUEST SUBMITTED!",
-                text:
-                    res.data.message || "Your document request has been saved.",
+            Toast.fire({
                 icon: "success",
-                confirmButtonColor: "#2d3436",
-                customClass: { popup: "card-retro font-monospace" },
-            }).then(() => {
-                resetAndClose();
+                title:
+                    res.data.message || "Your document request has been saved.",
             });
+
+            resetAndClose();
         } catch (error) {
-            Swal.fire(
-                "Error",
-                "Failed to submit request. Please try again.",
-                "error",
-            );
+            Toast.fire({
+                icon: "error",
+                title: "Failed to submit request. Please try again.",
+            });
         } finally {
             setLoading(false);
         }
@@ -119,238 +135,396 @@ export default function RequestModal({ show, onClose }) {
         setLrn("");
         setDob("");
         setStudentData(null);
-        setDocumentType("");
+        setSelectedDocuments([]);
         setOtherDocument("");
         setPurpose("");
         onClose();
     };
 
+    const handleCancelStep2 = () => {
+        setStep(1);
+        setLrn("");
+        setDob("");
+        setStudentData(null);
+        setSelectedDocuments([]);
+        setOtherDocument("");
+        setPurpose("");
+    };
+
+    if (!show) return null;
+
+    const headerBgColor = "#F4D03F";
+
     return (
         <>
-            <Modal
-                show={show}
-                onHide={resetAndClose}
-                centered
-                backdrop="static"
-                keyboard={false}
+            <div
+                className="modal-backdrop fade show"
+                style={{ zIndex: 1045 }}
+            ></div>
+            <div
+                className="modal fade show d-block"
+                tabIndex="-1"
+                style={{ zIndex: 1050, overflowY: "auto" }}
             >
-                <div className="modal-content modal-retro-content font-monospace">
-                    <div className="modal-header-retro d-flex justify-content-between align-items-center">
-                        <div className="d-flex align-items-center gap-2">
-                            <i className="bi bi-folder-fill fs-4 text-warning"></i>
-                            <h5 className="fw-black m-0 ls-1">
+                <div className="modal-dialog modal-dialog-centered modal-lg">
+                    <div className="modal-content card-retro border-2 border-dark shadow">
+                        <div
+                            className="modal-header border-bottom border-dark text-dark"
+                            style={{ backgroundColor: headerBgColor }}
+                        >
+                            <h5 className="modal-title fw-bold font-monospace">
+                                <i className="bi bi-folder-fill me-2"></i>
                                 DOCUMENT REQUEST
                             </h5>
+                            <button
+                                type="button"
+                                className="btn-close"
+                                onClick={resetAndClose}
+                                disabled={loading}
+                            ></button>
                         </div>
-                        <button
-                            type="button"
-                            className="btn-close"
-                            onClick={resetAndClose}
-                            disabled={loading}
-                        ></button>
-                    </div>
 
-                    <div className="modal-body p-4 bg-retro-bg">
-                        {step === 1 && (
-                            <form onSubmit={handleVerify}>
-                                <div className="alert alert-info border-2 border-dark rounded-0 mb-4 small fw-bold">
-                                    <i className="bi bi-shield-lock-fill me-2"></i>
-                                    Security Verification: Please enter your
-                                    details to access the request form.
-                                </div>
-
-                                <div className="mb-3">
-                                    <label className="form-label fw-bold small">
-                                        LEARNER REFERENCE NO. (LRN)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="form-control border-2 border-dark fw-bold"
-                                        placeholder="12-digit LRN"
-                                        value={lrn}
-                                        onChange={(e) =>
-                                            setLrn(
-                                                e.target.value
-                                                    .replace(/\D/g, "")
-                                                    .slice(0, 12),
-                                            )
-                                        }
-                                        required
-                                        disabled={loading}
-                                    />
-                                </div>
-
-                                <div className="mb-4">
-                                    <label className="form-label fw-bold small">
-                                        DATE OF BIRTH
-                                    </label>
-                                    <input
-                                        type="date"
-                                        className="form-control border-2 border-dark fw-bold"
-                                        value={dob}
-                                        onChange={(e) => setDob(e.target.value)}
-                                        required
-                                        disabled={loading}
-                                    />
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    className="btn btn-dark w-100 rounded-0 fw-bold btn-retro-effect py-2"
-                                    disabled={loading}
-                                >
-                                    {loading
-                                        ? "VERIFYING..."
-                                        : "VERIFY IDENTITY"}
-                                </button>
-                            </form>
-                        )}
-
-                        {step === 2 && studentData && (
-                            <form onSubmit={handlePreSubmit}>
-                                <div className="p-3 bg-white border border-2 border-dark mb-4 shadow-sm">
-                                    <h6 className="fw-black border-bottom border-dark pb-2 mb-2 text-uppercase">
-                                        Student Details
-                                    </h6>
-                                    <div className="small">
-                                        <div className="d-flex justify-content-between mb-1">
-                                            <span className="text-muted fw-bold">
-                                                Name:
-                                            </span>
-                                            <span className="fw-bolder">
-                                                {studentData.last_name},{" "}
-                                                {studentData.first_name}
-                                            </span>
+                        <div className="modal-body bg-light">
+                            {step === 1 && (
+                                <form onSubmit={handleVerify}>
+                                    <div className="card border-2 border-dark mb-4">
+                                        <div className="card-header border-bottom border-dark bg-white fw-bold font-monospace">
+                                            <i className="bi bi-shield-lock-fill me-2"></i>{" "}
+                                            SECURITY VERIFICATION
                                         </div>
-                                        <div className="d-flex justify-content-between mb-1">
-                                            <span className="text-muted fw-bold">
-                                                Student No:
-                                            </span>
-                                            <span className="fw-bolder">
-                                                {studentData.student_number}
-                                            </span>
-                                        </div>
-                                        <div className="d-flex justify-content-between">
-                                            <span className="text-muted fw-bold">
-                                                Strand:
-                                            </span>
-                                            <span className="fw-bolder">
-                                                {studentData.strand_code}
-                                            </span>
+                                        <div className="card-body row g-3">
+                                            <div className="col-12">
+                                                <p className="small text-muted font-monospace fst-italic mb-1">
+                                                    Please enter your details to
+                                                    verify your identity and
+                                                    access the request form.
+                                                </p>
+                                            </div>
+                                            <div className="col-md-6">
+                                                <label className="form-label small fw-bold font-monospace">
+                                                    <i className="bi bi-upc-scan me-1"></i>{" "}
+                                                    LEARNER REFERENCE NO. (LRN){" "}
+                                                    <span className="text-danger">
+                                                        *
+                                                    </span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control border-dark"
+                                                    placeholder="12-digit LRN"
+                                                    value={lrn}
+                                                    onChange={(e) =>
+                                                        setLrn(
+                                                            e.target.value
+                                                                .replace(
+                                                                    /\D/g,
+                                                                    "",
+                                                                )
+                                                                .slice(0, 12),
+                                                        )
+                                                    }
+                                                    required
+                                                    disabled={loading}
+                                                />
+                                            </div>
+                                            <div className="col-md-6">
+                                                <label className="form-label small fw-bold font-monospace">
+                                                    <i className="bi bi-calendar-event-fill me-1"></i>{" "}
+                                                    DATE OF BIRTH{" "}
+                                                    <span className="text-danger">
+                                                        *
+                                                    </span>
+                                                </label>
+                                                <input
+                                                    type="date"
+                                                    className="form-control border-dark"
+                                                    value={dob}
+                                                    onChange={(e) =>
+                                                        setDob(e.target.value)
+                                                    }
+                                                    required
+                                                    disabled={loading}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="mb-3">
-                                    <label className="form-label fw-bold small">
-                                        DOCUMENT TYPE
-                                    </label>
-                                    <select
-                                        className="form-select border-2 border-dark fw-bold"
-                                        value={documentType}
-                                        onChange={(e) => {
-                                            setDocumentType(e.target.value);
-                                            if (e.target.value !== "Others")
-                                                setOtherDocument("");
-                                        }}
-                                        required
-                                        disabled={loading}
-                                    >
-                                        <option value="" disabled>
-                                            -- Select Document --
-                                        </option>
-                                        <optgroup label="3 Days Processing">
-                                            <option value="Certificate of Enrollment">
-                                                Certificate of Enrollment
-                                            </option>
-                                            <option value="Certificate of Graduate">
-                                                Certificate of Graduate
-                                            </option>
-                                            <option value="Copy of Grades">
-                                                Copy of Grades
-                                            </option>
-                                            <option value="Certificate of Dismissal">
-                                                Certificate of Dismissal
-                                            </option>
-                                            <option value="Others">
-                                                Others (Please specify)
-                                            </option>
-                                        </optgroup>
-                                        <optgroup label="7 Days Processing">
-                                            <option value="Form 137">
-                                                Form 137
-                                            </option>
-                                            <option value="Good Moral Certificate">
-                                                Good Moral Certificate
-                                            </option>
-                                        </optgroup>
-                                    </select>
-                                </div>
-
-                                {documentType === "Others" && (
-                                    <div className="mb-3 p-2 bg-light border border-dark">
-                                        <label className="form-label fw-bold small">
-                                            SPECIFY DOCUMENT
-                                        </label>
-                                        <input
-                                            type="text"
-                                            className="form-control border-dark"
-                                            placeholder="Enter document name"
-                                            value={otherDocument}
-                                            onChange={(e) =>
-                                                setOtherDocument(e.target.value)
-                                            }
-                                            required
+                                    <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-dark">
+                                        <button
+                                            type="button"
+                                            className="btn btn-dark fw-bold px-4 btn-press-retro"
+                                            onClick={resetAndClose}
                                             disabled={loading}
-                                        />
+                                        >
+                                            CANCEL
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="btn border-2 border-dark fw-bold px-4 btn-press-retro text-dark"
+                                            style={{
+                                                backgroundColor: headerBgColor,
+                                            }}
+                                            disabled={loading}
+                                        >
+                                            VERIFY
+                                        </button>
                                     </div>
-                                )}
+                                </form>
+                            )}
 
-                                <div className="mb-4">
-                                    <label className="form-label fw-bold small">
-                                        PURPOSE
-                                    </label>
-                                    <textarea
-                                        className="form-control border-2 border-dark"
-                                        rows="3"
-                                        placeholder="e.g. For college admission, employment, etc."
-                                        value={purpose}
-                                        onChange={(e) =>
-                                            setPurpose(e.target.value)
-                                        }
-                                        required
-                                        disabled={loading}
-                                    ></textarea>
-                                </div>
+                            {step === 2 && studentData && (
+                                <form onSubmit={handlePreSubmit}>
+                                    <div className="card border-2 border-dark mb-4">
+                                        <div className="card-header border-bottom border-dark bg-white fw-bold font-monospace">
+                                            <i className="bi bi-person-lines-fill me-2"></i>{" "}
+                                            STUDENT DETAILS
+                                        </div>
+                                        <div className="card-body p-3 bg-white">
+                                            {[
+                                                {
+                                                    label: "Full Name",
+                                                    icon: "bi-person-circle",
+                                                    value: `${studentData.first_name} ${studentData.last_name}`,
+                                                    color: "text-primary",
+                                                },
+                                                {
+                                                    label: "LRN",
+                                                    icon: "bi-upc-scan",
+                                                    value: lrn,
+                                                },
+                                                {
+                                                    label: "Student No.",
+                                                    icon: "bi-person-vcard",
+                                                    value:
+                                                        studentData.student_number ||
+                                                        "TBA",
+                                                },
+                                                {
+                                                    label: "Strand",
+                                                    icon: "bi-book-half",
+                                                    value:
+                                                        studentData.strand_code ||
+                                                        "N/A",
+                                                },
+                                            ].map((row, idx, arr) => (
+                                                <div
+                                                    key={row.label}
+                                                    className={`d-flex justify-content-between align-items-center py-2 ${
+                                                        idx !== arr.length - 1
+                                                            ? "border-bottom border-dark border-1"
+                                                            : ""
+                                                    }`}
+                                                    style={
+                                                        idx !== arr.length - 1
+                                                            ? {
+                                                                  borderBottomStyle:
+                                                                      "dashed",
+                                                              }
+                                                            : {}
+                                                    }
+                                                >
+                                                    <span className="fw-bold text-muted small text-uppercase font-monospace">
+                                                        <i
+                                                            className={`bi ${row.icon} me-2`}
+                                                        ></i>
+                                                        {row.label}
+                                                    </span>
+                                                    <span
+                                                        className={`fw-bolder text-uppercase font-monospace ${
+                                                            row.color ||
+                                                            "text-dark"
+                                                        }`}
+                                                    >
+                                                        {row.value}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
 
-                                <button
-                                    type="submit"
-                                    className="btn btn-primary w-100 border-2 border-dark rounded-0 fw-bold btn-retro-effect py-2"
-                                    disabled={loading}
-                                    style={{
-                                        backgroundColor: "#3F9AAE",
-                                        color: "#fff",
-                                    }}
-                                >
-                                    {loading
-                                        ? "SUBMITTING..."
-                                        : "SUBMIT REQUEST"}
-                                </button>
-                            </form>
-                        )}
+                                    <div className="card border-2 border-dark mb-4">
+                                        <div className="card-header border-bottom border-dark bg-white fw-bold font-monospace">
+                                            <i className="bi bi-file-earmark-text-fill me-2"></i>{" "}
+                                            REQUEST DETAILS
+                                        </div>
+                                        <div className="card-body row g-3">
+                                            <div className="col-12">
+                                                <label className="form-label small fw-bold font-monospace border-bottom border-dark pb-2 w-100">
+                                                    <i className="bi bi-files me-1"></i>{" "}
+                                                    SELECT DOCUMENTS{" "}
+                                                    <span className="text-danger">
+                                                        *
+                                                    </span>
+                                                </label>
+
+                                                <div className="row g-2 mt-1">
+                                                    {documentOptions.map(
+                                                        (doc, idx) => (
+                                                            <div
+                                                                className="col-md-6"
+                                                                key={idx}
+                                                            >
+                                                                <div
+                                                                    className="form-check p-2 border border-dark bg-white shadow-sm d-flex align-items-center"
+                                                                    style={{
+                                                                        cursor: "pointer",
+                                                                    }}
+                                                                >
+                                                                    <input
+                                                                        className="form-check-input ms-1 me-2 border-dark"
+                                                                        type="checkbox"
+                                                                        id={`docCheck_${idx}`}
+                                                                        checked={selectedDocuments.includes(
+                                                                            doc.label,
+                                                                        )}
+                                                                        onChange={() =>
+                                                                            handleCheckboxChange(
+                                                                                doc.label,
+                                                                            )
+                                                                        }
+                                                                        style={{
+                                                                            transform:
+                                                                                "scale(1.2)",
+                                                                            cursor: "pointer",
+                                                                        }}
+                                                                        disabled={
+                                                                            loading
+                                                                        }
+                                                                    />
+                                                                    <label
+                                                                        className="form-check-label fw-bold small flex-grow-1"
+                                                                        htmlFor={`docCheck_${idx}`}
+                                                                        style={{
+                                                                            cursor: "pointer",
+                                                                            fontSize:
+                                                                                "0.85rem",
+                                                                        }}
+                                                                    >
+                                                                        {
+                                                                            doc.label
+                                                                        }
+                                                                        {doc.group !==
+                                                                            "Custom" && (
+                                                                            <span
+                                                                                className="d-block text-muted"
+                                                                                style={{
+                                                                                    fontSize:
+                                                                                        "0.7rem",
+                                                                                }}
+                                                                            >
+                                                                                (
+                                                                                {
+                                                                                    doc.group
+                                                                                }
+
+                                                                                )
+                                                                            </span>
+                                                                        )}
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                        ),
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {selectedDocuments.includes(
+                                                "Others",
+                                            ) && (
+                                                <div className="col-12 mt-3 p-3 bg-white border border-2 border-dark">
+                                                    <label className="form-label small fw-bold font-monospace">
+                                                        <i className="bi bi-pencil-square me-1"></i>{" "}
+                                                        SPECIFY DOCUMENT{" "}
+                                                        <span className="text-danger">
+                                                            *
+                                                        </span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control border-dark"
+                                                        placeholder="Enter document name"
+                                                        value={otherDocument}
+                                                        onChange={(e) =>
+                                                            setOtherDocument(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        required={selectedDocuments.includes(
+                                                            "Others",
+                                                        )}
+                                                        disabled={loading}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            <div className="col-12 mt-3">
+                                                <label className="form-label small fw-bold font-monospace">
+                                                    <i className="bi bi-chat-left-text-fill me-1"></i>{" "}
+                                                    PURPOSE{" "}
+                                                    <span className="text-danger">
+                                                        *
+                                                    </span>
+                                                </label>
+                                                <textarea
+                                                    className="form-control border-dark"
+                                                    rows="3"
+                                                    placeholder="e.g. For college admission, employment, etc."
+                                                    value={purpose}
+                                                    onChange={(e) =>
+                                                        setPurpose(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    required
+                                                    disabled={loading}
+                                                ></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-dark">
+                                        <button
+                                            type="button"
+                                            className="btn btn-dark fw-bold px-4 btn-press-retro"
+                                            onClick={handleCancelStep2}
+                                            disabled={loading}
+                                        >
+                                            CANCEL
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="btn border-2 border-dark fw-bold px-4 btn-press-retro text-dark"
+                                            style={{
+                                                backgroundColor: headerBgColor,
+                                            }}
+                                            disabled={loading}
+                                        >
+                                            SEND REQUEST
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+                        </div>
                     </div>
                 </div>
-            </Modal>
+            </div>
 
             <PublicConfirmation
                 show={showConfirm}
                 title="SUBMIT REQUEST?"
-                message={`Are you sure you want to request this document?`}
-                confirmText="YES, SUBMIT"
+                message="Are you sure you want to request these documents?"
+                confirmText="YES, SEND IT"
                 confirmColor="#F4D03F"
                 iconClass="bi-send-fill"
                 onConfirm={handleFinalSubmit}
                 onCancel={() => setShowConfirm(false)}
+            />
+
+            <Loading
+                show={loading}
+                message={
+                    step === 1 ? "VERIFYING IDENTITY..." : "SENDING REQUEST..."
+                }
             />
         </>
     );
