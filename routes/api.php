@@ -26,13 +26,21 @@ Route::group(['prefix' => 'public'], function () {
     Route::get('/strands', [PublicController::class, 'getStrands']);
 
     /** About Enrollments */
-    Route::post('/check-lrn', [PublicController::class, 'checkLrn']);
-    Route::post('/check-status', [PublicController::class, 'checkStatus']);
-    Route::post('/enroll', [PublicController::class, 'enrollNew']);
+    Route::middleware('throttle:30,1')->group(function () {
+        Route::post('/check-lrn', [PublicController::class, 'checkLrn']);
+        Route::post('/check-status', [PublicController::class, 'checkStatus']);
+    });
+    Route::middleware('throttle:10,1')->group(function () {
+        Route::post('/enroll', [PublicController::class, 'enrollNew']);
+    });
 
-    /**Request Form */
-    Route::post('/verify-request', [PublicController::class, 'verifyForRequest']);
-    Route::post('/submit-request', [PublicController::class, 'submitRequest']);
+    /** Request Form */
+    Route::middleware('throttle:30,1')->group(function () {
+        Route::post('/verify-request', [PublicController::class, 'verifyForRequest']);
+    });
+    Route::middleware('throttle:10,1')->group(function () {
+        Route::post('/submit-request', [PublicController::class, 'submitRequest']);
+    });
 });
 
 /** Authentication */

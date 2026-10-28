@@ -9,6 +9,7 @@ use App\Models\Request as DocumentRequest;
 use App\Models\Strand;
 use App\Models\Student;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -21,73 +22,110 @@ class PublicController extends Controller
     /** Get Enrollment Settings */
     public function getSettings()
     {
-        $settings = EnrollmentSetting::latest()->first();
+        try {
+            $settings = EnrollmentSetting::latest()->first();
 
-        return response()->json($settings);
+            return response()->json($settings);
+        } catch (Exception $e) {
+            Log::error('PublicController getSettings Error: '.$e->getMessage());
+
+            return response()->json(['message' => 'Failed to load settings.'], 500);
+        }
     }
 
     /** Get Strands */
     public function getStrands()
     {
-        $strands = Strand::select('id', 'code', 'description')->get();
+        try {
+            $strands = Strand::select('id', 'code', 'description')->get();
 
-        return response()->json($strands);
+            return response()->json($strands);
+        } catch (Exception $e) {
+            Log::error('PublicController getStrands Error: '.$e->getMessage());
+
+            return response()->json(['message' => 'Failed to load strands.'], 500);
+        }
     }
 
     /** Check LRN */
     public function checkLrn(Request $request)
     {
-        $request->validate(['lrn' => 'required|digits:12']);
+        try {
+            $request->validate([
+                'lrn' => 'required|digits:12',
+            ], [
+                'lrn.required' => 'LRN is required.',
+                'lrn.digits' => 'LRN must be exactly 12 digits.',
+            ]);
 
-        $student = Student::where('lrn', $request->lrn)->first();
+            $student = Student::where('lrn', $request->lrn)->first();
 
-        // Freshmen
-        if (! $student) {
+            // Freshmen
+            if (! $student) {
+                return response()->json([
+                    'message' => 'Ready for enrollment.',
+                    'is_freshman' => true,
+                ], 200);
+            }
+
+            // Old Students
             return response()->json([
-                'message' => 'Ready for enrollment.',
-                'is_freshman' => true,
-            ], 200);
-        }
+                'message' => 'Record found. Old students must proceed to the Registrar\'s Office for enrollment.',
+                'status' => $student->status,
+                'is_freshman' => false,
+            ], 403);
 
-        // Old Students
-        return response()->json([
-            'message' => 'Record found. Old students must proceed to the Registrar\'s Office for enrollment.',
-            'status' => $student->status,
-            'is_freshman' => false,
-        ], 403);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('PublicController checkLrn Error: '.$e->getMessage());
+
+            return response()->json(['message' => 'An error occurred while verifying LRN. Please try again later.'], 500);
+        }
     }
 
     /** Check Enrollment Status */
     public function checkStatus(Request $request)
     {
-        $request->validate(['lrn' => 'required|digits:12']);
+        try {
+            $request->validate([
+                'lrn' => 'required|digits:12',
+            ]);
 
-        $student = Student::with(['strand', 'section', 'academic', 'requirement'])
-            ->where('lrn', $request->lrn)
-            ->first();
+            $student = Student::with(['strand', 'section', 'academic', 'requirement'])
+                ->where('lrn', $request->lrn)
+                ->first();
 
-        if (! $student) {
-            return response()->json(['message' => 'LRN not found in our records.'], 404);
+            if (! $student) {
+                return response()->json(['message' => 'LRN not found in our records.'], 404);
+            }
+
+            return response()->json([
+                'student_number' => $student->student_number,
+                'lrn' => $student->lrn,
+                'first_name' => $student->first_name,
+                'middle_name' => $student->middle_name,
+                'last_name' => $student->last_name,
+                'suffix' => $student->suffix,
+                'status' => $student->status,
+                'grade_level' => $student->academic->grade_level ?? 'N/A',
+                'term' => $student->academic->term ?? 'N/A',
+                'strand' => [
+                    'code' => $student->strand->code ?? 'N/A',
+                ],
+                'section' => [
+                    'name' => $student->section->name ?? 'TBA',
+                ],
+                'photo_2x2' => $student->requirement->photo_2x2 ?? null,
+            ], 200);
+
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('PublicController checkStatus Error: '.$e->getMessage());
+
+            return response()->json(['message' => 'Failed to check status. Please try again later.'], 500);
         }
-
-        return response()->json([
-            'student_number' => $student->student_number,
-            'lrn' => $student->lrn,
-            'first_name' => $student->first_name,
-            'middle_name' => $student->middle_name,
-            'last_name' => $student->last_name,
-            'suffix' => $student->suffix,
-            'status' => $student->status,
-            'grade_level' => $student->academic->grade_level ?? 'N/A',
-            'term' => $student->academic->term ?? 'N/A',
-            'strand' => [
-                'code' => $student->strand->code ?? 'N/A',
-            ],
-            'section' => [
-                'name' => $student->section->name ?? 'TBA',
-            ],
-            'photo_2x2' => $student->requirement->photo_2x2 ?? null,
-        ], 200);
     }
 
     /** Enrollment Form for Freshmen */
@@ -141,6 +179,9 @@ class PublicController extends Controller
                 'file_diploma' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
                 'file_card' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
                 'file_picture' => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
+            ], [
+                'lrn.unique' => 'This LRN is already registered in our system.',
+                'email.unique' => 'This email address is already in use.',
             ]);
 
             return DB::transaction(function () use ($request, $settings) {
@@ -216,10 +257,10 @@ class PublicController extends Controller
 
         } catch (ValidationException $e) {
             throw $e;
-        } catch (\Throwable $e) {
-            Log::error('Public Enrollment Error: '.$e->getMessage());
+        } catch (Exception $e) {
+            Log::error('Public Enrollment Error: '.$e->getMessage().' on line '.$e->getLine());
 
-            return response()->json(['message' => 'An unexpected server error occurred. Please try again later.'], 500);
+            return response()->json(['message' => 'An unexpected server error occurred during enrollment. Please try again later.'], 500);
         }
     }
 
@@ -238,50 +279,59 @@ class PublicController extends Controller
     /** Verify LRN for Request */
     public function verifyForRequest(Request $request)
     {
-        $request->validate([
-            'lrn' => 'required|digits:12',
-            'date_of_birth' => 'required|date',
-        ]);
+        try {
+            $request->validate([
+                'lrn' => 'required|digits:12',
+                'date_of_birth' => 'required|date',
+            ]);
 
-        $student = Student::where('lrn', $request->lrn)
-            ->whereHas('profile', function ($query) use ($request) {
-                $query->where('date_of_birth', $request->date_of_birth);
-            })
-            ->with(['strand'])
-            ->first();
+            $student = Student::where('lrn', $request->lrn)
+                ->whereHas('profile', function ($query) use ($request) {
+                    $query->where('date_of_birth', $request->date_of_birth);
+                })
+                ->with(['strand'])
+                ->first();
 
-        if (! $student) {
+            if (! $student) {
+                return response()->json([
+                    'message' => 'Verification failed. Incorrect LRN or Date of Birth. If you are not in the system, please proceed to the Registrar\'s Office to manually request documents.',
+                ], 404);
+            }
+
             return response()->json([
-                'message' => 'Verification failed. Incorrect LRN or Date of Birth. If you are not in the system, please proceed to the Registrar\'s Office to manually request documents.',
-            ], 404);
-        }
+                'first_name' => $student->first_name,
+                'last_name' => $student->last_name,
+                'student_number' => $student->student_number ?? 'N/A',
+                'strand_code' => $student->strand->code ?? 'N/A',
+            ], 200);
 
-        return response()->json([
-            'first_name' => $student->first_name,
-            'last_name' => $student->last_name,
-            'student_number' => $student->student_number ?? 'N/A',
-            'strand_code' => $student->strand->code ?? 'N/A',
-        ], 200);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('PublicController verifyForRequest Error: '.$e->getMessage());
+
+            return response()->json(['message' => 'An error occurred during verification. Please try again later.'], 500);
+        }
     }
 
     /** Request Form */
     public function submitRequest(Request $request)
     {
-        $request->validate([
-            'lrn' => 'required|digits:12',
-            'type' => 'required|string|max:1000',
-            'purpose' => 'nullable|string|max:1000',
-        ]);
-
-        $student = Student::where('lrn', $request->lrn)->first();
-
-        if (! $student) {
-            return response()->json([
-                'message' => 'LRN not found. Please visit the Registrar\'s Office.',
-            ], 404);
-        }
-
         try {
+            $request->validate([
+                'lrn' => 'required|digits:12',
+                'type' => 'required|string|max:1000',
+                'purpose' => 'nullable|string|max:1000',
+            ]);
+
+            $student = Student::where('lrn', $request->lrn)->first();
+
+            if (! $student) {
+                return response()->json([
+                    'message' => 'LRN not found. Please visit the Registrar\'s Office.',
+                ], 404);
+            }
+
             $docRequest = DocumentRequest::create([
                 'student_id' => $student->id,
                 'type' => $request->type,
@@ -301,12 +351,12 @@ class PublicController extends Controller
                 'message' => 'Request submitted successfully! We will process it shortly.',
             ], 201);
 
-        } catch (\Throwable $e) {
-            Log::error('Public Request Error: '.$e->getMessage());
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('Public Request Error: '.$e->getMessage().' on line '.$e->getLine());
 
-            return response()->json([
-                'message' => 'An unexpected server error occurred.',
-            ], 500);
+            return response()->json(['message' => 'An unexpected server error occurred while processing your request. Please try again later.'], 500);
         }
     }
 }
