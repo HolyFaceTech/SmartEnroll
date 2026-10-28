@@ -59,7 +59,7 @@
 
                     <div style="padding: 30px;">
                         <p style="font-size: 16px; margin-bottom: 20px;">
-                            Dear <strong>{{ strtoupper($student->first_name) }} {{ strtoupper($student->last_name) }}</strong>,
+                            Dear <strong>{{ strtoupper($student->first_name) }} {{ strtoupper($student->middle_name) }} {{ strtoupper($student->last_name) }} {{ strtoupper($student->suffix) }}</strong>,
                         </p>
 
                         <p style="font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
@@ -142,16 +142,31 @@
                         @php
                             $savedReqs = $student->requirements;
                             $isComplete = true;
+                            $gradeLevel = $student->academic->grade_level ?? '11';
+                            
+                            $saf11Checked = !empty($savedReqs['saf_annex_e_g11']) && $savedReqs['saf_annex_e_g11'] == true;
+                            $saf12Checked = !empty($savedReqs['saf_annex_e_g12']) && $savedReqs['saf_annex_e_g12'] == true;
+
+                            $showSafAdvisory = false;
+                            $missingSafLabel = '';
+
+                            if ($gradeLevel == '11' && !$saf11Checked) {
+                                $showSafAdvisory = true;
+                                $missingSafLabel = 'SAF Annex E & F (Grade 11)';
+                            } elseif ($gradeLevel == '12' && !$saf12Checked) {
+                                $showSafAdvisory = true;
+                                $missingSafLabel = 'SAF Annex E & F (Grade 12)';
+                            }
 
                             $priorityDocs = [
                                 'PSA Birth Certificate'   => 'psa',
                                 'Report Card (Form 138)'  => 'card',
                                 '2x2 Picture (2pcs)'      => 'picture',
-                                'SAF Annex E (Grade 11)'  => 'saf_annex_e_g11'
+                                'SAF Annex E & F (Grade 11)'  => 'saf_annex_e_g11'
                             ];
 
-                            if (($student->academic->grade_level ?? '11') == '12') {
-                                $priorityDocs['SAF Annex E (Grade 12)'] = 'saf_annex_e_g12';
+                            if ($gradeLevel == '12') {
+                                $priorityDocs['SAF Annex E & F (Grade 12)'] = 'saf_annex_e_g12';
                             }
 
                             $supportingDocs = [
@@ -183,7 +198,6 @@
                             @foreach($supportingDocs as $label => $key)
                                 @php
                                     $isVerified = !empty($savedReqs[$key]) && $savedReqs[$key] == true;
-                                    if (!$isVerified) $isComplete = false;
                                 @endphp
                                 <tr>
                                     <td style="padding: 8px 0; border-bottom: 1px dashed #b2bec3; font-size: 13px; font-weight: bold; color: #636e72;">{{ $label }}</td>
@@ -196,15 +210,32 @@
                         </table>
 
                         @if($isComplete)
-                            <div style="background-color: #dff9fb; border: 2px solid #2d3436; padding: 15px; text-align: center;">
+                            <div style="background-color: #dff9fb; border: 2px solid #2d3436; padding: 15px; text-align: center; margin-bottom: 20px;">
                                 <strong style="display: block; font-size: 16px; margin-bottom: 5px; color: #00b894;">✅ REQUIREMENTS COMPLETE</strong>
                                 <p style="margin: 0; font-size: 13px;">Your enrollment requirements are fully complied.</p>
                             </div>
                         @else
-                            <div style="background-color: #ffeaa7; border: 2px solid #2d3436; padding: 15px; text-align: center;">
+                            <div style="background-color: #ffeaa7; border: 2px solid #2d3436; padding: 15px; text-align: center; margin-bottom: 20px;">
                                 <strong style="display: block; font-size: 16px; margin-bottom: 5px; color: #d63031;">⚠️ PENDING REQUIREMENTS</strong>
                                 <p style="margin: 0; font-size: 13px;">Please submit the missing documents to the Registrar's Office.</p>
                             </div>
+
+                            @if($showSafAdvisory)
+                                <div style="background-color: #fdfbf7; border: 2px dashed #d35400; padding: 15px; margin-bottom: 20px; text-align: left;">
+                                    <strong style="display: block; font-size: 14px; margin-bottom: 8px; color: #d35400; text-transform: uppercase;">
+                                        <span style="background-color: #d35400; color: #fff; padding: 2px 5px; margin-right: 5px;">ACTION REQUIRED</span> {{ $missingSafLabel }}
+                                    </strong>
+                                    <p style="margin: 0 0 10px 0; font-size: 13px; color: #2d3436; line-height: 1.5;">
+                                        Your <strong>{{ $missingSafLabel }}</strong> is currently pending. Please download the form, print it, fill it out completely, and submit the physical copy to the Registrar's Office.
+                                    </p>
+                                    <strong style="font-size: 13px; color: #2d3436; text-transform: uppercase;">📥 How to download the form:</strong>
+                                    <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 13px; color: #2d3436; line-height: 1.5;">
+                                        <li>Visit our <strong>SmartEnroll Portal</strong> homepage.</li>
+                                        <li>Click on the <strong>"ANNEX"</strong> dropdown menu at the top navigation bar.</li>
+                                        <li>Select and download the <em>"DEPED Order no. 011, s. 2026 SHS Application Form Annex E & F"</em> file.</li>
+                                    </ul>
+                                </div>
+                            @endif
                         @endif
 
                         <p style="font-size: 14px; margin-top: 25px;">If you have questions, please visit the Registrar's Office.</p>

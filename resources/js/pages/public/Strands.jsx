@@ -118,6 +118,10 @@ export default function Strands() {
                 </div>
             ) : (
                 <div className="text-center text-muted fw-bold py-5 container">
+                    <i
+                        className="bi bi-folder-x text-muted d-block mb-3"
+                        style={{ fontSize: "4rem" }}
+                    ></i>
                     No strands available at the moment.
                 </div>
             )}

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import ReCAPTCHA from "react-google-recaptcha";
-import moment from "moment";
 import Toast from "../utils/toast";
 import Loading from "../utils/Loading";
 import UserConfirmation from "./UserConfirmation";
+import EnrollmentSuccessModal from "./EnrollmentSuccessModal";
 
 export default function EnrollmentModal({ initialData, settings, onClose }) {
     const formRef = useRef(null);
@@ -15,6 +15,9 @@ export default function EnrollmentModal({ initialData, settings, onClose }) {
     const [captchaVal, setCaptchaVal] = useState(null);
 
     const [confirmConfig, setConfirmConfig] = useState({ show: false });
+
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [submittedName, setSubmittedName] = useState("");
 
     const initialForm = {
         lrn: initialData?.lrn || "",
@@ -179,7 +182,7 @@ export default function EnrollmentModal({ initialData, settings, onClose }) {
             message:
                 "Are you sure you want to close? All entered data will be lost.",
             confirmText: "YES, CLOSE IT",
-            confirmColor: "#F96E5B",
+            confirmColor: "#F4D03F",
             iconClass: "bi-question-circle-fill",
             isSubmitType: false,
         });
@@ -266,18 +269,15 @@ export default function EnrollmentModal({ initialData, settings, onClose }) {
                 headers: { "Content-Type": "multipart/form-data" },
             });
 
-            Toast.fire({
-                icon: "success",
-                title: "Application Submitted! Please check your email.",
-            });
-            onClose();
+            setSubmittedName(`${form.first_name} ${form.last_name}`);
+            setLoading(false);
+            setShowSuccessModal(true);
         } catch (error) {
+            setLoading(false);
             Toast.fire({
                 icon: "error",
                 title: error.response?.data?.message || "Submission failed.",
             });
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -288,6 +288,11 @@ export default function EnrollmentModal({ initialData, settings, onClose }) {
             setConfirmConfig({ show: false });
             onClose();
         }
+    };
+
+    const handleSuccessClose = () => {
+        setShowSuccessModal(false);
+        onClose();
     };
 
     const Indicator = ({ num, label, icon }) => {
@@ -343,7 +348,11 @@ export default function EnrollmentModal({ initialData, settings, onClose }) {
             <div
                 className="modal fade show d-block"
                 tabIndex="-1"
-                style={{ zIndex: 1050, overflowY: "hidden" }}
+                style={{
+                    zIndex: 1050,
+                    overflowY: "hidden",
+                    display: showSuccessModal ? "none" : "block",
+                }}
             >
                 <div className="modal-dialog modal-dialog-centered modal-xl h-100 mt-0 mb-0 d-flex align-items-center">
                     <div
@@ -1346,6 +1355,7 @@ export default function EnrollmentModal({ initialData, settings, onClose }) {
             </div>
 
             <Loading show={loading} message="SUBMITTING APPLICATION..." />
+
             <UserConfirmation
                 show={confirmConfig.show}
                 title={confirmConfig.title}
@@ -1355,6 +1365,14 @@ export default function EnrollmentModal({ initialData, settings, onClose }) {
                 iconClass={confirmConfig.iconClass}
                 onCancel={() => setConfirmConfig({ show: false })}
                 onConfirm={handleConfirmAction}
+            />
+
+            <EnrollmentSuccessModal
+                show={showSuccessModal}
+                onClose={handleSuccessClose}
+                studentName={submittedName}
+                gradeLevel="11"
+                files={files}
             />
         </>
     );

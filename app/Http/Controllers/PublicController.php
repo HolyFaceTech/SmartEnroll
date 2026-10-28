@@ -9,7 +9,6 @@ use App\Models\Strand;
 use App\Models\Student;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -29,9 +28,7 @@ class PublicController extends Controller
     /** Get Strands */
     public function getStrands()
     {
-        $strands = Cache::remember('public_strands', 86400, function () {
-            return Strand::select('id', 'code', 'description')->get();
-        });
+        $strands = Strand::select('id', 'code', 'description')->get();
 
         return response()->json($strands);
     }
@@ -64,7 +61,7 @@ class PublicController extends Controller
     {
         $request->validate(['lrn' => 'required|digits:12']);
 
-        $student = Student::with(['strand', 'section', 'academic'])
+        $student = Student::with(['strand', 'section', 'academic', 'requirement'])
             ->where('lrn', $request->lrn)
             ->first();
 
@@ -73,18 +70,22 @@ class PublicController extends Controller
         }
 
         return response()->json([
+            'student_number' => $student->student_number,
             'lrn' => $student->lrn,
             'first_name' => $student->first_name,
+            'middle_name' => $student->middle_name,
             'last_name' => $student->last_name,
+            'suffix' => $student->suffix,
             'status' => $student->status,
             'grade_level' => $student->academic->grade_level ?? 'N/A',
-            'semester' => $student->academic->term ?? 'N/A',
+            'term' => $student->academic->term ?? 'N/A',
             'strand' => [
                 'code' => $student->strand->code ?? 'N/A',
             ],
             'section' => [
                 'name' => $student->section->name ?? 'TBA',
             ],
+            'photo_2x2' => $student->requirement->photo_2x2 ?? null,
         ], 200);
     }
 

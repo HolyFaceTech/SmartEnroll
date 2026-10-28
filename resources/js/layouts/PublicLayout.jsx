@@ -4,7 +4,10 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import TermsModal from "../components/TermsModal";
 import StatusCheckModal from "../components/StatusCheckModal";
+import PublicConfirmation from "../components/PublicConfirmation";
 import Maintenance from "../pages/Maintenance";
+import Toast from "../utils/toast";
+import Loading from "../utils/Loading";
 
 export default function PublicLayout() {
     const [showTerms, setShowTerms] = useState(false);
@@ -16,6 +19,13 @@ export default function PublicLayout() {
     const [loading, setLoading] = useState(true);
 
     const [activeSection, setActiveSection] = useState("home");
+
+    const [showAnnexConfirm, setShowAnnexConfirm] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+
+    const [showAnnexDropdown, setShowAnnexDropdown] = useState(false);
 
     useEffect(() => {
         const hasSeenTerms = sessionStorage.getItem("hasSeenTerms");
@@ -92,14 +102,13 @@ export default function PublicLayout() {
     const handleQuickSearch = async (e) => {
         e.preventDefault();
         if (searchLrn.length !== 12) {
-            return Swal.fire({
-                title: "INVALID LRN",
-                text: "Please enter a valid 12-digit LRN.",
+            return Toast.fire({
                 icon: "warning",
-                confirmButtonColor: "#2d3436",
-                customClass: { popup: "card-retro font-monospace" },
+                title: "LRN must be exactly 12 digits.",
             });
         }
+
+        setIsCheckingStatus(true);
 
         try {
             const res = await axios.post("/api/public/check-status", {
@@ -108,13 +117,12 @@ export default function PublicLayout() {
             setStatusResult(res.data);
             setShowStatus(true);
         } catch (e) {
-            Swal.fire({
-                title: "NO RECORD",
-                text: "LRN not found in the system.",
+            Toast.fire({
                 icon: "error",
-                confirmButtonColor: "#F96E5B",
-                customClass: { popup: "card-retro font-monospace" },
+                title: "LRN not found in the system.",
             });
+        } finally {
+            setIsCheckingStatus(false);
         }
     };
 
@@ -130,15 +138,45 @@ export default function PublicLayout() {
 
     const handleCopy = (text, type) => {
         navigator.clipboard.writeText(text);
-        Swal.fire({
-            toast: true,
-            position: "top-end",
-            showConfirmButton: false,
-            timer: 1500,
+        Toast.fire({
             icon: "success",
             title: `${type} Copied!`,
-            customClass: { popup: "font-monospace" },
         });
+    };
+
+    const handleDownloadAnnex = async () => {
+        setShowAnnexConfirm(false);
+        setIsDownloading(true);
+
+        try {
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+
+            const response = await axios.get("/annex/DEPED_SHS_Annex_E_F.zip", {
+                responseType: "blob",
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", "DEPED_SHS_Annex_E_F.zip");
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            Toast.fire({
+                icon: "success",
+                title: "Download complete!",
+            });
+        } catch (error) {
+            console.error("Download Error:", error);
+            Toast.fire({
+                icon: "error",
+                title: "Failed to download files. Please try again.",
+            });
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     const mapAddress =
@@ -241,6 +279,59 @@ export default function PublicLayout() {
                                     REGISTRAR
                                 </a>
                             </li>
+
+                            <li
+                                className="nav-item dropdown"
+                                onMouseEnter={() => setShowAnnexDropdown(true)}
+                                onMouseLeave={() => setShowAnnexDropdown(false)}
+                            >
+                                <a
+                                    className={`nav-link pb-1 text-white opacity-75 fw-bold dropdown-toggle ${showAnnexDropdown ? "show text-warning opacity-100" : ""}`}
+                                    href="#"
+                                    role="button"
+                                    aria-expanded={showAnnexDropdown}
+                                    onClick={(e) => e.preventDefault()}
+                                >
+                                    ANNEX
+                                </a>
+                                <ul
+                                    className={`dropdown-menu card-retro border-2 border-dark rounded-0 p-2 shadow ${showAnnexDropdown ? "show" : ""}`}
+                                    style={{
+                                        minWidth: "300px",
+                                        marginTop: "0",
+                                        display: showAnnexDropdown
+                                            ? "block"
+                                            : "none",
+                                    }}
+                                >
+                                    <li>
+                                        <button
+                                            className="dropdown-item fw-bold text-dark annex-hover-item py-2"
+                                            style={{
+                                                whiteSpace: "normal",
+                                                fontSize: "0.85rem",
+                                                cursor: "pointer",
+                                            }}
+                                            onClick={() => {
+                                                setShowAnnexDropdown(false);
+                                                setShowAnnexConfirm(true);
+                                            }}
+                                            disabled={isDownloading}
+                                        >
+                                            <i
+                                                className="bi bi-file-earmark-zip-fill text-danger me-2"
+                                                style={{
+                                                    transition:
+                                                        "color 0.2s ease",
+                                                }}
+                                            ></i>
+                                            DEPED Order no. 011, s. 2026 SHS
+                                            Application Form Annex E & F
+                                        </button>
+                                    </li>
+                                </ul>
+                            </li>
+
                             <li className="nav-item">
                                 <a
                                     href="#faq"
@@ -292,6 +383,7 @@ export default function PublicLayout() {
                                             onChange={(e) => {
                                                 onSearchChange(e);
                                             }}
+                                            disabled={isCheckingStatus}
                                         />
                                     </div>
                                 </form>
@@ -328,7 +420,7 @@ export default function PublicLayout() {
                                     className="bi bi-building-fill fs-5 text-warning"
                                     style={{ textShadow: "1px 1px 0 #000" }}
                                 ></i>
-                                Holy Face of Jesus Lyceum
+                                Holy Face of Jesus Lyceum of San Jose Inc.
                             </h6>
                             <a
                                 href={mapLink}
@@ -382,7 +474,11 @@ export default function PublicLayout() {
                                 Academic Strands
                             </h6>
                             <div className="row g-2">
-                                {strands.length > 0 ? (
+                                {loading ? (
+                                    <div className="col-12 small text-muted">
+                                        Loading strands...
+                                    </div>
+                                ) : strands.length > 0 ? (
                                     strands.map((strand) => (
                                         <div
                                             className="col-sm-6"
@@ -405,8 +501,14 @@ export default function PublicLayout() {
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="col-12 small text-muted">
-                                        Loading strands...
+                                    <div className="col-12 text-center py-4">
+                                        <i
+                                            className="bi bi-folder-x text-muted mb-2 d-block"
+                                            style={{ fontSize: "3rem" }}
+                                        ></i>
+                                        <span className="small text-muted fw-bold">
+                                            No strands available at the moment.
+                                        </span>
                                     </div>
                                 )}
                             </div>
@@ -457,6 +559,24 @@ export default function PublicLayout() {
                 student={statusResult}
                 onClose={handleCloseStatus}
             />
+
+            <PublicConfirmation
+                show={showAnnexConfirm}
+                title="DOWNLOAD ANNEX FILES?"
+                message="Are you sure you want to download the DEPED SHS Application Form Annex E & F files?"
+                confirmText="YES, DOWNLOAD IT"
+                confirmColor="#55efc4"
+                iconClass="bi-cloud-arrow-down-fill"
+                onCancel={() => setShowAnnexConfirm(false)}
+                onConfirm={handleDownloadAnnex}
+            />
+
+            <Loading
+                show={isDownloading}
+                message="DOWNLOADING ANNEX FILES..."
+            />
+
+            <Loading show={isCheckingStatus} message="SEARCHING RECORD..." />
         </div>
     );
 }

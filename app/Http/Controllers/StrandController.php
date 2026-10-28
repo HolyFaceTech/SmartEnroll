@@ -8,6 +8,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
@@ -76,6 +77,8 @@ class StrandController extends Controller
                 'ip_address' => $request->ip(),
             ]);
 
+            Cache::forget('public_strands');
+
             return response()->json([
                 'message' => 'Strand created successfully',
                 'strand' => $strand,
@@ -117,6 +120,8 @@ class StrandController extends Controller
                 'ip_address' => $request->ip(),
             ]);
 
+            Cache::forget('public_strands');
+
             return response()->json([
                 'message' => 'Strand updated successfully',
                 'strand' => $strand,
@@ -150,6 +155,8 @@ class StrandController extends Controller
                     'description' => "Deleted strand: {$code}",
                     'ip_address' => request()->ip(),
                 ]);
+
+                Cache::forget('public_strands');
 
                 return response()->json(['message' => 'Strand deleted successfully']);
             }
@@ -189,6 +196,8 @@ class StrandController extends Controller
                 'description' => "Bulk deleted strands: {$codesString}",
                 'ip_address' => $request->ip(),
             ]);
+
+            Cache::forget('public_strands');
 
             return response()->json(['message' => 'Strands deleted successfully']);
 
