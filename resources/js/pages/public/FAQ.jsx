@@ -35,6 +35,7 @@ export default function FAQ() {
                         defaultActiveKey="0"
                         className="border-3 border-dark shadow-lg accordion-public"
                     >
+                        {/* 1. HOW TO ENROLL */}
                         <Accordion.Item
                             eventKey="0"
                             className="border-bottom border-dark rounded-0"
@@ -57,22 +58,26 @@ export default function FAQ() {
                                     </li>
                                     <li className="mb-2">
                                         <strong>3.</strong> Fill out the
-                                        Freshman Enrollment Form completely.
+                                        Freshman Enrollment Form completely. You
+                                        can optionally upload scanned soft
+                                        copies of your documents.
                                     </li>
                                     <li className="mb-2">
-                                        <strong>4.</strong> Upload scanned
-                                        copies of your requirements (Optional
-                                        but recommended).
+                                        <strong>4.</strong> Submit your
+                                        application. A success window will show
+                                        your pending requirements.
                                     </li>
                                     <li>
-                                        <strong>5.</strong> Submit and wait for
-                                        the confirmation email regarding your
-                                        application status.
+                                        <strong>5.</strong> Check your email for
+                                        the confirmation and proceed to the
+                                        Registrar's Office to submit your
+                                        physical/hard copy requirements.
                                     </li>
                                 </ul>
                             </Accordion.Body>
                         </Accordion.Item>
 
+                        {/* 2. HOW TO REQUEST DOCUMENTS (UPDATED) */}
                         <Accordion.Item
                             eventKey="1"
                             className="border-bottom border-dark rounded-0"
@@ -94,20 +99,32 @@ export default function FAQ() {
                                         security verification.
                                     </li>
                                     <li className="mb-2">
-                                        <strong>3.</strong> Select the document
-                                        you need (e.g., Certificate of
-                                        Enrollment, Form 137, Good Moral).
+                                        <strong>3.</strong> Select one or more
+                                        documents using the checkboxes and state
+                                        your purpose.
+                                    </li>
+                                    <li className="mb-2">
+                                        <strong>4.</strong> Submit the request
+                                        and check your email.
                                     </li>
                                     <li>
-                                        <strong>4.</strong> Submit the request.
-                                        Note that standard documents take 3 days
-                                        to process, while Form 137 and Good
-                                        Moral take up to 7 days.
+                                        <div
+                                            className="alert alert-warning border-dark p-2 mt-2 fw-bold"
+                                            style={{ fontSize: "0.85rem" }}
+                                        >
+                                            <i className="bi bi-info-circle-fill me-1"></i>
+                                            Processing Time: Standard documents
+                                            take 3 days, while Form 137 and Good
+                                            Moral take 7 days. Counting starts
+                                            the next day after requesting and
+                                            skips weekends and holidays.
+                                        </div>
                                     </li>
                                 </ul>
                             </Accordion.Body>
                         </Accordion.Item>
 
+                        {/* 3. HOW TO CHECK STATUS */}
                         <Accordion.Item
                             eventKey="2"
                             className="border-bottom border-dark rounded-0"
@@ -119,9 +136,9 @@ export default function FAQ() {
                             <Accordion.Body className="bg-light">
                                 <ul className="list-unstyled mb-0">
                                     <li className="mb-2">
-                                        <strong>1.</strong> Use the{" "}
-                                        <b>"CHECK LRN STATUS"</b> search bar in
-                                        the navigation menu.
+                                        <strong>1.</strong> Locate the{" "}
+                                        <b>"CHECK ENROLLMENT STATUS"</b> search
+                                        bar at the top navigation menu.
                                     </li>
                                     <li className="mb-2">
                                         <strong>2.</strong> Enter your 12-Digit
@@ -136,7 +153,42 @@ export default function FAQ() {
                             </Accordion.Body>
                         </Accordion.Item>
 
-                        <Accordion.Item eventKey="3" className="rounded-0">
+                        {/* 4. HOW TO DOWNLOAD ANNEX (NEW) */}
+                        <Accordion.Item
+                            eventKey="3"
+                            className="border-bottom border-dark rounded-0"
+                        >
+                            <Accordion.Header className="fw-bold">
+                                <i className="bi bi-cloud-arrow-down-fill me-2"></i>{" "}
+                                HOW TO DOWNLOAD DEPED ANNEX
+                            </Accordion.Header>
+                            <Accordion.Body className="bg-light">
+                                <ul className="list-unstyled mb-0">
+                                    <li className="mb-2">
+                                        <strong>1.</strong> Hover or click on
+                                        the <b>"ANNEX"</b> link in the top
+                                        navigation menu.
+                                    </li>
+                                    <li className="mb-2">
+                                        <strong>2.</strong> Click on the
+                                        dropdown item labeled{" "}
+                                        <em>
+                                            "DEPED Order no. 011, s. 2026 SHS
+                                            Application Form Annex E & F"
+                                        </em>
+                                        .
+                                    </li>
+                                    <li>
+                                        <strong>3.</strong> Confirm the download
+                                        when prompted. The files will be
+                                        downloaded as a ZIP folder.
+                                    </li>
+                                </ul>
+                            </Accordion.Body>
+                        </Accordion.Item>
+
+                        {/* 5. REQUIREMENTS (UPDATED) */}
+                        <Accordion.Item eventKey="4" className="rounded-0">
                             <Accordion.Header className="fw-bold">
                                 <i className="bi bi-folder-check me-2"></i> WHAT
                                 ARE THE REQUIREMENTS?
@@ -155,7 +207,11 @@ export default function FAQ() {
                                             </li>
                                             <li className="list-group-item bg-transparent">
                                                 <i className="bi bi-check-lg text-success me-2"></i>{" "}
-                                                Certificate of Good Moral
+                                                2x2 Picture (2pcs)
+                                            </li>
+                                            <li className="list-group-item bg-transparent">
+                                                <i className="bi bi-check-lg text-success me-2"></i>{" "}
+                                                DEPED Annex E & F
                                             </li>
                                         </ul>
                                     </div>
@@ -167,7 +223,7 @@ export default function FAQ() {
                                             </li>
                                             <li className="list-group-item bg-transparent">
                                                 <i className="bi bi-check-lg text-success me-2"></i>{" "}
-                                                2x2 Picture (2pcs)
+                                                Certificate of Good Moral
                                             </li>
                                             <li className="list-group-item bg-transparent">
                                                 <i className="bi bi-check-lg text-success me-2"></i>{" "}
