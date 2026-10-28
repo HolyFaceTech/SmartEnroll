@@ -16,7 +16,6 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VerificationController;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -49,7 +48,7 @@ Route::post('/email/resend', [AuthController::class, 'resendVerification']);
 Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-// Private routes
+/** Private */
 Route::middleware('auth:sanctum')->group(function () {
 
     // user info who login
@@ -57,7 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    // logout
+    /** Log Out */
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // --- ADMIN DASHBOARD ---
@@ -117,14 +116,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/summary', [ReportController::class, 'generateSummary']);
     Route::get('/reports/masterlist', [ReportController::class, 'exportMasterlist']);
 
-    // enrollment setting
+    /** enrollment Setting */
     Route::middleware(['throttle:60,1'])->group(function () {
         Route::get('/settings', [EnrollmentSettingController::class, 'index']);
         Route::post('/settings', [EnrollmentSettingController::class, 'store']);
         Route::put('/settings', [EnrollmentSettingController::class, 'update']);
         Route::delete('/settings/{id?}', [EnrollmentSettingController::class, 'destroy']);
 
-        // Maintenance Mode
+        /** Maintenance Mode */
         Route::put('/settings/maintenance', [MaintenanceController::class, 'toggleMaintenance']);
     });
 
@@ -166,24 +165,21 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-/*
-|--------------------------------------------------------------------------
-| SIGNED ROUTES (Public but Protected by Signature)
-|--------------------------------------------------------------------------
-| Ginagamit ito para sa pag-download/print ng PDF mula sa browser.
-*/
+/**
+ * Public but Secured by Signatories
+ */
 
-// Print COR
+/** Print COR */
 Route::get('/print/cor/{id}', [CORController::class, 'printCOR'])
     ->name('cor.print')
     ->middleware('signed');
 
-// download strand masterlist
+/** Download Strand Masterlist */
 Route::get('/download/strand-masterlist/{strand}', [StrandController::class, 'downloadStrandMasterlist'])
     ->name('strand.masterlist.download')
     ->middleware('signed');
 
-// download section masterlist
+/** Download Section Masterlist */
 Route::get('/download/section-masterlist/{section}', [SectionController::class, 'downloadSectionMasterlist'])
     ->name('section.masterlist.download')
     ->middleware('signed');
