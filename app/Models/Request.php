@@ -18,13 +18,15 @@ class Request extends Model
         'type',
         'purpose',
         'status',
-        'release_date',
+        'previous_status',
+        'released_at',
         'claimed_at',
+        'claimed_by',
     ];
 
     /** Convert to Date and Time */
     protected $casts = [
-        'release_date' => 'datetime',
+        'released_at' => 'datetime',
         'claimed_at' => 'datetime',
     ];
 

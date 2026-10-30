@@ -10,6 +10,7 @@ use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\RecycleBinController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RequestController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\StrandController;
 use App\Http\Controllers\StudentController;
@@ -110,6 +111,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('keeps/{id}', [KeepsController::class, 'show']);
         Route::post('keeps/{id}/download-zip', [KeepsController::class, 'downloadZip']);
         Route::post('keeps/{id}/delete-files', [KeepsController::class, 'deleteFiles']);
+    });
+
+    /** Requests */
+    Route::middleware(['throttle:60,1'])->group(function () {
+        Route::post('staff/requests/bulk-delete', [RequestController::class, 'bulkDelete']);
+        Route::get('staff/requests', [RequestController::class, 'index']);
+        Route::delete('staff/requests/{id}', [RequestController::class, 'destroy']);
+        Route::put('staff/requests/{id}/status', [RequestController::class, 'changeStatus']); // BAGONG ROUTE
     });
 
     // --- Reports ---

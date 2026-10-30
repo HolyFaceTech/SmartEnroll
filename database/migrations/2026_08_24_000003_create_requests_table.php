@@ -18,8 +18,10 @@ return new class extends Migration
             $table->string('type');
             $table->text('purpose')->nullable();
             $table->string('status')->default('pending');
-            $table->date('release_date')->nullable();
+            $table->string('previous_status')->nullable();
+            $table->timestamp('released_at')->nullable();
             $table->timestamp('claimed_at')->nullable();
+            $table->string('claimed_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

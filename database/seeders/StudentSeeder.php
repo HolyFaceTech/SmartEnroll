@@ -28,7 +28,7 @@ class StudentSeeder extends Seeder
             $sections = Section::with('strand')->get();
         }
 
-        for ($i = 1; $i <= 50; $i++) {
+        for ($i = 1; $i <= 60; $i++) {
             $this->createStudent($i, $faker, $strands, $sections);
         }
 
@@ -36,7 +36,7 @@ class StudentSeeder extends Seeder
         DB::table('student_number_sequences')->updateOrInsert(
             ['year_prefix' => $currentYear],
             [
-                'last_number' => 50,
+                'last_number' => 60,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]

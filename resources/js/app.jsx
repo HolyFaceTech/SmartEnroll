@@ -33,6 +33,7 @@ const HeadStaffStrands = lazy(() => import("./pages/head_staff/Strands"));
 const HeadStaffSections = lazy(() => import("./pages/head_staff/Sections"));
 const HeadStaffSubjects = lazy(() => import("./pages/head_staff/Subjects"));
 const HeadStaffStudents = lazy(() => import("./pages/head_staff/Students"));
+const HeadStaffRequests = lazy(() => import("./pages/head_staff/Requests"));
 
 // Admin, Head & Staff Shared
 const AdminHeadStaffKeeps = lazy(() => import("./pages/AdminHeadStaff/Keeps"));
@@ -177,7 +178,7 @@ function App() {
                         <Route
                             path="requests"
                             element={
-                                <Placeholder title="Requests Management" />
+                                <HeadStaffRequests title="Requests Management" />
                             }
                         />
                         <Route
@@ -230,6 +231,12 @@ function App() {
                             path="keeps"
                             element={
                                 <AdminHeadStaffKeeps title="Keeps Management" />
+                            }
+                        />
+                        <Route
+                            path="requests"
+                            element={
+                                <HeadStaffRequests title="Requests Management" />
                             }
                         />
                         <Route

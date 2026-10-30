@@ -113,6 +113,27 @@
                                     </td>
                                 </tr>
                                 @endif
+                                
+                                @if($currentStatus === 'released')
+                                <tr>
+                                    <td style="font-weight: bold; color: #636e72; padding-top: 10px;">RELEASED AT:</td>
+                                    <td style="text-align: right; font-weight: bold; color: #2d3436; padding-top: 10px;">
+                                        {{ $documentRequest->released_at ? \Carbon\Carbon::parse($documentRequest->released_at)->format('F d, Y h:i A') : 'N/A' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold; color: #636e72;">CLAIMED AT:</td>
+                                    <td style="text-align: right; font-weight: bold; color: #2d3436;">
+                                        {{ $documentRequest->claimed_at ? \Carbon\Carbon::parse($documentRequest->claimed_at)->format('F d, Y h:i A') : ($documentRequest->released_at ? \Carbon\Carbon::parse($documentRequest->released_at)->format('F d, Y h:i A') : 'N/A') }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold; color: #636e72;">CLAIMED BY:</td>
+                                    <td style="text-align: right; font-weight: bold; color: #2d3436;">
+                                        {{ strtoupper($documentRequest->claimed_by ?? 'N/A') }}
+                                    </td>
+                                </tr>
+                                @endif
                             </table>
                         </div>
 
