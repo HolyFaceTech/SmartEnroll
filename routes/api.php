@@ -12,6 +12,7 @@ use App\Http\Controllers\RecycleBinController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\SectionController;
+use App\Http\Controllers\StatusController;
 use App\Http\Controllers\StrandController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\SubjectController;
@@ -119,6 +120,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('staff/requests', [RequestController::class, 'index']);
         Route::delete('staff/requests/{id}', [RequestController::class, 'destroy']);
         Route::put('staff/requests/{id}/status', [RequestController::class, 'changeStatus']); // BAGONG ROUTE
+    });
+
+    /** System Statuses */
+    Route::middleware('throttle:30,1')->group(function () {
+        Route::post('statuses/bulk-delete', [StatusController::class, 'bulkDelete']);
+        Route::put('statuses/{id}/status', [StatusController::class, 'changeStatus']); // BAGONG ROUTE
+        Route::apiResource('statuses', StatusController::class);
     });
 
     // --- Reports ---

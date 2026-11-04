@@ -22,6 +22,9 @@ const Verify = lazy(() => import("./pages/auth/Verify"));
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
 
+// Admin
+const Status = lazy(() => import("./pages/admin/Status"));
+
 // Head
 const Settings = lazy(() => import("./pages/head/Setting"));
 
@@ -131,7 +134,7 @@ function App() {
                         />
                         <Route
                             path="system-status"
-                            element={<Placeholder title="System Status" />}
+                            element={<Status title="System Status" />}
                         />
                         <Route
                             path="maintenance"

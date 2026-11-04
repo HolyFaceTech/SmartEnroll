@@ -14,6 +14,13 @@ class Status extends Model
     protected $fillable = [
         'name',
         'status',
+        'previous_status',
         'description',
+        'done_at',
+    ];
+
+    /** Casts */
+    protected $casts = [
+        'done_at' => 'datetime',
     ];
 }

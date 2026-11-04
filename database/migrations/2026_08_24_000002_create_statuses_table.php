@@ -15,7 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('name')->unique();
             $table->string('status')->default('processing');
+            $table->string('previous_status')->nullable();
             $table->string('description')->nullable();
+            $table->timestamp('done_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
