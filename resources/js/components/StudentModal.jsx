@@ -593,7 +593,7 @@ export default function StudentModal({
                                             </span>
                                         ) : (
                                             <span className="text-muted fst-italic ms-1">
-                                                No Student Number yet
+                                                --------
                                             </span>
                                         )}
                                     </div>
@@ -1563,11 +1563,11 @@ export default function StudentModal({
                                                     },
                                                     {
                                                         id: "saf_annex_e_g11",
-                                                        label: "SAF Annex E (Grade 11)",
+                                                        label: "SAF Annex E & F (Grade 11)",
                                                     },
                                                     {
                                                         id: "saf_annex_e_g12",
-                                                        label: "SAF Annex E (Grade 12)",
+                                                        label: "SAF Annex E & F (Grade 12)",
                                                     },
                                                 ].map((req) => (
                                                     <div

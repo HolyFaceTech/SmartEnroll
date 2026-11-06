@@ -433,7 +433,7 @@ export default function Keeps({ title }) {
                                             <div className="small font-monospace mb-2">
                                                 <strong>STUDENT NO:</strong>{" "}
                                                 {student.student_number ||
-                                                    "N/A"}
+                                                    "--------"}
                                             </div>
                                             <div className="small font-monospace text-muted mt-auto mb-3">
                                                 Created:{" "}

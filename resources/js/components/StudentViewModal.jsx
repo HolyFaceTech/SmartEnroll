@@ -230,7 +230,7 @@ export default function StudentViewModal({ show, selectedStudent, onClose }) {
                                             <i className="bi bi-upc-scan me-2"></i>
                                             NO:{" "}
                                             {selectedStudent.student_number ||
-                                                "TBA"}
+                                                "--------"}
                                         </div>
                                         <div
                                             className="badge border border-dark border-2 p-2 px-3 font-monospace rounded-0 fs-6 bg-light text-primary text-break"

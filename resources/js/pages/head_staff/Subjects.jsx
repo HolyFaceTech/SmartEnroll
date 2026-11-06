@@ -420,7 +420,7 @@ export default function Subjects({ apiPrefix = "/api" }) {
                                     </th>
                                     <th className="py-3 font-monospace text-dark text-center">
                                         <i className="bi bi-bar-chart-steps me-1"></i>{" "}
-                                        Grade / Term
+                                        Grade | Term
                                     </th>
                                     <th className="text-end pe-4 py-3 font-monospace text-dark">
                                         <i className="bi bi-gear-fill me-1"></i>{" "}
@@ -489,7 +489,7 @@ export default function Subjects({ apiPrefix = "/api" }) {
                                                 style={{ maxWidth: "300px" }}
                                             >
                                                 <div
-                                                    className="text-truncate"
+                                                    className="text-truncate fst-italic"
                                                     title={subject.description}
                                                     style={{ cursor: "help" }}
                                                 >
@@ -503,8 +503,7 @@ export default function Subjects({ apiPrefix = "/api" }) {
                                                         display: "inline-block",
                                                     }}
                                                 >
-                                                    {subject.strand?.code ||
-                                                        "N/A"}
+                                                    {subject.strand?.code}
                                                 </span>
                                             </td>
                                             <td className="py-3 font-monospace small fw-bold text-center">

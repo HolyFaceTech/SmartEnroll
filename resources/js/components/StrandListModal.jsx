@@ -111,7 +111,7 @@ export default function StrandListModal({
                                             className="text-center fw-bold"
                                             style={{ borderColor: "#000" }}
                                         >
-                                            {s.student_number || "-"}
+                                            {s.student_number || "--------"}
                                         </td>
                                         <td
                                             className="text-center"
@@ -129,8 +129,7 @@ export default function StrandListModal({
                                             className="text-center text-muted fw-bold"
                                             style={{ borderColor: "#000" }}
                                         >
-                                            {s.learning_modality?.toUpperCase() ||
-                                                "N/A"}
+                                            {s.learning_modality?.toUpperCase()}
                                         </td>
                                     </tr>
                                 );

@@ -21,8 +21,8 @@ export default function StatusCheckModal({ show, student, onClose }) {
         ? `/storage/${student.photo_2x2}`
         : `https://ui-avatars.com/api/?name=${fullName}&background=random&color=fff&size=128`;
 
-    const gradeLevel = student.grade_level ? student.grade_level : "N/A";
-    const sectionName = student.section?.name ? student.section.name : "TBA";
+    const gradeLevel = student.grade_level ? student.grade_level : "";
+    const sectionName = student.section?.name ? student.section.name : "N/A";
     const combinedGradeSection = `${gradeLevel} - ${sectionName}`;
 
     return (
@@ -73,7 +73,7 @@ export default function StatusCheckModal({ show, student, onClose }) {
                                 </h4>
                                 <div className="text-muted font-monospace small fw-bold mb-3">
                                     <i className="bi bi-person-vcard text-primary me-2"></i>
-                                    {student.student_number || "TBA"}
+                                    {student.student_number || "--------"}
                                 </div>
                                 <div
                                     className={`d-inline-block px-4 py-2 border border-2 border-dark font-monospace ${getStatusColor(student.status)}`}
@@ -99,14 +99,13 @@ export default function StatusCheckModal({ show, student, onClose }) {
                                         {
                                             label: "LRN",
                                             icon: "bi-upc-scan",
-                                            value: student.lrn || "N/A",
+                                            value: student.lrn,
                                             color: "text-success",
                                         },
                                         {
                                             label: "Strand",
                                             icon: "bi-book-half",
-                                            value:
-                                                student.strand?.code || "N/A",
+                                            value: student.strand?.code,
                                             color: "text-primary",
                                         },
                                         {
@@ -119,7 +118,7 @@ export default function StatusCheckModal({ show, student, onClose }) {
                                             icon: "bi-calendar-event-fill",
                                             value: student.term
                                                 ? `${student.term} Term`
-                                                : "N/A",
+                                                : "",
                                         },
                                     ].map((row, idx, arr) => (
                                         <div

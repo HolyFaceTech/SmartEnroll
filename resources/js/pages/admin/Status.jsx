@@ -548,7 +548,7 @@ export default function Status() {
                                                                   year: "numeric",
                                                               },
                                                           )
-                                                        : "- -, -"}
+                                                        : ""}
                                                 </td>
                                                 <td className="py-3 font-monospace small fw-bold text-center">
                                                     {statusRecord.done_at ? (

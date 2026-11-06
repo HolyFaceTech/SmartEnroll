@@ -122,7 +122,7 @@ export default function RequestViewModal({ show, selectedRequest, onClose }) {
                                 >
                                     {selectedRequest.status
                                         ? selectedRequest.status.toUpperCase()
-                                        : "UNKNOWN"}
+                                        : "N/A"}
                                 </div>
                             </div>
 
@@ -136,13 +136,13 @@ export default function RequestViewModal({ show, selectedRequest, onClose }) {
                                         {
                                             label: "LRN",
                                             icon: "bi-upc-scan",
-                                            value: student.lrn || "N/A",
+                                            value: student.lrn,
                                             color: "text-success",
                                         },
                                         {
                                             label: "Strand",
                                             icon: "bi-book-half",
-                                            value: strand.code || "N/A",
+                                            value: strand.code,
                                         },
                                         {
                                             label: "Document Type",
@@ -153,9 +153,7 @@ export default function RequestViewModal({ show, selectedRequest, onClose }) {
                                         {
                                             label: "Purpose",
                                             icon: "bi-chat-left-text-fill",
-                                            value:
-                                                selectedRequest.purpose ||
-                                                "N/A",
+                                            value: selectedRequest.purpose,
                                             color: "fst-italic",
                                         },
                                         {
@@ -230,7 +228,7 @@ export default function RequestViewModal({ show, selectedRequest, onClose }) {
                                                 label: "Released By",
                                                 icon: "bi-person-badge-fill",
                                                 value: releasedBy
-                                                    ? `${releasedBy.first_name} ${releasedBy.last_name}`
+                                                    ? `${releasedBy.first_name || ""} ${releasedBy.middle_name || ""} ${releasedBy.last_name || ""} ${releasedBy.suffix || ""}`
                                                     : "Pending Release",
                                             },
                                             {
@@ -249,14 +247,12 @@ export default function RequestViewModal({ show, selectedRequest, onClose }) {
                                                               minute: "2-digit",
                                                           },
                                                       )
-                                                    : "N/A",
+                                                    : "",
                                             },
                                             {
                                                 label: "Claimed By",
                                                 icon: "bi-person-check-fill",
-                                                value:
-                                                    selectedRequest.claimed_by ||
-                                                    "N/A",
+                                                value: selectedRequest.claimed_by,
                                             },
                                         ].map((row, idx, arr) => (
                                             <div

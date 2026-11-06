@@ -267,16 +267,18 @@ export default function Setting() {
                                                     }}
                                                 >
                                                     <span
-                                                        className={`fw-bold font-monospace fs-6 ${isEnrollmentDay ? "text-dark" : "text-muted"}`}
+                                                        className={`fw-bold font-monospace fs-6 position-absolute top-0 start-0 p-2 ${isEnrollmentDay ? "text-dark" : "text-muted"}`}
                                                     >
                                                         {day.format("D")}
                                                     </span>
 
                                                     {isEnrollmentDay && (
-                                                        <div className="position-absolute top-50 start-50 translate-middle w-100 text-center px-1">
+                                                        <div className="position-absolute bottom-0 start-0 w-100 text-center px-2 pb-2">
                                                             <div
-                                                                className="badge bg-primary border border-dark text-white rounded-0 py-1 w-100 btn-action-retro"
+                                                                className="border border-dark text-white py-1 w-100 shadow-sm btn-action-retro fw-bold"
                                                                 style={{
+                                                                    backgroundColor:
+                                                                        "#3F9AAE",
                                                                     fontSize:
                                                                         "0.65rem",
                                                                     letterSpacing:
@@ -285,7 +287,7 @@ export default function Setting() {
                                                                         "2px 2px 0px #000",
                                                                 }}
                                                             >
-                                                                ENROLLMENT
+                                                                OPEN
                                                             </div>
                                                         </div>
                                                     )}

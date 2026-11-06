@@ -65,7 +65,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/analytics', [AdminController::class, 'getAnalytics']);
 
     /** User */
-    Route::middleware('throttle:15,1')->group(function () {
+    Route::middleware('throttle:60,1')->group(function () {
         Route::post('users/import', [UserController::class, 'importUsers']);
         Route::post('users/bulk-delete', [UserController::class, 'bulkDelete']);
         Route::resource('users', UserController::class);
@@ -123,7 +123,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     /** System Statuses */
-    Route::middleware('throttle:30,1')->group(function () {
+    Route::middleware('throttle:60,1')->group(function () {
         Route::post('statuses/bulk-delete', [StatusController::class, 'bulkDelete']);
         Route::put('statuses/{id}/status', [StatusController::class, 'changeStatus']); // BAGONG ROUTE
         Route::apiResource('statuses', StatusController::class);

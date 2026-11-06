@@ -174,7 +174,7 @@ export default function StatusModal({
                                     >
                                         {formData.status
                                             ? formData.status.toUpperCase()
-                                            : "UNKNOWN"}
+                                            : "N/A"}
                                     </div>
                                 </div>
                                 <div className="card border-2 border-dark mb-4">
@@ -194,8 +194,7 @@ export default function StatusModal({
                                                 Description:
                                             </span>
                                             <p className="font-monospace fw-bold text-dark mb-3">
-                                                {formData.description ||
-                                                    "No description provided."}
+                                                {formData.description}
                                             </p>
                                         </div>
                                         <div
@@ -212,7 +211,7 @@ export default function StatusModal({
                                                     ? new Date(
                                                           formData.created_at,
                                                       ).toLocaleDateString()
-                                                    : "-/-/-"}
+                                                    : ""}
                                             </span>
                                         </div>
                                         <div className="d-flex justify-content-between align-items-center py-2">

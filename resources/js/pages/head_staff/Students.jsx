@@ -626,21 +626,20 @@ export default function Students() {
                                                 </td>
 
                                                 <td className="py-3 font-monospace fw-bold text-dark text-center">
-                                                    {s.academic?.strand?.code ||
-                                                        "N/A"}{" "}
-                                                    - {""}
+                                                    {s.academic?.strand?.code} -{" "}
+                                                    {""}
                                                     <small className="text-dark fw-bold">
-                                                        {s.academic?.term ||
-                                                            "N/A"}
+                                                        {s.academic?.term}
                                                     </small>
                                                 </td>
                                                 <td className="py-3 font-monospace fw-bold text-dark text-center">
-                                                    {s.academic?.grade_level ||
-                                                        "11"}{" "}
-                                                    - {""}
-                                                    <small className="text-success fw-bold">
+                                                    {s.academic?.grade_level} -{" "}
+                                                    {""}
+                                                    <small
+                                                        className={`fw-bold ${s.academic?.section?.name ? "text-success" : "text-danger"}`}
+                                                    >
                                                         {s.academic?.section
-                                                            ?.name || "TBA"}
+                                                            ?.name || "N/A"}
                                                     </small>
                                                 </td>
                                                 <td className="py-3 text-center">
@@ -821,10 +820,20 @@ export default function Students() {
                                 </li>
                                 <li>
                                     <button
-                                        className="dropdown-item fw-bold text-warning py-2"
+                                        className={`dropdown-item fw-bold py-2 ${s.status.toLowerCase() === "pending" ? "text-muted" : "text-warning"}`}
                                         onClick={() =>
                                             handleActionClick("pending", s)
                                         }
+                                        disabled={
+                                            s.status.toLowerCase() === "pending"
+                                        }
+                                        style={{
+                                            cursor:
+                                                s.status.toLowerCase() ===
+                                                "pending"
+                                                    ? "not-allowed"
+                                                    : "pointer",
+                                        }}
                                     >
                                         <i className="bi bi-hourglass-split me-2"></i>{" "}
                                         Pending
@@ -832,10 +841,21 @@ export default function Students() {
                                 </li>
                                 <li>
                                     <button
-                                        className="dropdown-item fw-bold text-success py-2"
+                                        className={`dropdown-item fw-bold py-2 ${s.status.toLowerCase() === "enrolled" ? "text-muted" : "text-success"}`}
                                         onClick={() =>
                                             handleActionClick("enrolled", s)
                                         }
+                                        disabled={
+                                            s.status.toLowerCase() ===
+                                            "enrolled"
+                                        }
+                                        style={{
+                                            cursor:
+                                                s.status.toLowerCase() ===
+                                                "enrolled"
+                                                    ? "not-allowed"
+                                                    : "pointer",
+                                        }}
                                     >
                                         <i className="bi bi-person-check me-2"></i>{" "}
                                         Enrolled
@@ -870,10 +890,20 @@ export default function Students() {
                                 </li>
                                 <li>
                                     <button
-                                        className="dropdown-item fw-bold text-danger py-2"
+                                        className={`dropdown-item fw-bold py-2 ${s.status.toLowerCase() === "on hold" ? "text-muted" : "text-danger"}`}
                                         onClick={() =>
                                             handleActionClick("on hold", s)
                                         }
+                                        disabled={
+                                            s.status.toLowerCase() === "on hold"
+                                        }
+                                        style={{
+                                            cursor:
+                                                s.status.toLowerCase() ===
+                                                "on hold"
+                                                    ? "not-allowed"
+                                                    : "pointer",
+                                        }}
                                     >
                                         <i className="bi bi-pause-circle me-2"></i>{" "}
                                         On Hold
@@ -881,10 +911,21 @@ export default function Students() {
                                 </li>
                                 <li>
                                     <button
-                                        className="dropdown-item fw-bold text-info py-2"
+                                        className={`dropdown-item fw-bold py-2 ${s.status.toLowerCase() === "graduate" ? "text-muted" : "text-info"}`}
                                         onClick={() =>
                                             handleActionClick("graduate", s)
                                         }
+                                        disabled={
+                                            s.status.toLowerCase() ===
+                                            "graduate"
+                                        }
+                                        style={{
+                                            cursor:
+                                                s.status.toLowerCase() ===
+                                                "graduate"
+                                                    ? "not-allowed"
+                                                    : "pointer",
+                                        }}
                                     >
                                         <i className="bi bi-mortarboard me-2"></i>{" "}
                                         Graduate
@@ -892,10 +933,21 @@ export default function Students() {
                                 </li>
                                 <li>
                                     <button
-                                        className="dropdown-item fw-bold text-dark py-2"
+                                        className={`dropdown-item fw-bold py-2 ${s.status.toLowerCase() === "drop out" ? "text-muted" : "text-dark"}`}
                                         onClick={() =>
                                             handleActionClick("drop out", s)
                                         }
+                                        disabled={
+                                            s.status.toLowerCase() ===
+                                            "drop out"
+                                        }
+                                        style={{
+                                            cursor:
+                                                s.status.toLowerCase() ===
+                                                "drop out"
+                                                    ? "not-allowed"
+                                                    : "pointer",
+                                        }}
                                     >
                                         <i className="bi bi-x-circle me-2"></i>{" "}
                                         Drop Out
@@ -903,10 +955,21 @@ export default function Students() {
                                 </li>
                                 <li>
                                     <button
-                                        className="dropdown-item fw-bold text-secondary py-2"
+                                        className={`dropdown-item fw-bold py-2 ${s.status.toLowerCase() === "released" ? "text-muted" : "text-secondary"}`}
                                         onClick={() =>
                                             handleActionClick("released", s)
                                         }
+                                        disabled={
+                                            s.status.toLowerCase() ===
+                                            "released"
+                                        }
+                                        style={{
+                                            cursor:
+                                                s.status.toLowerCase() ===
+                                                "released"
+                                                    ? "not-allowed"
+                                                    : "pointer",
+                                        }}
                                     >
                                         <i className="bi bi-box-arrow-right me-2"></i>{" "}
                                         Released
@@ -917,10 +980,16 @@ export default function Students() {
                                 </li>
                                 <li>
                                     <button
-                                        className="dropdown-item fw-bold text-muted py-2 bg-light"
+                                        className={`dropdown-item fw-bold py-2 bg-light ${!s.previous_status ? "text-muted" : "text-dark"}`}
                                         onClick={() =>
                                             handleActionClick("reset", s)
                                         }
+                                        disabled={!s.previous_status}
+                                        style={{
+                                            cursor: !s.previous_status
+                                                ? "not-allowed"
+                                                : "pointer",
+                                        }}
                                     >
                                         <i className="bi bi-arrow-counterclockwise me-2"></i>{" "}
                                         Reset Status

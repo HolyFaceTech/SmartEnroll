@@ -454,7 +454,7 @@ export default function Requests() {
                                     </th>
                                     <th className="py-3 font-monospace text-dark text-center">
                                         <i className="bi bi-calendar-event me-1"></i>{" "}
-                                        Requested
+                                        Requested At
                                     </th>
                                     <th className="text-end pe-4 py-3 font-monospace text-dark">
                                         <i className="bi bi-gear-fill me-1"></i>{" "}
@@ -563,13 +563,10 @@ export default function Requests() {
                                                 >
                                                     <div
                                                         className="text-truncate"
-                                                        title={
-                                                            req.purpose || "N/A"
-                                                        }
+                                                        title={req.purpose}
                                                     >
                                                         <small>
-                                                            {req.purpose ||
-                                                                "N/A"}
+                                                            {req.purpose}
                                                         </small>
                                                     </div>
                                                 </td>

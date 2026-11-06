@@ -539,11 +539,9 @@ export default function Users() {
                                                                 Female
                                                             </span>
                                                         )}
-                                                        {!user.gender && "-"}
                                                     </td>
                                                     <td className="py-3 font-monospace fw-bold text-dark text-center">
-                                                        {user.contact_number ||
-                                                            "-"}
+                                                        {user.contact_number}
                                                     </td>
                                                     <td className="py-3 font-monospace small text-muted fw-bold text-center">
                                                         {user.login_at
@@ -559,7 +557,7 @@ export default function Users() {
                                                                       minute: "2-digit",
                                                                   },
                                                               )
-                                                            : "Never logged in"}
+                                                            : "- -, -, - -"}
                                                     </td>
                                                     <td className="text-end pe-4 py-3">
                                                         <div className="d-flex justify-content-end gap-2">

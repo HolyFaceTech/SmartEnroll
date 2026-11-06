@@ -285,7 +285,7 @@ export default function UserModal({
                                     >
                                         {formData.status
                                             ? formData.status.toUpperCase()
-                                            : "UNKNOWN"}
+                                            : "N/A"}
                                     </div>
                                 </div>
 
@@ -305,27 +305,24 @@ export default function UserModal({
                                             {
                                                 label: "Contact",
                                                 icon: "bi-telephone-fill",
-                                                value:
-                                                    formData.contact_number ||
-                                                    "N/A",
+                                                value: formData.contact_number,
                                             },
                                             {
                                                 label: "Birthday",
                                                 icon: "bi-calendar-event-fill",
-                                                value:
-                                                    formData.birthday || "N/A",
+                                                value: formData.birthday,
                                             },
                                             {
                                                 label: "Age",
                                                 icon: "bi-hourglass-split",
                                                 value: formData.age
                                                     ? `${formData.age} yrs`
-                                                    : "N/A",
+                                                    : "",
                                             },
                                             {
                                                 label: "Gender",
                                                 icon: "bi-gender-ambiguous",
-                                                value: formData.gender || "N/A",
+                                                value: formData.gender,
                                             },
                                         ].map((row, idx, arr) => (
                                             <div
